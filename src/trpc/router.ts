@@ -1,25 +1,23 @@
 import { z } from 'zod'
-import { desc, eq } from 'drizzle-orm'
 import { router, publicProcedure, protectedProcedure } from './init'
 import { db } from '~/db'
-import { post, user } from '~/db/schema'
 
 export const appRouter = router({
   me: protectedProcedure.query(({ ctx }) => ctx.session.user),
   posts: router({
     list: publicProcedure.query(async () => {
-      return db
-        .select({
-          id: post.id,
-          title: post.title,
-          content: post.content,
-          createdAt: post.createdAt,
-          authorName: user.name,
-        })
-        .from(post)
-        .leftJoin(user, eq(post.authorId, user.id))
-        .orderBy(desc(post.createdAt))
-        .limit(50)
+      const rows = await db.post.findMany({
+        take: 50,
+        orderBy: { createdAt: 'desc' },
+        include: { author: { select: { name: true } } },
+      })
+      return rows.map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content,
+        createdAt: p.createdAt,
+        authorName: p.author?.name ?? null,
+      }))
     }),
     create: protectedProcedure
       .input(
@@ -29,11 +27,9 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        const [created] = await db
-          .insert(post)
-          .values({ ...input, authorId: ctx.session.user.id })
-          .returning()
-        return created
+        return db.post.create({
+          data: { ...input, authorId: ctx.session.user.id },
+        })
       }),
   }),
 })

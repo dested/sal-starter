@@ -7,7 +7,7 @@ export const Route = createFileRoute('/')({
 
 const stack = [
   ['TanStack Start', 'SSR React framework with file-based routing'],
-  ['Drizzle ORM + Postgres', 'Type-safe SQL with schema migrations'],
+  ['Prisma ORM + Postgres', 'Type-safe schema with migrations and Studio'],
   ['better-auth', 'Email + password auth, session cookies'],
   ['tRPC v11', 'End-to-end typed RPC with TanStack Query'],
   ['Tailwind v4 + shadcn', 'CSS-first styling, copy-paste components'],

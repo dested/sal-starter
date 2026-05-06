@@ -10,8 +10,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: bun install && bun run build
-    preDeployCommand: bunx drizzle-kit push --force
+    buildCommand: bun install && bunx prisma generate && bun run build
+    preDeployCommand: bunx prisma db push --accept-data-loss
     startCommand: bun run server.ts
     envVars:
       # `runtime: node` is required — there is no `runtime: bun`. Setting

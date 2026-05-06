@@ -44,7 +44,7 @@ function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>New post</CardTitle>
-          <CardDescription>Posts are stored in Postgres via Drizzle, fetched over tRPC.</CardDescription>
+          <CardDescription>Posts are stored in Postgres via Prisma, fetched over tRPC.</CardDescription>
         </CardHeader>
         <CardContent>
           <form
