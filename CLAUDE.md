@@ -148,7 +148,7 @@ It writes to `src/components/ui/`. Aliases in `components.json` already point at
 ## Build / verify
 
 ```
-bun run typecheck   # tsc --noEmit
+bun run typecheck   # tsgo --noEmit (TypeScript Native Preview, @typescript/native-preview)
 bun run build       # vite build → dist/server/server.js + dist/client/*
 bun run dev         # http://localhost:3000
 ```

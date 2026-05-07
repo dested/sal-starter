@@ -7,6 +7,7 @@ import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import type { TRPCClient } from '@trpc/client'
 import { routeTree } from './routeTree.gen'
 import { getSsrCookieHeaders } from './lib/ssr-cookie-headers'
+import { logBadResponse } from './lib/log-response'
 import type { AppRouter } from './trpc/router'
 
 function getBaseUrl() {
@@ -29,6 +30,15 @@ export function getRouter() {
       httpBatchLink({
         url: `${getBaseUrl()}/api/trpc`,
         headers: getServerHeaders,
+        fetch: async (input, init) => {
+          const response = await fetch(input, init)
+          await logBadResponse(
+            'trpc',
+            { url: typeof input === 'string' ? input : input.toString(), method: init?.method },
+            response,
+          )
+          return response
+        },
       }),
     ],
   })
