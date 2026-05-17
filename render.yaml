@@ -12,7 +12,7 @@ services:
     region: oregon
     buildCommand: bun install && bunx prisma generate && bun run build
     preDeployCommand: bunx prisma db push --accept-data-loss
-    startCommand: bun run server.ts
+    startCommand: bun run start
     envVars:
       # `runtime: node` is required — there is no `runtime: bun`. Setting
       # BUN_VERSION makes Render's Node runtime use Bun for install/start.

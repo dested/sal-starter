@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { router, publicProcedure, protectedProcedure } from './init'
-import { db } from '~/db'
+import { router, publicProcedure, protectedProcedure } from './trpc'
+import { prisma } from './prisma'
 
 export const appRouter = router({
   me: protectedProcedure.query(({ ctx }) => ctx.session.user),
   posts: router({
     list: publicProcedure.query(async () => {
-      const rows = await db.post.findMany({
+      const rows = await prisma.post.findMany({
         take: 50,
         orderBy: { createdAt: 'desc' },
         include: { author: { select: { name: true } } },
@@ -27,7 +27,7 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        return db.post.create({
+        return prisma.post.create({
           data: { ...input, authorId: ctx.session.user.id },
         })
       }),

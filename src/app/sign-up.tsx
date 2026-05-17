@@ -1,48 +1,56 @@
-import { useState } from 'react'
-import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { authClient } from '~/lib/auth-client'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 
-export const Route = createFileRoute('/sign-in')({
-  beforeLoad: ({ context }) => {
-    if (context.session) throw redirect({ to: '/dashboard' })
-  },
-  component: SignInPage,
-})
-
-function SignInPage() {
-  const router = useRouter()
+export function SignUpPage() {
+  const navigate = useNavigate()
+  const { data: session, isPending } = authClient.useSession()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (!isPending && session) navigate('/dashboard', { replace: true })
+  }, [isPending, session, navigate])
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const { error: err } = await authClient.signIn.email({ email, password })
+    const { error: err } = await authClient.signUp.email({ name, email, password })
     setLoading(false)
     if (err) {
-      setError(err.message ?? 'Sign in failed')
+      setError(err.message ?? 'Sign up failed')
       return
     }
-    await router.invalidate()
-    router.navigate({ to: '/dashboard' })
+    navigate('/dashboard')
   }
 
   return (
     <div className="mx-auto max-w-sm">
       <Card>
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>Enter your email and password to continue.</CardDescription>
+          <CardTitle>Create account</CardTitle>
+          <CardDescription>Sign up with your email and a password.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="name"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -62,17 +70,18 @@ function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="current-password"
+                minLength={8}
+                autoComplete="new-password"
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? 'Creating account…' : 'Sign up'}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              No account?{' '}
-              <Link to="/sign-up" className="underline">
-                Sign up
+              Already have an account?{' '}
+              <Link to="/sign-in" className="underline">
+                Sign in
               </Link>
             </p>
           </form>

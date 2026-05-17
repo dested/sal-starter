@@ -1,6 +1,5 @@
 node_modules
 dist
-.output
 .vite
 .cache
 
@@ -21,7 +20,3 @@ Thumbs.db
 # logs
 *.log
 bun.lockb.bak
-
-# generated
-src/routeTree.gen.ts
-.tanstack

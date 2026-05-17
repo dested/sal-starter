@@ -1,24 +1,16 @@
-import { useState } from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useTRPC } from '~/trpc/react'
+import { authClient } from '~/lib/auth-client'
+import { useTRPC } from '~/lib/trpc'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 
-export const Route = createFileRoute('/dashboard')({
-  beforeLoad: ({ context }) => {
-    if (!context.session) throw redirect({ to: '/sign-in' })
-  },
-  loader: async ({ context }) => {
-    await context.queryClient.prefetchQuery(context.trpc.posts.list.queryOptions())
-  },
-  component: DashboardPage,
-})
-
-function DashboardPage() {
-  const { session } = Route.useRouteContext()
+export function DashboardPage() {
+  const navigate = useNavigate()
+  const { data: session, isPending } = authClient.useSession()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
@@ -32,12 +24,18 @@ function DashboardPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
 
+  useEffect(() => {
+    if (!isPending && !session) navigate('/sign-in', { replace: true })
+  }, [isPending, session, navigate])
+
+  if (!session) return null
+
   return (
     <div className="space-y-8">
       <section>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back, <strong>{session!.user.name || session!.user.email}</strong>.
+          Welcome back, <strong>{session.user.name || session.user.email}</strong>.
         </p>
       </section>
 

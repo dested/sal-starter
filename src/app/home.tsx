@@ -1,21 +1,19 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-
-export const Route = createFileRoute('/')({
-  component: HomePage,
-})
+import { Link } from 'react-router-dom'
+import { authClient } from '~/lib/auth-client'
+import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 
 const stack = [
-  ['TanStack Start', 'SSR React framework with file-based routing'],
+  ['React Router 7', 'File-less route objects with SSR via createStaticHandler'],
   ['Prisma ORM + Postgres', 'Type-safe schema with migrations and Studio'],
   ['better-auth', 'Email + password auth, session cookies'],
   ['tRPC v11', 'End-to-end typed RPC with TanStack Query'],
   ['Tailwind v4 + shadcn', 'CSS-first styling, copy-paste components'],
-  ['Bun', 'Runtime, package manager, production server'],
+  ['Bun + Express', 'Bun runtime, Express SSR server with Vite middleware'],
 ]
 
-function HomePage() {
-  const { session } = Route.useRouteContext()
+export function HomePage() {
+  const { data: session } = authClient.useSession()
+
   return (
     <div className="space-y-8">
       <section className="space-y-3">
