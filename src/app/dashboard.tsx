@@ -1,16 +1,15 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useLoaderData } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { authClient } from '~/lib/auth-client'
 import { useTRPC } from '~/lib/trpc'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import type { RootLoaderData } from './routes'
 
 export function DashboardPage() {
-  const navigate = useNavigate()
-  const { data: session, isPending } = authClient.useSession()
+  const { session } = useLoaderData() as RootLoaderData
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
@@ -23,10 +22,6 @@ export function DashboardPage() {
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-
-  useEffect(() => {
-    if (!isPending && !session) navigate('/sign-in', { replace: true })
-  }, [isPending, session, navigate])
 
   if (!session) return null
 
@@ -92,8 +87,7 @@ export function DashboardPage() {
               <CardHeader>
                 <CardTitle>{p.title}</CardTitle>
                 <CardDescription>
-                  by {p.authorName ?? 'unknown'} ·{' '}
-                  {new Date(p.createdAt).toLocaleString()}
+                  by {p.authorName ?? 'unknown'} · {p.createdAt.slice(0, 10)}
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -1,29 +1,64 @@
 import type * as express from 'express'
+import { dehydrate, QueryClient, type DehydratedState } from '@tanstack/react-query'
+import { createTRPCClient, httpBatchLink } from '@trpc/client'
+import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import ReactDomServer from 'react-dom/server'
 import {
   StaticRouterProvider,
   createStaticHandler,
   createStaticRouter,
 } from 'react-router-dom'
+import { auth, type Session } from '../server/auth'
+import { appRouter } from '../server/router'
 import App from './App'
-import { routes } from './app/routes'
+import { routes, type SsrLoaderContext } from './app/routes'
 
-export async function render(req: express.Request) {
-  const { query, dataRoutes } = createStaticHandler(routes)
+export async function render(req: express.Request): Promise<{
+  html: string
+  session: Session | null
+  dehydratedState: DehydratedState
+}> {
   const fetchRequest = expressToFetch(req)
-  const context = await query(fetchRequest)
 
-  if (context instanceof Response) throw context
+  const session = await auth.api.getSession({ headers: fetchRequest.headers })
 
-  const router = createStaticRouter(dataRoutes, context)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { staleTime: 60_000 } },
+  })
+
+  const trpcServer = createTRPCOptionsProxy({
+    router: appRouter,
+    ctx: { session },
+    queryClient,
+  })
+
+  const { query, dataRoutes } = createStaticHandler(routes)
+  const ssrContext: SsrLoaderContext = { session, queryClient, trpc: trpcServer }
+  const routerContext = await query(fetchRequest, { requestContext: ssrContext })
+
+  if (routerContext instanceof Response) throw routerContext
+
+  const router = createStaticRouter(dataRoutes, routerContext)
+
+  // Loopback tRPC client for any non-prefetched query that runs during render.
+  // Prefetched queries land in queryClient cache and won't hit this.
+  const cookieHeader = req.headers.cookie
+  const trpcClient = createTRPCClient<typeof appRouter>({
+    links: [
+      httpBatchLink({
+        url: `http://localhost:${process.env.PORT ?? 3000}/api/trpc`,
+        headers: () => (cookieHeader ? { cookie: cookieHeader } : {}),
+      }),
+    ],
+  })
 
   const html = ReactDomServer.renderToString(
-    <App>
-      <StaticRouterProvider router={router} context={context} />
+    <App queryClient={queryClient} trpcClient={trpcClient} dehydratedState={null}>
+      <StaticRouterProvider router={router} context={routerContext} />
     </App>,
   )
 
-  return { html }
+  return { html, session, dehydratedState: dehydrate(queryClient) }
 }
 
 function expressToFetch(req: express.Request): Request {

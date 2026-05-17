@@ -78,9 +78,10 @@ prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
 ### Auth (browser → cookie → session)
 
 1. User submits the sign-in form → `authClient.signIn.email({ email, password })` (browser).
-2. better-auth client POSTs to `/api/auth/sign-in/email` → caught by the `app.all('/api/auth/*splat', toNodeHandler(auth))` mount in `server.ts` → cookie set on the response.
-3. Form handler navigates to `/dashboard` via `useNavigate()`.
-4. `authClient.useSession()` (a better-auth React hook) reads the session by hitting `/api/auth/get-session`. Components use it directly in render. The session is not pre-fetched into router context — there's a brief flicker on initial load for signed-in users until `useSession()` resolves. If you need synchronous session access during SSR (e.g. to render the right nav state without flicker), pass it through `createStaticHandler.query(req, { requestContext })` and serialize via `window.__SESSION__`.
+2. better-auth client POSTs to `/api/auth/sign-in/email` → caught by `app.all('/api/auth/*splat', toNodeHandler(auth))` in `server.ts` → cookie set on the response.
+3. Form handler calls `revalidator.revalidate()` then `useNavigate()` to `/dashboard`. Revalidate re-runs loaders so the new session lands in route data.
+4. On server-side SSR, `entry-server.tsx` calls `auth.api.getSession({ headers })` once per request and passes it through `createStaticHandler.query(req, { requestContext: { session, ... } })` to loaders. The root layout's loader returns `{ session }`; descendants read it via `useRouteLoaderData('root')`. **No client-side flicker** — the session is in the SSR HTML's RR hydration script and available on first paint.
+5. On client navigations, loaders call `authClient.getSession()` (HTTP roundtrip to `/api/auth/get-session`). One extra request per navigation; cheap and means stale session never leaks across pages.
 
 ### tRPC
 
@@ -97,7 +98,16 @@ prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
 4. `render(req)` builds a Fetch `Request` from the Express `req`, runs it through `createStaticHandler(routes).query(...)` to execute loaders, then `renderToString` with `<StaticRouterProvider>`.
 5. The HTML returned has `<!--app-html-->` swapped for the rendered React tree. The client then hydrates via `src/index.tsx` and `<RouterProvider router={createBrowserRouter(routes)} />`.
 
-**No SSR data hydration is wired up** for tRPC queries. `posts.list` on the dashboard fetches client-side after hydration. If you want to prefetch on the server, you'll need to (a) build a per-request `QueryClient` + tRPC client, (b) prefetch in route loaders via `requestContext`, (c) `dehydrate(queryClient)` into the HTML, (d) hydrate with `<HydrationBoundary state={...}>` on the client.
+**SSR data hydration IS wired up**. The pipeline:
+
+- `entry-server.tsx` creates a per-request `QueryClient` plus a server-side `createTRPCOptionsProxy({ router: appRouter, ctx: { session }, queryClient })` — this proxy calls procedures **directly** (no HTTP), bypassing the network entirely.
+- Both are passed to loaders via `requestContext`. Loaders prefetch with `ctx.queryClient.prefetchQuery(ctx.trpc.posts.list.queryOptions())` (see `src/app/routes.tsx` → `dashboardLoader`).
+- After the static handler resolves, `dehydrate(queryClient)` is serialized into `window.__SSR_STATE__` via the `<!--app-state-->` placeholder in `index.html`.
+- On the client, `index.tsx` reads `window.__SSR_STATE__` and feeds it to `<HydrationBoundary>` in `App.tsx`. Components reading `useQuery(trpc.posts.list.queryOptions())` get cached data instantly. No refetch, no flicker.
+
+**Date handling note**: tRPC procedures must return JSON-safe types — convert `Date` to ISO string at the procedure level (`createdAt: p.createdAt.toISOString()`), or SSR-vs-hydration markup will diverge on `toLocaleString()` and React will warn. See `posts.list` for the pattern. Add SuperJSON if you want transparent Date support.
+
+**Client-nav prefetch**: client-side loaders currently don't prefetch tRPC data — they only re-check the session. The component's `useQuery` handles fetching on first render after navigation. If you want zero-flicker on client navigations too, add a module-singleton `QueryClient` + client-side `createTRPCOptionsProxy({ client: trpcClient, queryClient })` and call `prefetchQuery` from the client branch of the loader.
 
 ## Common tasks
 

@@ -17,12 +17,10 @@ const resolve = (p: string) => path.resolve(__dirname, p)
 async function createServer() {
   const app = express()
 
-  // better-auth handler — must be mounted BEFORE express.json() (better-auth
-  // reads the raw body itself). Using its node adapter so cookies set on the
-  // response flow through correctly.
+  // better-auth handler — mounted BEFORE express.json() (better-auth reads
+  // the raw body itself).
   app.all('/api/auth/*splat', toNodeHandler(auth))
 
-  // tRPC handler.
   app.use(
     '/api/trpc',
     createExpressMiddleware({
@@ -64,14 +62,12 @@ async function createServer() {
 
   app.use(async (req, res) => {
     try {
-      const url = req.originalUrl
-
       let template: string
-      let render: (req: express.Request) => Promise<{ html: string }>
+      let render: typeof import('./src/entry-server').render
 
       if (!isProd && vite) {
         template = fs.readFileSync(resolve('./index.html'), 'utf-8')
-        template = await vite.transformIndexHtml(url, template)
+        template = await vite.transformIndexHtml(req.originalUrl, template)
         render = (await vite.ssrLoadModule('/src/entry-server.tsx')).render
       } else {
         template = indexProd
@@ -79,20 +75,41 @@ async function createServer() {
         render = (await import('./dist/server/entry-server.js')).render
       }
 
-      const { html: appHtml } = await render(req)
-      const html = template.replace('<!--app-html-->', appHtml)
+      const { html: appHtml, dehydratedState } = await render(req)
+
+      const stateScript = `<script>window.__SSR_STATE__ = ${jsonForScript({ dehydratedState })}</script>`
+      const html = template
+        .replace('<!--app-state-->', stateScript)
+        .replace('<!--app-html-->', appHtml)
 
       res.status(200).set({ 'Content-Type': 'text/html' }).end(html)
-    } catch (e: any) {
-      if (!isProd && vite) vite.ssrFixStacktrace(e)
-      console.error(e.stack ?? e)
-      res.status(500).end(e.stack ?? String(e))
+    } catch (e: unknown) {
+      if (e instanceof Response) {
+        const location = e.headers.get('location')
+        if (location) {
+          res.redirect(e.status, location)
+        } else {
+          const body = await e.text()
+          res.status(e.status).end(body)
+        }
+        return
+      }
+      if (!isProd && vite) vite.ssrFixStacktrace(e as Error)
+      const err = e as Error
+      console.error(err.stack ?? err)
+      res.status(500).end(err.stack ?? String(err))
     }
   })
 
   app.listen(PORT, () => {
     console.log(`server running on http://localhost:${PORT}`)
   })
+}
+
+// JSON for safe inline-script embedding: escape `<` so `</script>` can't
+// terminate the script tag.
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c')
 }
 
 createServer()

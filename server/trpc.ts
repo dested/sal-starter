@@ -1,8 +1,10 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import type { CreateExpressContextOptions } from '@trpc/server/adapters/express'
-import { auth } from './auth'
+import { auth, type Session } from './auth'
 
-export async function createContext({ req }: CreateExpressContextOptions) {
+export type Context = { session: Session | null }
+
+export async function createContext({ req }: CreateExpressContextOptions): Promise<Context> {
   const headers = new Headers()
   for (const [key, value] of Object.entries(req.headers)) {
     if (value === undefined) continue
@@ -13,10 +15,8 @@ export async function createContext({ req }: CreateExpressContextOptions) {
     }
   }
   const session = await auth.api.getSession({ headers })
-  return { req, session }
+  return { session }
 }
-
-export type Context = Awaited<ReturnType<typeof createContext>>
 
 const t = initTRPC.context<Context>().create()
 

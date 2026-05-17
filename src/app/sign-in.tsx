@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useRevalidator } from 'react-router-dom'
 import { authClient } from '~/lib/auth-client'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -8,15 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/com
 
 export function SignInPage() {
   const navigate = useNavigate()
-  const { data: session, isPending } = authClient.useSession()
+  const revalidator = useRevalidator()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!isPending && session) navigate('/dashboard', { replace: true })
-  }, [isPending, session, navigate])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -28,6 +24,7 @@ export function SignInPage() {
       setError(err.message ?? 'Sign in failed')
       return
     }
+    revalidator.revalidate()
     navigate('/dashboard')
   }
 

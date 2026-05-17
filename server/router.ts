@@ -11,11 +11,13 @@ export const appRouter = router({
         orderBy: { createdAt: 'desc' },
         include: { author: { select: { name: true } } },
       })
+      // ISO strings on the wire so SSR-rendered HTML and React Query's
+      // post-hydration render produce identical markup (no Date-locale drift).
       return rows.map((p) => ({
         id: p.id,
         title: p.title,
         content: p.content,
-        createdAt: p.createdAt,
+        createdAt: p.createdAt.toISOString(),
         authorName: p.author?.name ?? null,
       }))
     }),

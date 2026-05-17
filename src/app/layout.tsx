@@ -1,8 +1,16 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate, useRouteLoaderData } from 'react-router-dom'
 import { authClient } from '~/lib/auth-client'
+import type { RootLoaderData } from './routes'
 
 export function Layout() {
-  const { data: session } = authClient.useSession()
+  const data = useRouteLoaderData('root') as RootLoaderData | undefined
+  const session = data?.session ?? null
+  const navigate = useNavigate()
+
+  async function signOut() {
+    await authClient.signOut()
+    navigate('/', { replace: true })
+  }
 
   return (
     <>
@@ -25,11 +33,7 @@ export function Layout() {
             {session ? (
               <>
                 <span className="text-muted-foreground">{session.user.email}</span>
-                <button
-                  type="button"
-                  className="hover:underline"
-                  onClick={() => authClient.signOut()}
-                >
+                <button type="button" className="hover:underline" onClick={signOut}>
                   Sign out
                 </button>
               </>
