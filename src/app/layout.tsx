@@ -1,4 +1,11 @@
-import { Link, NavLink, Outlet, useNavigate, useRouteLoaderData } from 'react-router-dom'
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useNavigate,
+  useRevalidator,
+  useRouteLoaderData,
+} from 'react-router-dom'
 import { authClient } from '~/lib/auth-client'
 import type { RootLoaderData } from './routes'
 
@@ -6,10 +13,14 @@ export function Layout() {
   const data = useRouteLoaderData('root') as RootLoaderData | undefined
   const session = data?.session ?? null
   const navigate = useNavigate()
+  const revalidator = useRevalidator()
 
   async function signOut() {
     await authClient.signOut()
+    // Land on home first, then re-run loaders so the cleared session is
+    // reflected (mirrors the revalidate in the sign-in/up flows).
     navigate('/', { replace: true })
+    revalidator.revalidate()
   }
 
   return (
@@ -23,10 +34,9 @@ export function Layout() {
             to="/dashboard"
             className={({ isActive }) =>
               isActive
-                ? 'text-sm text-foreground'
-                : 'text-sm text-muted-foreground hover:text-foreground'
-            }
-          >
+                ? 'text-foreground text-sm'
+                : 'text-muted-foreground hover:text-foreground text-sm'
+            }>
             Dashboard
           </NavLink>
           <div className="ml-auto flex items-center gap-3 text-sm">

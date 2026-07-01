@@ -5,6 +5,7 @@ import { authClient } from '~/lib/auth-client'
 import type { Session } from '../../server/auth'
 import type { AppRouter } from '../../server/router'
 import { DashboardPage } from './dashboard'
+import { RouteErrorBoundary } from './error-boundary'
 import { HomePage } from './home'
 import { Layout } from './layout'
 import { SignInPage } from './sign-in'
@@ -61,6 +62,7 @@ export const routes: RouteObject[] = [
     path: '/',
     Component: Layout,
     loader: rootLoader,
+    ErrorBoundary: RouteErrorBoundary,
     children: [
       { index: true, Component: HomePage },
       { path: 'sign-in', Component: SignInPage, loader: redirectIfSignedIn },

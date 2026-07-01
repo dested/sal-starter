@@ -17,7 +17,7 @@ export function DashboardPage() {
   const createPost = useMutation(
     trpc.posts.create.mutationOptions({
       onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.posts.list.queryKey() }),
-    }),
+    })
   )
 
   const [title, setTitle] = useState('')
@@ -37,7 +37,9 @@ export function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>New post</CardTitle>
-          <CardDescription>Posts are stored in Postgres via Prisma, fetched over tRPC.</CardDescription>
+          <CardDescription>
+            Posts are stored in Postgres via Prisma, fetched over tRPC.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -50,11 +52,10 @@ export function DashboardPage() {
                     setTitle('')
                     setContent('')
                   },
-                },
+                }
               )
             }}
-            className="space-y-4"
-          >
+            className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />

@@ -71,11 +71,11 @@ export function SignUpPage() {
                 autoComplete="new-password"
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-destructive text-sm">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Creating account…' : 'Sign up'}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-center text-sm">
               Already have an account?{' '}
               <Link to="/sign-in" className="underline">
                 Sign in

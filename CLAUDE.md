@@ -8,16 +8,17 @@ A starter template (cloned, then mutated into a real product). Every file is int
 
 ## Stack
 
-| layer | choice | notes |
-| --- | --- | --- |
-| runtime / pkg mgr | Bun ≥ 1.3 | both dev and prod |
-| server | Express + Vite SSR | `bun --watch server.ts`; vite middleware in dev, static `dist/client/` + SSR bundle in prod |
-| routing | React Router 7 (`react-router-dom`) | `createBrowserRouter` on the client, `createStaticHandler` + `createStaticRouter` on the server |
-| db | Postgres + Prisma ORM (v6) | `@prisma/client`, default binary engine |
-| auth | better-auth | email + password only, autoSignIn on sign-up |
-| api | tRPC v11 | `@trpc/tanstack-react-query` (`.queryOptions()` API), mounted as Express middleware at `/api/trpc` |
-| styles | Tailwind v4 + shadcn (new-york) | CSS-first config, oklch tokens |
-| deploy | Render.com blueprint | `runtime: node` + `BUN_VERSION` env var |
+| layer             | choice                              | notes                                                                                                                                                           |
+| ----------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| runtime / pkg mgr | Bun ≥ 1.3                           | both dev and prod                                                                                                                                               |
+| server            | Express 5 + Vite SSR                | `bun --watch server.ts`; vite middleware in dev, static `dist/client/` + SSR bundle in prod. **Express 5 is required** — routes use named wildcards (`*splat`). |
+| routing           | React Router 7 (`react-router-dom`) | `createBrowserRouter` on the client, `createStaticHandler` + `createStaticRouter` on the server                                                                 |
+| db                | Postgres + Prisma ORM (v7)          | `@prisma/client` via the **`pg` driver adapter** (`@prisma/adapter-pg`), not the binary engine                                                                  |
+| auth              | better-auth                         | email + password only, autoSignIn on sign-up                                                                                                                    |
+| api               | tRPC v11                            | `@trpc/tanstack-react-query` (`.queryOptions()` API), mounted as Express middleware at `/api/trpc`                                                              |
+| styles            | Tailwind v4 + shadcn (new-york)     | CSS-first config, oklch tokens                                                                                                                                  |
+| tests             | Playwright e2e                      | `e2e/` + committed screenshot baselines; runs against an isolated test DB                                                                                       |
+| deploy            | Render.com blueprint                | `runtime: node` + `BUN_VERSION` env var                                                                                                                         |
 
 ## Layout (load this mental model)
 
@@ -25,7 +26,8 @@ A starter template (cloned, then mutated into a real product). Every file is int
 server.ts            Express server entry. Bun runs this in dev and prod.
 server/
 ├── env.ts           zod-validated env at import time
-├── prisma.ts        PrismaClient singleton (survives HMR)
+├── logger.ts        color request logging, startup banner, error formatting
+├── prisma.ts        PrismaClient singleton (survives HMR; pg adapter)
 ├── auth.ts          better-auth instance + Session type
 ├── trpc.ts          createContext + initTRPC + procedure builders
 └── router.ts        appRouter (exports AppRouter type for the client)
@@ -35,8 +37,9 @@ src/
 ├── entry-server.tsx       SSR entry (createStaticHandler + renderToString)
 ├── App.tsx                top-level providers
 ├── app/
-│   ├── routes.tsx         RouteObject[] tree
+│   ├── routes.tsx         RouteObject[] tree (+ ErrorBoundary on root)
 │   ├── layout.tsx         root layout (nav + <Outlet />)
+│   ├── error-boundary.tsx 404 + error UI (root route ErrorBoundary)
 │   ├── home.tsx           /
 │   ├── sign-in.tsx        /sign-in
 │   ├── sign-up.tsx        /sign-up
@@ -48,8 +51,12 @@ src/
 │   └── utils.ts           cn() helper
 └── styles/app.css         Tailwind v4 import + shadcn tokens
 
-index.html             Vite entry HTML with `<!--app-html-->` placeholder
+public/                favicon.svg + robots.txt (served statically by vite/express)
+e2e/                   Playwright specs + committed __screenshots__ baselines
+scripts/init.ts        clone→rename initializer (`bun run init <name>`)
+index.html             Vite entry HTML with `<!--app-html-->`/`<!--app-state-->` placeholders
 prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
+prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule #9)
 ```
 
 ## Hard rules
@@ -63,15 +70,17 @@ prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
 4. **Server entry vs client entry.** `src/entry-server.tsx` runs under `vite.ssrLoadModule` in dev and as a built bundle under `./dist/server/entry-server.js` in prod — it exports `render(req)`. `src/index.tsx` runs in the browser and is loaded via `<script type="module" src="/src/index.tsx">` in `index.html`. Both wrap the app with `<App>` so providers (QueryClient, TRPC) are the same on both sides.
 
 5. **API routes are Express mounts in `server.ts`** — not file-based:
-   - `app.all('/api/auth/*splat', toNodeHandler(auth))` — better-auth
+   - `app.all('/api/auth/*splat', toNodeHandler(auth))` — better-auth (Express 5 named-wildcard syntax)
    - `app.use('/api/trpc', createExpressMiddleware({ router: appRouter, createContext }))` — tRPC
-   If you add a new HTTP endpoint, mount it in `server.ts` BEFORE the SSR catch-all (`app.use('/*splat', ...)`) or it'll be swallowed.
+     If you add a new HTTP endpoint, mount it in `server.ts` BEFORE the final SSR handler (`app.use(async (req, res) => …)`) or it'll be swallowed. That handler short-circuits to a fast 404 for non-GET requests, paths with a file extension (e.g. `/favicon.ico`), and unknown `/api/*` (JSON) — only extension-less GETs reach the React renderer. SSR returns `routerContext.statusCode`, so unmatched routes get a real 404. `/healthz` (DB ping) is mounted up top.
 
 6. **Env vars are zod-validated at import time** (`server/env.ts`). Any new required env var must be added there AND to `.env.example` AND to `render.yaml`. If `env.ts` throws, the server won't start — that's the design.
 
 7. **better-auth's required schema lives in `prisma/schema.prisma`** (`User`, `Session`, `Account`, `Verification` models — mapped to lowercase tables via `@@map`). better-auth's `prismaAdapter` queries by camelCase Prisma field name, so don't rename fields without checking better-auth's docs. The snake_case `@map(...)` annotations are cosmetic — they preserve the column layout from the prior Drizzle schema.
 
-8. **shadcn components do NOT have `asChild` support here.** I dropped `@radix-ui/react-slot` to keep deps minimal. If you `bunx shadcn add` something that needs Slot, install `@radix-ui/react-slot` first.
+8. **shadcn components do NOT have `asChild` support here.** I dropped `@radix-ui/react-slot` to keep deps minimal. If you `bunx shadcn add` something that needs Slot, install `@radix-ui/react-slot` first. To render a `Link` as a button, use `className={buttonVariants()}` (see `error-boundary.tsx`).
+
+9. **`.env` is loaded by `prisma.config.ts` itself.** Bun loads `.env` into its own runtime but NOT into the Prisma CLI (a Node subprocess), and Prisma 7 dropped auto-loading — so the config reads `.env` manually with a safe fallback (`prisma generate` works before `.env` exists). Don't delete that block. Runtime `PrismaClient` gets the URL via the pg adapter in `server/prisma.ts`.
 
 ## Architecture flows
 
@@ -109,6 +118,10 @@ prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
 
 **Client-nav prefetch**: client-side loaders currently don't prefetch tRPC data — they only re-check the session. The component's `useQuery` handles fetching on first render after navigation. If you want zero-flicker on client navigations too, add a module-singleton `QueryClient` + client-side `createTRPCOptionsProxy({ client: trpcClient, queryClient })` and call `prefetchQuery` from the client branch of the loader.
 
+### Logging & errors
+
+`server/logger.ts` is dependency-free (ANSI, gated on TTY + `NO_COLOR`). `requestLogger` logs one line per request (`method · status · path · timing`, color-coded), skipping vite/HMR/asset noise in dev. `startupBanner` prints mode/URLs/db-host/routes on listen. Use `log.info/warn/error/success` for server-side messages and `formatError` for exceptions — don't sprinkle raw `console.log`. Client/loader errors surface through the root `ErrorBoundary` (`src/app/error-boundary.tsx`); it shows a 404 for `isRouteErrorResponse(err) && status === 404`, a stack in dev otherwise.
+
 ## Common tasks
 
 ### Add a route
@@ -144,6 +157,10 @@ It writes to `src/components/ui/`. `components.json` aliases already point at `~
 
 `server/env.ts` (zod schema) → `.env.example` (placeholder) → `render.yaml` (envVars block, with `sync: false` for secrets the user supplies, or `generateValue: true` if Render should generate it).
 
+### Add an e2e test
+
+Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`tan_starter_test`) on port 3100; `e2e/global-setup.ts` truncates it first so screenshots are deterministic. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
+
 ## Build / verify
 
 ```
@@ -176,9 +193,10 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 
 ## Versions to be aware of
 
-- React Router 7.5+. The `RouteObject` shape uses `Component` (capital C). Don't reach for `element: <Foo />` unless you've got a reason.
+- React Router 7.5+. The `RouteObject` shape uses `Component` (capital C) and `ErrorBoundary` (capital E). Don't reach for `element: <Foo />` unless you've got a reason.
 - Tailwind v4 uses `@import 'tailwindcss'` (not `@tailwind base/components/utilities`). Theme tokens go in `@theme inline { ... }`. There is no `tailwind.config.ts`.
-- Prisma 6.x — `prisma` CLI and `@prisma/client` MUST stay in lockstep on the same major.
+- Prisma 7.x — `prisma` CLI and `@prisma/client` MUST stay in lockstep on the same major. Uses the `pg` driver adapter (`@prisma/adapter-pg`).
+- Express 5.x — required for the named-wildcard route syntax. Don't downgrade to Express 4.
 - Vite 6.
 
 ## Don't
@@ -187,5 +205,7 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 - Don't import server modules (`./server/*`) from anything under `./src/` except as `import type`. That file ends up in the client bundle and will either break the build or leak secrets.
 - Don't add file-based routing back. The `RouteObject[]` in `src/app/routes.tsx` is the source of truth.
 - Don't reach for `@trpc/react-query` (the old package) — we use `@trpc/tanstack-react-query` (the new one with `queryOptions()` / `mutationOptions()`).
-- Don't commit `.env`, `dist/`, `node_modules/`. They're in `.gitignore`.
+- Don't commit `.env`, `dist/`, `node_modules/`, or Playwright run artifacts (`test-results/`, `playwright-report/`). They're in `.gitignore`. DO commit `e2e/__screenshots__/` baselines.
 - Don't hand-edit anything under `node_modules/.prisma/` or `node_modules/@prisma/client/`. Re-run `bun run db:generate` after schema changes.
+- Don't downgrade to Express 4 — the route wildcards (`*splat`) need Express 5.
+- Don't sprinkle raw `console.log` in `./server/` — use `log.*` / `formatError` from `server/logger.ts` so output stays consistent.

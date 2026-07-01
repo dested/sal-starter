@@ -4,6 +4,7 @@
   "type": "module",
   "sideEffects": false,
   "scripts": {
+    "init": "bun scripts/init.ts",
     "dev": "bun --watch server.ts",
     "build": "bun run clean && bun run build:client && bun run build:server",
     "build:client": "vite build --outDir dist/client",
@@ -17,6 +18,9 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:update": "playwright test --update-snapshots",
     "prettier": "prettier ."
   },
   "dependencies": {
@@ -32,7 +36,7 @@
     "clsx": "^2.1.1",
     "compression": "^1.7.5",
     "cross-env": "^7.0.3",
-    "express": "^4.21.2",
+    "express": "^5",
     "lucide-react": "^0.468.0",
     "pg": "^8.20.0",
     "prettier": "^3.8.3",
@@ -45,6 +49,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.0.0",
     "@types/bun": "latest",
     "@types/compression": "^1.7.5",

@@ -26,7 +26,7 @@ export const appRouter = router({
         z.object({
           title: z.string().min(1).max(200),
           content: z.string().min(1).max(2000),
-        }),
+        })
       )
       .mutation(async ({ ctx, input }) => {
         return prisma.post.create({

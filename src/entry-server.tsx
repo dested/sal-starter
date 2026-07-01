@@ -3,11 +3,7 @@ import { dehydrate, QueryClient, type DehydratedState } from '@tanstack/react-qu
 import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import ReactDomServer from 'react-dom/server'
-import {
-  StaticRouterProvider,
-  createStaticHandler,
-  createStaticRouter,
-} from 'react-router-dom'
+import { StaticRouterProvider, createStaticHandler, createStaticRouter } from 'react-router-dom'
 import { auth, type Session } from '../server/auth'
 import { appRouter } from '../server/router'
 import App from './App'
@@ -15,6 +11,7 @@ import { routes, type SsrLoaderContext } from './app/routes'
 
 export async function render(req: express.Request): Promise<{
   html: string
+  status: number
   session: Session | null
   dehydratedState: DehydratedState
 }> {
@@ -55,10 +52,17 @@ export async function render(req: express.Request): Promise<{
   const html = ReactDomServer.renderToString(
     <App queryClient={queryClient} trpcClient={trpcClient} dehydratedState={null}>
       <StaticRouterProvider router={router} context={routerContext} />
-    </App>,
+    </App>
   )
 
-  return { html, session, dehydratedState: dehydrate(queryClient) }
+  // statusCode reflects loader-thrown Responses and unmatched-route 404s, so
+  // the server returns the right HTTP status (not a blanket 200).
+  return {
+    html,
+    status: routerContext.statusCode,
+    session,
+    dehydratedState: dehydrate(queryClient),
+  }
 }
 
 function expressToFetch(req: express.Request): Request {

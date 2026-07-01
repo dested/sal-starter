@@ -1,121 +1,134 @@
 # tan-starter
 
-SSR React starter wired with the latest stack.
+An SSR React starter wired with a current, type-safe stack — clone it, rename it, ship.
 
-- **TanStack Start** (Vite-based SSR + file-based routing)
-- **Prisma ORM 6** + **PostgreSQL**
-- **better-auth** (email + password)
-- **tRPC v11** + **TanStack Query** (`.queryOptions()` style)
-- **Tailwind v4** + **shadcn/ui** (new-york style, oklch tokens)
-- **Bun** (runtime, package manager, production server)
-- **Render.com** blueprint deploy (web service + managed Postgres)
+> Already have a project cloned from an older tan-starter? See [`MIGRATION.md`](./MIGRATION.md) to bring it up to date (it fixes some app-breaking bugs).
+
+| layer             | choice                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| runtime / pkg mgr | **Bun** ≥ 1.3 (dev + prod)                                                         |
+| server            | **Express 5** + **Vite** SSR (vite middleware in dev, static + SSR bundle in prod) |
+| routing           | **React Router 7** (`createBrowserRouter` client, `createStaticHandler` server)    |
+| data              | **tRPC v11** + **TanStack Query** (`.queryOptions()` API)                          |
+| db                | **Postgres** + **Prisma 7** (pg driver adapter)                                    |
+| auth              | **better-auth** (email + password, autoSignIn)                                     |
+| styles            | **Tailwind v4** + **shadcn/ui** (new-york, oklch tokens)                           |
+| tests             | **Playwright** e2e with committed screenshot baselines                             |
+| deploy            | **Render.com** blueprint (web service + managed Postgres)                          |
 
 ## Quickstart
 
-Requires [Bun](https://bun.sh) ≥ 1.1 and a local Postgres (or any reachable Postgres URL).
+Requires [Bun](https://bun.sh) ≥ 1.3 and a reachable Postgres.
+
+**Start a new project from this template (recommended):**
 
 ```bash
 bun install
-cp .env.example .env
-# edit .env: set DATABASE_URL, replace BETTER_AUTH_SECRET with 32+ random chars
-bun run db:push       # sync schema to your database
-bun run dev           # http://localhost:3000
+bun run init my-app          # renames everything + writes a fresh .env (new secret)
+createdb my_app              # or point .env's DATABASE_URL at any Postgres
+bun run db:push              # sync schema to the database
+bun run dev                  # → http://localhost:3000
 ```
 
-To generate a secret quickly: `bunx --bun openssl rand -base64 32` (or any 32+ char string).
+`bun run init my-app --fresh-git` also wipes the template's git history and starts a clean repo.
+
+**Or set it up by hand:**
+
+```bash
+bun install
+cp .env.example .env         # then edit: DATABASE_URL + a 32+ char BETTER_AUTH_SECRET
+bun run db:push
+bun run dev
+```
+
+Generate a secret: `openssl rand -base64 32`.
 
 ## Scripts
 
-| script | what it does |
-| --- | --- |
-| `bun run dev` | dev server with HMR on :3000 |
-| `bun run build` | produces `dist/server/server.js` and `dist/client/*` |
-| `bun run start` | runs the Bun production server (`server.ts`) |
-| `bun run typecheck` | `tsc --noEmit` |
-| `bun run db:push` | sync `prisma/schema.prisma` directly into Postgres |
-| `bun run db:migrate` | create + apply a migration under `./prisma/migrations` (dev) |
-| `bun run db:generate` | regenerate the Prisma client (auto-runs on `bun install`) |
-| `bun run db:studio` | Prisma Studio |
+| script                    | what it does                                              |
+| ------------------------- | --------------------------------------------------------- |
+| `bun run dev`             | dev server with HMR + SSR on :3000                        |
+| `bun run init <name>`     | rename the template to a new project + fresh `.env`       |
+| `bun run build`           | build client (`dist/client`) + SSR bundle (`dist/server`) |
+| `bun run start`           | run the production server (`NODE_ENV=production`)         |
+| `bun run typecheck`       | `tsgo --noEmit` (TypeScript Native Preview)               |
+| `bun run test:e2e`        | Playwright e2e + screenshot comparison                    |
+| `bun run test:e2e:update` | regenerate screenshot baselines                           |
+| `bun run db:push`         | push `prisma/schema.prisma` to Postgres (dev)             |
+| `bun run db:migrate`      | create + apply a migration (dev)                          |
+| `bun run db:generate`     | regenerate the Prisma client (auto-runs on install)       |
+| `bun run db:studio`       | Prisma Studio                                             |
+| `bun run prettier`        | format the repo                                           |
 
-## Project layout
+## Layout
 
 ```
+server.ts                Express entry — request logging, /healthz, auth + tRPC
+                         mounts, vite/SSR, startup banner. Runs in dev AND prod.
+server/
+├── env.ts               zod-validated env (throws at import if invalid)
+├── logger.ts            color request logging, startup banner, error formatting
+├── prisma.ts            PrismaClient singleton (HMR-safe, pg adapter)
+├── auth.ts              better-auth instance + Session type
+├── trpc.ts              context + initTRPC + public/protected procedures
+└── router.ts            appRouter (exports AppRouter type)
+
 src/
-├── components/ui/         shadcn components (button, input, label, card)
-├── db/
-│   └── index.ts           PrismaClient singleton (HMR-safe)
-├── lib/
-│   ├── auth.ts            better-auth server config
-│   ├── auth-client.ts     better-auth React client
-│   ├── env.ts             zod-validated env
-│   └── utils.ts           cn()
-├── trpc/
-│   ├── init.ts            initTRPC + publicProcedure / protectedProcedure
-│   ├── router.ts          appRouter (`me`, `posts.list`, `posts.create`)
-│   └── react.tsx          TRPCReactProvider
-├── routes/
-│   ├── __root.tsx         layout, navbar, session loader
-│   ├── index.tsx          public landing
-│   ├── sign-in.tsx        email + password
-│   ├── sign-up.tsx        email + password
-│   ├── dashboard.tsx      protected, exercises tRPC + Prisma
-│   └── api/
-│       ├── auth/$.ts      mounts better-auth at /api/auth/*
-│       └── trpc/$.ts      mounts tRPC at /api/trpc/*
-├── styles/app.css         Tailwind v4 + shadcn tokens
-└── router.tsx             createRouter
+├── index.tsx            client entry (hydrateRoot + createBrowserRouter)
+├── entry-server.tsx     SSR entry (createStaticHandler + renderToString)
+├── App.tsx              providers (QueryClient + tRPC + hydration)
+├── app/
+│   ├── routes.tsx       RouteObject[] tree + loaders
+│   ├── layout.tsx       root layout (nav + <Outlet/>)
+│   ├── error-boundary.tsx  404 + error UI (root ErrorBoundary)
+│   ├── home.tsx · sign-in.tsx · sign-up.tsx · dashboard.tsx
+├── components/ui/       shadcn primitives
+├── lib/                 auth-client, trpc, utils
+└── styles/app.css       Tailwind v4 + shadcn tokens
 
-prisma/
-└── schema.prisma          User / Session / Account / Verification + Post
+public/                  favicon.svg, robots.txt (served statically)
+e2e/                     Playwright specs + committed __screenshots__ baselines
+scripts/init.ts          the clone→rename initializer
+prisma/schema.prisma     User / Session / Account / Verification + Post
 ```
 
-## How auth flows
+## How it fits together
 
-1. `__root.tsx` calls a server function that reads the session cookie and returns it as router context.
-2. Every route can read `Route.useRouteContext().session`.
-3. Protected routes (`dashboard`) check `context.session` in `beforeLoad` and `redirect()` if missing.
-4. `authClient.signIn.email({ email, password })` POSTs to `/api/auth/sign-in/email`; cookie is set; `router.invalidate()` re-runs the root loader so `session` is populated.
-5. `auth.handler(request)` is mounted at `routes/api/auth/$.ts` (catch-all splat).
+**Auth.** Sign-in/up call `authClient` → POST `/api/auth/*` (mounted via `toNodeHandler(auth)`) → session cookie. On SSR, `entry-server.tsx` reads the session once per request and passes it to loaders, so the first paint already knows who you are (no flicker). On client navigations, loaders re-check via `authClient.getSession()`.
 
-## How tRPC flows
+**tRPC.** Components call `useQuery(trpc.posts.list.queryOptions())` → `/api/trpc/*` → `appRouter`. `createContext` attaches the session; `protectedProcedure` 401s without one.
 
-- `routes/api/trpc/$.ts` is a catch-all server route that dispatches to `appRouter` via `fetchRequestHandler`.
-- The tRPC context calls `auth.api.getSession({ headers: req.headers })` so every procedure sees `ctx.session`.
-- `protectedProcedure` throws `UNAUTHORIZED` when there is no session.
-- The client uses `@trpc/tanstack-react-query`: `useTRPC()` exposes `trpc.posts.list.queryOptions()` etc.
+**SSR + hydration.** Loaders prefetch tRPC queries into a per-request `QueryClient` (via a direct, no-HTTP options proxy). The cache is dehydrated into `window.__SSR_STATE__` and rehydrated on the client, so `useQuery` has data on first render. Procedures return JSON-safe types (dates as ISO strings) to keep SSR and client markup identical.
 
-## SSR data hydration
+**Logging.** Every request logs one color-coded line (`method · status · path · timing`), with dev asset noise filtered out. The server prints a startup banner (mode, URLs, db host, routes). See `server/logger.ts`.
 
-`getRouter()` creates a per-request `QueryClient` + `TRPCClient` + `createTRPCOptionsProxy` and hands them to `setupRouterSsrQueryIntegration`. That dehydrates queries into the SSR HTML and rehydrates them into a fresh `QueryClient` on the browser. Prefetch in a route loader:
+**404 / errors.** Unknown pages render the root `ErrorBoundary` with a real 404 status; asset-shaped misses (`/favicon.ico`, stray files) 404 fast instead of rendering the SPA; unknown `/api/*` returns JSON.
 
-```ts
-export const Route = createFileRoute('/dashboard')({
-  loader: async ({ context }) => {
-    await context.queryClient.prefetchQuery(context.trpc.posts.list.queryOptions())
-  },
-  component: DashboardPage,
-})
+## Testing
+
+Playwright e2e lives in `e2e/`. `bun run test:e2e` boots the app on port 3100 against an **isolated test database** (`tan_starter_test`), truncates it for determinism, and runs the smoke suite — home, sign-up → dashboard → create post → sign-out, and the 404 page. Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
+
+```bash
+createdb tan_starter_test
+DATABASE_URL=postgres://.../tan_starter_test bunx prisma db push
+bun run test:e2e
 ```
 
-The component reads the same query with `useQuery(useTRPC().posts.list.queryOptions())` and gets cached data with no flicker.
-
-Cookies are forwarded into the SSR-side tRPC client via `httpBatchLink({ headers })`, so `auth.api.getSession()` works inside the tRPC context during SSR. Both `publicProcedure` and `protectedProcedure` queries are safe to prefetch from loaders. The wiring uses a server-only helper (`src/lib/ssr-cookie-headers.ts`) gated by `createIsomorphicFn` so the import is tree-shaken out of the client bundle — see `CLAUDE.md` for the rules around editing it.
+Screenshots are OS/font specific — regenerate on the platform your CI uses.
 
 ## Deploy to Render
 
-1. Push this repo to GitHub.
-2. In Render, click **Blueprints → New Blueprint Instance**, point at the repo. The `render.yaml` provisions a managed Postgres database and a web service.
-3. After the first deploy, set `BETTER_AUTH_URL` to the public URL Render assigned (e.g. `https://tan-starter.onrender.com`) and redeploy.
-4. `preDeployCommand` runs `prisma db push --accept-data-loss` so your schema is applied automatically on every deploy. For real production workflows, commit migrations (`bun run db:migrate` locally) and switch the pre-deploy step to `prisma migrate deploy`.
+1. Push to GitHub.
+2. Render → **Blueprints → New Blueprint Instance**, point at the repo. `render.yaml` provisions managed Postgres + a web service. `/healthz` is the health check.
+3. After the first deploy, set `BETTER_AUTH_URL` to the assigned public URL and redeploy.
 
-`DATABASE_URL` is wired to the managed Postgres automatically. `BETTER_AUTH_SECRET` is generated by Render once.
+`preDeployCommand` runs `prisma db push --accept-data-loss` (fine for a starter — switch to `prisma migrate deploy` with committed migrations for real production). Render uses `runtime: node` with `BUN_VERSION` set, because there's no `runtime: bun` — the Node runtime ships Bun and puts it on PATH.
 
-**Why `runtime: node` instead of `runtime: bun`?** Render's blueprint spec doesn't have a `bun` runtime — but the Node runtime ships with Bun preinstalled, and setting `BUN_VERSION` in `envVars` activates it. Your build/start commands then just use `bun` directly. Bump `BUN_VERSION` in `render.yaml` to upgrade.
+## Gotchas
 
-## Adding a shadcn component
+- **Express 5 is required** — the route patterns (`/api/auth/*splat`) use named wildcards. Don't downgrade to Express 4.
+- **`.env` loading**: Bun loads `.env` into its own runtime but not into the Prisma CLI (a Node subprocess), and Prisma 7 dropped auto-loading — so `prisma.config.ts` loads `.env` itself. Keep that block if you touch the file.
+- **Server-only code lives in `./server/`** — never import it from `src/*.tsx` except as `import type`, or it lands in the client bundle. See `CLAUDE.md` for the full rules.
+- Path alias `~/*` → `src/*` (client only); server code uses relative imports.
 
-```bash
-bunx --bun shadcn@latest add dialog
-```
-
-It will land in `src/components/ui/` and respect the aliases in `components.json`.
+For the deeper "how to extend this" briefing (hard rules, common tasks, architecture flows), read [`CLAUDE.md`](./CLAUDE.md) and [`cliffnotes.md`](./cliffnotes.md).

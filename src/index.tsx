@@ -35,5 +35,5 @@ ReactDOM.hydrateRoot(
   document.getElementById('app') as HTMLElement,
   <App queryClient={queryClient} trpcClient={trpcClient} dehydratedState={dehydratedState}>
     <RouterProvider router={router} />
-  </App>,
+  </App>
 )
