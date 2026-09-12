@@ -1,10 +1,10 @@
 import ReactDOM from 'react-dom/client'
-import { QueryClient, type DehydratedState } from '@tanstack/react-query'
-import { createTRPCClient, httpBatchLink } from '@trpc/client'
+import { type DehydratedState } from '@tanstack/react-query'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import App from './App'
 import { routes } from './app/routes'
-import type { AppRouter } from '../server/router'
+import { followSystemTheme } from '~/lib/theme'
+import { getBrowserClients } from '~/lib/trpc'
 
 declare global {
   interface Window {
@@ -14,20 +14,9 @@ declare global {
 
 const dehydratedState = window.__SSR_STATE__?.dehydratedState ?? null
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 60_000 } },
-})
+const { queryClient, trpcClient } = getBrowserClients()
 
-const trpcClient = createTRPCClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: '/api/trpc',
-      fetch(url, options) {
-        return fetch(url, { ...options, credentials: 'include' })
-      },
-    }),
-  ],
-})
+followSystemTheme()
 
 const router = createBrowserRouter(routes)
 

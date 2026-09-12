@@ -38,6 +38,7 @@ bun add express@^5          # 1  fixes auth (Critical)
 # edit prettier.config.js   # 3  fixes `bun run prettier` (High)
 # edit src/app/layout.tsx   # 4  fixes sign-out (High)
 # edit server.ts + index.html + add public/  # 5,6  favicon / real 404 (Medium)
+# edit index.html + App.tsx + server.ts      # 7    unstyled flash, HMR collision (Medium)
 bun install && bun run typecheck && bun run build   # verify
 ```
 
@@ -212,7 +213,7 @@ async function signOut() {
 ```
 
 **Verify** — sign in, then sign out: the nav should immediately show "Sign in /
-Sign up". (Covered by the e2e suite in §9.)
+Sign up". (Covered by the e2e suite in §11.)
 
 ---
 
@@ -265,8 +266,8 @@ and make the final `app.use(async (req, res) => { ... })` handler start with:
 c) Return the real status from SSR. In `src/entry-server.tsx`, have `render()`
 return `status: routerContext.statusCode` alongside `html`/`dehydratedState`, and
 in `server.ts` use it: `res.status(status).set(...)` instead of a hardcoded
-`res.status(200)`. Pair this with the root `ErrorBoundary` from §8 so unmatched
-routes render a real 404 page. (If you skip §8, at minimum the status will be
+`res.status(200)`. Pair this with the root `ErrorBoundary` from §9 so unmatched
+routes render a real 404 page. (If you skip §9, at minimum the status will be
 correct.)
 
 **Verify**
@@ -295,6 +296,57 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/does-not-exist   
 
 ---
 
+## 7. Medium — unstyled flash on every dev load, HMR port collision
+
+Early clones `import '~/styles/app.css'` from `src/App.tsx`. In dev Vite injects
+that CSS from JS only after the client module graph loads, so **every page load
+paints the SSR HTML unstyled first** (prod is fine — `vite build` extracts it).
+They also pin Vite's HMR websocket to port `24678`; **two clones running at once
+fight over it and HMR silently dies** in one of them.
+
+**Detect**
+
+```bash
+grep -q "app.css" src/App.tsx && echo "AFFECTED: CSS imported from JS (FOUC in dev)"
+grep -q "hmr: { port" server.ts && echo "AFFECTED: fixed HMR port"
+```
+
+**Fix**
+
+a) Move the stylesheet to `index.html` `<head>` and delete the import from `src/App.tsx`:
+
+```html
+<link rel="stylesheet" href="/src/styles/app.css" />
+```
+
+b) Share the Express server with Vite's HMR in `server.ts`:
+
+```ts
+import * as http from 'node:http'
+// ...
+const app = express()
+const httpServer = http.createServer(app)
+// ...
+vite = await createServer({
+  root: __dirname,
+  server: { middlewareMode: true, hmr: { server: httpServer } },
+  appType: 'custom',
+})
+// ...
+httpServer.listen(PORT, () => { /* banner */ })   // was app.listen
+```
+
+**Verify**
+
+```bash
+curl -s -H "Accept: text/css" http://localhost:3000/src/styles/app.css | head -c 200   # compiled CSS, not JS
+curl -s http://localhost:3000/@vite/client | grep "hmrPort = null"                     # HMR uses the page's port
+```
+
+Hard-reload `/` in the browser — no unstyled flash.
+
+---
+
 ## Recommended upgrades (opt-in — copy from upstream)
 
 These aren't bug fixes, but they're why the template got better. Each is
@@ -302,11 +354,14 @@ self-contained; copy the file(s) from a fresh upstream clone and rename tokens.
 
 | Upgrade                                      | Files to copy                  | Wiring                                                                                                                                                                                                                                                                                                                    |
 | -------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **7. Logging + `/healthz` + startup banner** | `server/logger.ts`             | In `server.ts`: `app.use(requestLogger(isProd))` first; add the `/healthz` route; replace the plain listen `console.log` with `startupBanner(...)`; use `log.*`/`formatError` for errors.                                                                                                                                 |
-| **8. 404 / error boundary**                  | `src/app/error-boundary.tsx`   | In `routes.tsx`: `import { RouteErrorBoundary }` and add `ErrorBoundary: RouteErrorBoundary` to the root route. Requires the SSR `status` change from §5c for correct 404 codes.                                                                                                                                          |
-| **9. Clone→rename init script**              | `scripts/init.ts`              | Add `"init": "bun scripts/init.ts"` to `package.json` scripts.                                                                                                                                                                                                                                                            |
-| **10. E2E + screenshot tracking**            | `playwright.config.ts`, `e2e/` | `bun add -d @playwright/test && bunx playwright install chromium`. Add `test:e2e*` scripts. Create the test DB: `createdb <name>_test && DATABASE_URL=...<name>_test bunx prisma db push`. Generate baselines: `bun run test:e2e:update`. Gitignore `test-results`/`playwright-report`; **commit** `e2e/__screenshots__`. |
-| **11. Project docs**                         | `cliffnotes.md`, `ui.md`       | Refresh for your project (the cliffnotes plugin reads them).                                                                                                                                                                                                                                                              |
+| **8. Logging + `/healthz` + startup banner** | `server/logger.ts`             | In `server.ts`: `app.use(requestLogger(isProd))` first; add the `/healthz` route; replace the plain listen `console.log` with `startupBanner(...)`; use `log.*`/`formatError` for errors.                                                                                                                                 |
+| **9. 404 / error boundary**                  | `src/app/error-boundary.tsx`   | In `routes.tsx`: `import { RouteErrorBoundary }` and add `ErrorBoundary: RouteErrorBoundary` to the root route. Requires the SSR `status` change from §5c for correct 404 codes.                                                                                                                                          |
+| **10. Clone→rename init script**             | `scripts/init.ts`              | Add `"init": "bun scripts/init.ts"` to `package.json` scripts.                                                                                                                                                                                                                                                            |
+| **11. E2E + screenshot tracking**            | `playwright.config.ts`, `e2e/` | `bun add -d @playwright/test && bunx playwright install chromium`. Add `test:e2e*` scripts. Create the test DB: `createdb <name>_test && DATABASE_URL=...<name>_test bunx prisma db push`. Generate baselines: `bun run test:e2e:update`. Gitignore `test-results`/`playwright-report`; **commit** `e2e/__screenshots__`. |
+| **12. Project docs**                         | `cliffnotes.md`, `ui.md`       |
+| **13. Flash-free dark mode + toggle**        | `src/lib/theme.ts`, `src/components/theme-toggle.tsx` | Copy the inline theme `<script>` from upstream `index.html` (before the stylesheet link), add `color-scheme: light` / `color-scheme: dark` to `:root` / `.dark` in `app.css`, render `<ThemeToggle />` in the nav, call `followSystemTheme()` once in `src/index.tsx`. |
+| **14. Zero-flicker client navigation**       | `src/lib/trpc.tsx`             | `index.tsx` takes `queryClient`/`trpcClient` from `getBrowserClients()`; client branches of data loaders `await queryClient.prefetchQuery(trpc.<proc>.queryOptions())`. Add `<ScrollRestoration />` after `<main>` in `layout.tsx`. |
+| **15. Immutable asset caching (prod)**       | —                              | In `server.ts` pass `setHeaders` to `express.static` and send `Cache-Control: public, max-age=31536000, immutable` for paths under `/assets/`. | Refresh for your project (the cliffnotes plugin reads them).                                                                                                                                                                                                                                                              |
 
 Also worth syncing from upstream: the updated `CLAUDE.md`, `README.md`, and
 `.gitignore` (adds the Playwright artifact ignores).
@@ -325,7 +380,7 @@ curl -s http://localhost:3000/healthz                                   # {"stat
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/auth/get-session   # 200
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/favicon.ico            # 404
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/nope                   # 404
-bun run test:e2e           # if you adopted §10
+bun run test:e2e           # if you adopted §11
 ```
 
 Manual: sign up → land on dashboard → create a post → sign out → nav shows "Sign in".

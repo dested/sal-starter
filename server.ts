@@ -2,6 +2,7 @@ import { createExpressMiddleware } from '@trpc/server/adapters/express'
 import { toNodeHandler } from 'better-auth/node'
 import express from 'express'
 import * as fs from 'node:fs'
+import * as http from 'node:http'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { auth } from './server/auth'
@@ -24,6 +25,9 @@ const LOOKS_LIKE_FILE = /\.[a-zA-Z0-9]+$/
 
 async function createServer() {
   const app = express()
+  // Vite's HMR websocket rides on this same server (see `hmr.server` below),
+  // so dev needs one port and two clones of this template can run side by side.
+  const httpServer = http.createServer(app)
   app.disable('x-powered-by')
 
   // One tidy log line per request (status + timing), asset noise filtered out.
@@ -67,16 +71,22 @@ async function createServer() {
       await import('vite')
     ).createServer({
       root: __dirname,
-      // Explicit HMR port — without it vite logs "Port undefined is already in
-      // use" in middleware mode.
-      server: { middlewareMode: true, hmr: { port: 24678 } },
+      server: { middlewareMode: true, hmr: { server: httpServer } },
       appType: 'custom',
     })
     app.use(vite.middlewares)
   } else {
     app.use(
       (await import('compression')).default(),
-      express.static(resolve('./dist/client'), { index: false })
+      express.static(resolve('./dist/client'), {
+        index: false,
+        // Vite content-hashes everything under /assets — cache it forever.
+        setHeaders(res, filePath) {
+          if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+          }
+        },
+      })
     )
   }
 
@@ -138,7 +148,7 @@ async function createServer() {
     }
   })
 
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     startupBanner({
       port: PORT,
       isProd,

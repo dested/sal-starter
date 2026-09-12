@@ -2,6 +2,7 @@ import { redirect, type RouteObject, type LoaderFunctionArgs } from 'react-route
 import type { QueryClient } from '@tanstack/react-query'
 import type { TRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import { authClient } from '~/lib/auth-client'
+import { getBrowserClients } from '~/lib/trpc'
 import type { Session } from '../../server/auth'
 import type { AppRouter } from '../../server/router'
 import { DashboardPage } from './dashboard'
@@ -42,7 +43,14 @@ async function dashboardLoader({ context }: LoaderFunctionArgs): Promise<RootLoa
     await ctx.queryClient.prefetchQuery(ctx.trpc.posts.list.queryOptions())
     return { session: ctx.session }
   }
-  const session = await fetchClientSession()
+  // Client nav: check the session and warm the posts cache in parallel so the
+  // dashboard renders with data (a signed-out user's 401 is swallowed by
+  // prefetchQuery and the redirect below wins).
+  const { queryClient, trpc } = getBrowserClients()
+  const [session] = await Promise.all([
+    fetchClientSession(),
+    queryClient.prefetchQuery(trpc.posts.list.queryOptions()),
+  ])
   if (!session) throw redirect('/sign-in')
   return { session }
 }

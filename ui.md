@@ -15,7 +15,7 @@
 
 ## Tokens
 
-Defined as CSS variables in `src/styles/app.css` (`:root` + `.dark`), exposed to Tailwind via `@theme inline`. Light + dark are both defined; dark activates under `.dark` (no toggle wired yet). All colors are **oklch**.
+Defined as CSS variables in `src/styles/app.css` (`:root` + `.dark`), exposed to Tailwind via `@theme inline`. Light + dark are both defined; dark activates when `<html>` carries `.dark`, which an inline script in `index.html` sets before first paint (stored choice → OS preference) and `ThemeToggle` flips at runtime. `color-scheme` is set per theme so native controls and scrollbars match. All colors are **oklch**. Every surface must look right in both themes — check both when adding UI.
 
 ### Color
 
@@ -59,7 +59,7 @@ Font: system stack (`ui-sans-serif, system-ui, sans-serif`) set on `body` — no
 
 ## Layout
 
-App shell is `src/app/layout.tsx`: a bordered `header` with a `max-w-5xl` nav (logo · Dashboard link · auth links/email+sign-out on the right), then `<main class="mx-auto max-w-5xl px-6 py-8"><Outlet/></main>`. Page anatomy: H1 + muted subtitle → content sections (`space-y-8`), often a grid of `Card`s (`grid gap-4 md:grid-cols-2`). Empty states are a single muted line (e.g. "No posts yet — be the first.").
+App shell is `src/app/layout.tsx`: a bordered `header` with a `max-w-5xl` nav (logo · Dashboard link · auth links/email+sign-out · `ThemeToggle` on the right), then `<main class="mx-auto max-w-5xl px-6 py-8"><Outlet/></main>`. Page anatomy: H1 + muted subtitle → content sections (`space-y-8`), often a grid of `Card`s (`grid gap-4 md:grid-cols-2`). Empty states are a single muted line (e.g. "No posts yet — be the first.").
 
 ## Components
 
@@ -71,6 +71,7 @@ Reuse these shadcn primitives — don't hand-roll. They take `className` (merged
 | `Card` family               | `src/components/ui/card.tsx`   | Card / Header / Title / Description / Content / Footer                                |
 | `Input`                     | `src/components/ui/input.tsx`  | full-width, `aria-invalid` styling                                                    |
 | `Label`                     | `src/components/ui/label.tsx`  | pair with `htmlFor`                                                                   |
+| `ThemeToggle`               | `src/components/theme-toggle.tsx` | ghost icon `Button`; Sun/Moon swapped with `dark:hidden` / `dark:block`, never JS state |
 | `cn()`                      | `src/lib/utils.ts`             | clsx + tailwind-merge                                                                 |
 | Icons                       | `lucide-react`                 | icon library (configured in `components.json`)                                        |
 
@@ -90,6 +91,10 @@ Signature patterns:
 
 // Inline error
 {error && <p className="text-sm text-destructive">{error}</p>}
+
+// Theme-dependent visuals: render both, hide one with the dark variant
+<Sun className="dark:hidden" />
+<Moon className="hidden dark:block" />
 ```
 
 ## States (every async surface)
@@ -112,3 +117,5 @@ Terse, lowercase-leaning, developer-direct. Sentence case for UI; the brand word
 - ❌ Treating `CardTitle` as a heading element — it's a `<div>` (matters for a11y + test selectors).
 - ❌ Full-bleed layouts — content stays in the centered `max-w-5xl` column.
 - ❌ Web-font dependencies without reason — system stack is intentional.
+- ❌ `import './x.css'` from a component — the stylesheet is a `<link>` in `index.html`; `@import` new CSS from `app.css` or the dev build paints unstyled first.
+- ❌ Reading the theme in render (`useEffect` icon swaps, `matchMedia` in JSX) — SSR markup must equal client markup; use `dark:` classes.

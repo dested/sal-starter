@@ -44,19 +44,22 @@ src/
 │   ├── sign-in.tsx        /sign-in
 │   ├── sign-up.tsx        /sign-up
 │   └── dashboard.tsx      /dashboard
-├── components/ui/         shadcn primitives
+├── components/
+│   ├── theme-toggle.tsx   light/dark toggle button (nav)
+│   └── ui/                shadcn primitives
 ├── lib/
 │   ├── auth-client.ts     better-auth React client (signIn, signUp, useSession, signOut)
-│   ├── trpc.tsx           TRPCProvider, useTRPC, AppProviders (QueryClient + tRPC client)
+│   ├── theme.ts           theme state: applyTheme/setTheme/toggleTheme/followSystemTheme
+│   ├── trpc.tsx           TRPCProvider, useTRPC, getBrowserClients() (browser QueryClient + tRPC singletons)
 │   └── utils.ts           cn() helper
-└── styles/app.css         Tailwind v4 import + shadcn tokens
+└── styles/app.css         Tailwind v4 import + shadcn tokens (light on :root, dark on .dark)
 
 public/                favicon.svg + robots.txt (served statically by vite/express)
 e2e/                   Playwright specs + committed __screenshots__ baselines
 scripts/init.ts        clone→rename initializer (`bun run init <name>`)
-index.html             Vite entry HTML with `<!--app-html-->`/`<!--app-state-->` placeholders
+index.html             Vite entry HTML: stylesheet <link>, pre-paint theme script, `<!--app-html-->`/`<!--app-state-->` placeholders
 prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
-prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule #9)
+prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule #12)
 ```
 
 ## Hard rules
@@ -80,7 +83,13 @@ prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule 
 
 8. **shadcn components do NOT have `asChild` support here.** I dropped `@radix-ui/react-slot` to keep deps minimal. If you `bunx shadcn add` something that needs Slot, install `@radix-ui/react-slot` first. To render a `Link` as a button, use `className={buttonVariants()}` (see `error-boundary.tsx`).
 
-9. **`.env` is loaded by `prisma.config.ts` itself.** Bun loads `.env` into its own runtime but NOT into the Prisma CLI (a Node subprocess), and Prisma 7 dropped auto-loading — so the config reads `.env` manually with a safe fallback (`prisma generate` works before `.env` exists). Don't delete that block. Runtime `PrismaClient` gets the URL via the pg adapter in `server/prisma.ts`.
+9. **The stylesheet is linked from `index.html`, never imported from JS.** `<link rel="stylesheet" href="/src/styles/app.css">` is render-blocking in dev (Vite serves it as compiled CSS and HMR swaps the href) and gets content-hashed into `<head>` by `vite build`. Importing CSS from a component made Vite inject it only after the client module graph loaded, so every dev load painted unstyled SSR HTML first. Don't add `import './x.css'` to components — `@import` it from `app.css`.
+
+10. **Theme is applied before first paint by the inline script in `index.html`**; `src/lib/theme.ts` mirrors the same logic for post-hydration changes (keep them in sync). `.dark` on `<html>` drives the tokens. Components must render identical markup in both themes — swap with `dark:` classes (see `theme-toggle.tsx`), never branch on the theme in JS during render, or SSR and client markup diverge.
+
+11. **Dev is one port.** Vite's HMR websocket rides on the Express `http.Server` (`hmr: { server: httpServer }` in `server.ts`). Don't give it a fixed port — two clones of this template running at once would fight over it and HMR would silently die.
+
+12. **`.env` is loaded by `prisma.config.ts` itself.** Bun loads `.env` into its own runtime but NOT into the Prisma CLI (a Node subprocess), and Prisma 7 dropped auto-loading — so the config reads `.env` manually with a safe fallback (`prisma generate` works before `.env` exists). Don't delete that block. Runtime `PrismaClient` gets the URL via the pg adapter in `server/prisma.ts`.
 
 ## Architecture flows
 
@@ -116,7 +125,7 @@ prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule 
 
 **Date handling note**: tRPC procedures must return JSON-safe types — convert `Date` to ISO string at the procedure level (`createdAt: p.createdAt.toISOString()`), or SSR-vs-hydration markup will diverge on `toLocaleString()` and React will warn. See `posts.list` for the pattern. Add SuperJSON if you want transparent Date support.
 
-**Client-nav prefetch**: client-side loaders currently don't prefetch tRPC data — they only re-check the session. The component's `useQuery` handles fetching on first render after navigation. If you want zero-flicker on client navigations too, add a module-singleton `QueryClient` + client-side `createTRPCOptionsProxy({ client: trpcClient, queryClient })` and call `prefetchQuery` from the client branch of the loader.
+**Client-nav prefetch IS wired up too**: `src/lib/trpc.tsx` exports `getBrowserClients()` — lazy module singletons (`queryClient`, `trpcClient`, and a `createTRPCOptionsProxy` bound to them). `index.tsx` hands the same instances to `<App>`, and the client branch of `dashboardLoader` calls `queryClient.prefetchQuery(trpc.posts.list.queryOptions())` so a client navigation renders with data — no "Loading…" flash. Follow that pattern for any new data route: prefetch in both branches of the loader.
 
 ### Logging & errors
 
@@ -166,7 +175,7 @@ Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`t
 ```
 bun run typecheck   # tsgo --noEmit (TypeScript Native Preview)
 bun run build       # vite build (client) + vite build --ssr (server) → dist/client + dist/server
-bun run dev         # bun --watch server.ts → http://localhost:3000
+bun run dev         # bun --watch server.ts → http://localhost:3000 (HMR on the same port)
 bun run start       # NODE_ENV=production bun server.ts
 ```
 

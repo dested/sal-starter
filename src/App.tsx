@@ -8,7 +8,6 @@ import {
 import type { TRPCClient } from '@trpc/client'
 import { TRPCProvider } from '~/lib/trpc'
 import type { AppRouter } from '../server/router'
-import '~/styles/app.css'
 
 export default function App({
   children,

@@ -1,7 +1,7 @@
 # tan-starter — CliffNotes
 
 > Living map of the project. Read this before any coding session.
-> Last updated: 2026-06-29. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
+> Last updated: 2026-09-11. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
 
 ## What this is
 
@@ -9,7 +9,7 @@ An SSR React starter template — clone it, run `bun run init <name>`, and build
 
 ## Quick Reference
 
-- **Dev:** `bun run dev` (http://localhost:3000)
+- **Dev:** `bun run dev` (http://localhost:3000 — HMR websocket shares that port)
 - **New project:** `bun run init <name>` then `createdb <name>` → `bun run db:push` → `bun run dev`
 - **Entry point:** `server.ts` (Express; same file dev + prod) → SSR via `src/entry-server.tsx`; client hydrates via `src/index.tsx`
 - **Type-check:** `bun run typecheck` (`tsgo --noEmit`)
@@ -57,16 +57,19 @@ src/
 │   ├── sign-in.tsx      /sign-in
 │   ├── sign-up.tsx      /sign-up
 │   └── dashboard.tsx    /dashboard (protected; posts list + create form)
-├── components/ui/       shadcn primitives (button, card, input, label)
+├── components/
+│   ├── theme-toggle.tsx light/dark toggle (nav); icons swapped via `dark:` so SSR markup matches
+│   └── ui/              shadcn primitives (button, card, input, label)
 ├── lib/
 │   ├── auth-client.ts   better-auth React client
-│   ├── trpc.tsx         TRPCProvider + useTRPC
+│   ├── theme.ts         theme state — applyTheme/setTheme/toggleTheme/followSystemTheme (mirrors index.html script)
+│   ├── trpc.tsx         TRPCProvider + useTRPC + getBrowserClients() (lazy browser QueryClient/tRPC singletons)
 │   └── utils.ts         cn()
-└── styles/app.css       Tailwind v4 import + shadcn oklch tokens
+└── styles/app.css       Tailwind v4 import + shadcn oklch tokens (:root light, .dark dark, color-scheme per theme)
 public/                  favicon.svg, robots.txt (served by vite dev / express static prod)
 e2e/                     smoke.spec.ts, global-setup.ts (truncates test DB), __screenshots__/
 scripts/init.ts          clone→rename initializer
-index.html               SSR template — <!--app-html--> + <!--app-state--> placeholders
+index.html               SSR template — stylesheet <link>, pre-paint theme script, <!--app-html--> + <!--app-state-->
 prisma/schema.prisma     User / Session / Account / Verification + Post
 prisma.config.ts         Prisma 7 CLI config; loads .env itself (Bun/Prisma don't)
 render.yaml              Render blueprint (web service + managed Postgres)
@@ -88,6 +91,8 @@ render.yaml              Render blueprint (web service + managed Postgres)
 | Logging                           | `server/logger.ts`                                            |
 | Env vars                          | `server/env.ts` + `.env.example` + `render.yaml`              |
 | Design tokens                     | `src/styles/app.css` (see `ui.md`)                            |
+| Theme (dark mode)                 | `index.html` (pre-paint script) · `src/lib/theme.ts` · `src/components/theme-toggle.tsx` |
+| Browser query/tRPC singletons     | `src/lib/trpc.tsx` (`getBrowserClients()`)                    |
 | E2E tests                         | `e2e/*.spec.ts`                                               |
 
 ## Routes / URLs
@@ -107,7 +112,7 @@ Routes are explicit in `src/app/routes.tsx` (no file-based routing). All page ro
 
 ## Architecture
 
-Browser ↔ Express 5 (`server.ts`) ↔ Postgres. One Express server runs in dev (Vite middleware + `ssrLoadModule`) and prod (static `dist/client` + built `dist/server/entry-server.js`), gated on `NODE_ENV`. SSR: `render(req)` builds a Fetch Request, runs `createStaticHandler(routes).query()` to execute loaders (session + tRPC prefetch happen here), `renderToString`s with `<StaticRouterProvider>`, and dehydrates the QueryClient into `window.__SSR_STATE__`. The client rehydrates that cache, so `useQuery` has data on first paint. The SSR-side tRPC options proxy calls procedures **directly** (no HTTP).
+Browser ↔ Express 5 (`server.ts`) ↔ Postgres. One Express server runs in dev (Vite middleware + `ssrLoadModule`) and prod (static `dist/client` + built `dist/server/entry-server.js`), gated on `NODE_ENV`. SSR: `render(req)` builds a Fetch Request, runs `createStaticHandler(routes).query()` to execute loaders (session + tRPC prefetch happen here), `renderToString`s with `<StaticRouterProvider>`, and dehydrates the QueryClient into `window.__SSR_STATE__`. The client rehydrates that cache, so `useQuery` has data on first paint. The SSR-side tRPC options proxy calls procedures **directly** (no HTTP). Client-side navigations prefetch the same way through `getBrowserClients()` in the loader's browser branch, so there is no "Loading…" flash either way. The stylesheet is a `<link>` in `index.html` (render-blocking in dev, hashed in prod) and the theme class is applied by an inline `<head>` script before first paint — no unstyled or wrong-theme flash. In dev, Vite's HMR websocket shares the Express `http.Server` (one port).
 
 ## Data model
 
@@ -122,6 +127,10 @@ Email + password, `autoSignIn` on sign-up. Client (`auth-client.ts`) → `/api/a
 ### tRPC
 
 `publicProcedure` / `protectedProcedure` (401 without session). Context attaches the session from request headers. **Lives in:** `server/trpc.ts`, `server/router.ts`, `src/lib/trpc.tsx`.
+
+### Theme (dark mode)
+
+`.dark` on `<html>` switches the oklch tokens; `color-scheme` follows so form controls/scrollbars match. Resolution order: `localStorage.theme` (`'light'|'dark'`) → `prefers-color-scheme`. The inline script in `index.html` applies it before first paint; `src/lib/theme.ts` handles toggles (`toggleTheme`) and OS changes while no explicit choice is stored (`followSystemTheme`, called once in `index.tsx`). `ThemeToggle` (nav) renders both icons and hides one with `dark:` so server and client markup are identical. **Lives in:** `index.html`, `src/lib/theme.ts`, `src/components/theme-toggle.tsx`, `src/styles/app.css`.
 
 ### Logging & errors
 
@@ -154,12 +163,16 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 - **`.env` loading**: Bun loads `.env` only into its own runtime, not the Prisma CLI (Node subprocess); Prisma 7 dropped auto-loading — `prisma.config.ts` loads it manually. Keep that block.
 - **Run `bun run db:generate` after schema edits** (auto-runs on `bun install`).
 - **JSON-safe tRPC returns** — convert `Date` → ISO string at the procedure, or SSR/hydration markup diverges.
+- **Stylesheet is a `<link>` in `index.html`** — never `import` CSS from a component (Vite injects it after the module graph loads → unstyled flash in dev). `@import` new CSS from `app.css`.
+- **Theme script and `theme.ts` must stay in sync**; never branch on theme in render (use `dark:` classes) or hydration mismatches.
+- **New data routes prefetch in both loader branches** — SSR via `ctx.trpc`, client via `getBrowserClients()` — or the page flickers on client nav.
+- **HMR has no fixed port** — it shares the Express server; giving it one collides with other clones running locally.
 - **shadcn has no `asChild`** (no `@radix-ui/react-slot`) — style a `Link` with `buttonVariants()`.
 - **No `tailwind.config`** — Tailwind v4, tokens in `app.css`.
 - Use `log.*` from `server/logger.ts`, not raw `console.log`, in server code.
 
 ## Status
 
-- **Done** — SSR + hydration, auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, init script, Playwright e2e + screenshot baselines, Render blueprint. Express 5 + Prisma 7.
-- **Not built** — email verification, OAuth providers, rate limiting, migrations workflow (uses `db push`), CI, dark-mode toggle (tokens exist, unused).
+- **Done** — SSR + hydration (server and client-nav prefetch), auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, flash-free dark mode + toggle, scroll restoration, immutable asset caching, init script, Playwright e2e + screenshot baselines, Render blueprint. Express 5 + Prisma 7.
+- **Not built** — email verification, OAuth providers, rate limiting, migrations workflow (uses `db push`), CI.
 - **Next:** whatever the cloned product needs — this is a base.

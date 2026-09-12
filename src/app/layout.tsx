@@ -2,11 +2,13 @@ import {
   Link,
   NavLink,
   Outlet,
+  ScrollRestoration,
   useNavigate,
   useRevalidator,
   useRouteLoaderData,
 } from 'react-router-dom'
 import { authClient } from '~/lib/auth-client'
+import { ThemeToggle } from '~/components/theme-toggle'
 import type { RootLoaderData } from './routes'
 
 export function Layout() {
@@ -57,12 +59,14 @@ export function Layout() {
                 </Link>
               </>
             )}
+            <ThemeToggle />
           </div>
         </nav>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-8">
         <Outlet />
       </main>
+      <ScrollRestoration />
     </>
   )
 }
