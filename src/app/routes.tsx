@@ -23,22 +23,39 @@ export type SsrLoaderContext = {
 
 export type RootLoaderData = { session: Session | null }
 
+// React Router types loader `context` as `any` in data mode; narrow it here
+// instead of casting. Only entry-server.tsx supplies a requestContext.
+function isSsrContext(context: unknown): context is SsrLoaderContext {
+  return (
+    typeof context === 'object' &&
+    context !== null &&
+    'session' in context &&
+    'queryClient' in context &&
+    'trpc' in context
+  )
+}
+
+function ssrContext(context: unknown): SsrLoaderContext {
+  if (!isSsrContext(context)) throw new Error('SSR loader ran without entry-server requestContext')
+  return context
+}
+
 async function fetchClientSession(): Promise<Session | null> {
   const { data, error } = await authClient.getSession()
   if (error || !data) return null
-  return data as Session
+  return data
 }
 
 async function rootLoader({ context }: LoaderFunctionArgs): Promise<RootLoaderData> {
   if (typeof window === 'undefined') {
-    return { session: (context as SsrLoaderContext).session }
+    return { session: ssrContext(context).session }
   }
   return { session: await fetchClientSession() }
 }
 
 async function dashboardLoader({ context }: LoaderFunctionArgs): Promise<RootLoaderData> {
   if (typeof window === 'undefined') {
-    const ctx = context as SsrLoaderContext
+    const ctx = ssrContext(context)
     if (!ctx.session) throw redirect('/sign-in')
     await ctx.queryClient.prefetchQuery(ctx.trpc.posts.list.queryOptions())
     return { session: ctx.session }
@@ -57,9 +74,7 @@ async function dashboardLoader({ context }: LoaderFunctionArgs): Promise<RootLoa
 
 async function redirectIfSignedIn({ context }: LoaderFunctionArgs) {
   const session =
-    typeof window === 'undefined'
-      ? (context as SsrLoaderContext).session
-      : await fetchClientSession()
+    typeof window === 'undefined' ? ssrContext(context).session : await fetchClientSession()
   if (session) throw redirect('/dashboard')
   return null
 }

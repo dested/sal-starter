@@ -20,8 +20,11 @@ followSystemTheme()
 
 const router = createBrowserRouter(routes)
 
+const root = document.getElementById('app')
+if (!root) throw new Error('#app root element missing from index.html')
+
 ReactDOM.hydrateRoot(
-  document.getElementById('app') as HTMLElement,
+  root,
   <App queryClient={queryClient} trpcClient={trpcClient} dehydratedState={dehydratedState}>
     <RouterProvider router={router} />
   </App>

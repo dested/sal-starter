@@ -12,7 +12,7 @@ import { ThemeToggle } from '~/components/theme-toggle'
 import type { RootLoaderData } from './routes'
 
 export function Layout() {
-  const data = useRouteLoaderData('root') as RootLoaderData | undefined
+  const data = useRouteLoaderData<RootLoaderData>('root')
   const session = data?.session ?? null
   const navigate = useNavigate()
   const revalidator = useRevalidator()

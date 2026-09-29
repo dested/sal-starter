@@ -138,7 +138,7 @@ async function createServer() {
         }
         return
       }
-      if (!isProd && vite) vite.ssrFixStacktrace(e as Error)
+      if (!isProd && vite && e instanceof Error) vite.ssrFixStacktrace(e)
       log.error(`SSR render failed for ${req.method} ${req.originalUrl}`)
       console.error(formatError(e))
       res

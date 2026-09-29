@@ -1,8 +1,19 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "server/**/*.ts", "server.ts", "vite.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "server/**/*.ts",
+    "server.ts",
+    "vite.config.ts",
+    "e2e/**/*.ts",
+    "scripts/**/*.ts",
+    "playwright.config.ts",
+    "prisma.config.ts"
+  ],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "module": "ESNext",
