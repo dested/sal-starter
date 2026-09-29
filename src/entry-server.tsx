@@ -5,6 +5,7 @@ import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import ReactDomServer from 'react-dom/server'
 import { StaticRouterProvider, createStaticHandler, createStaticRouter } from 'react-router-dom'
 import { auth, type Session } from '../server/auth'
+import { env } from '../server/env'
 import { appRouter } from '../server/router'
 import App from './App'
 import { routes, type SsrLoaderContext } from './app/routes'
@@ -43,7 +44,7 @@ export async function render(req: express.Request): Promise<{
   const trpcClient = createTRPCClient<typeof appRouter>({
     links: [
       httpBatchLink({
-        url: `http://localhost:${process.env.PORT ?? 3000}/api/trpc`,
+        url: `http://localhost:${env.PORT}/api/trpc`,
         headers: () => (cookieHeader ? { cookie: cookieHeader } : {}),
       }),
     ],

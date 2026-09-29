@@ -14,7 +14,7 @@ import { createContext } from './server/trpc'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isProd = process.env.NODE_ENV === 'production'
-const PORT = Number(process.env.PORT ?? 3000)
+const PORT = env.PORT
 
 const resolve = (p: string) => path.resolve(__dirname, p)
 
