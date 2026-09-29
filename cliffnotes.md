@@ -1,7 +1,7 @@
 # tan-starter — CliffNotes
 
 > Living map of the project. Read this before any coding session.
-> Last updated: 2026-09-11. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
+> Last updated: 2026-09-29. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
 
 ## What this is
 
@@ -9,12 +9,15 @@ An SSR React starter template — clone it, run `bun run init <name>`, and build
 
 ## Quick Reference
 
-- **Dev:** `bun run dev` (http://localhost:3000 — HMR websocket shares that port)
-- **New project:** `bun run init <name>` then `createdb <name>` → `bun run db:push` → `bun run dev`
+- **Dev:** `bun run dev` (http://localhost:4780 — HMR websocket shares that port). Port = `PORT` env, default 4780
+- **Port rule:** every project gets its own distinct, uncommon port (`bun run init` picks one); never 3000/3001/5173/5174/8000/8080/4200/5000
+- **New project:** `bun run init <name> [--port <n>]` then `createdb <name>` → `bun run db:migrate` → `bun run dev`
 - **Entry point:** `server.ts` (Express; same file dev + prod) → SSR via `src/entry-server.tsx`; client hydrates via `src/index.tsx`
-- **Type-check:** `bun run typecheck` (`tsgo --noEmit`)
+- **Type-check:** `bun run typecheck` (`tsgo --noEmit`; `strict` + `noUncheckedIndexedAccess`, covers e2e/scripts/configs)
+- **Unit tests:** `bun run test` (`bun:test`, `*.test.ts` under `src/` + `server/`)
 - **Build:** `bun run build` → `dist/client` + `dist/server`
-- **Test:** `bun run test:e2e` (Playwright; isolated DB `tan_starter_test` on :3100, committed screenshots)
+- **E2E:** `bun run test:e2e` (Playwright; isolated DB `tan_starter_test` on :3100, migrated by global-setup, committed screenshots)
+- **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:deploy` (prod/CI)
 - **Health:** `GET /healthz` (pings the DB)
 - **Day-one fact:** server-only code lives in `./server/` — never import it from `src/*.tsx` except `import type` (it'd ship to the browser / leak secrets).
 
@@ -25,12 +28,13 @@ An SSR React starter template — clone it, run `bun run init <name>`, and build
 | Runtime / pkg mgr | Bun ≥ 1.3                       | dev + prod                                                                                |
 | Server            | **Express 5** + Vite SSR        | required for `*splat` route wildcards                                                     |
 | Routing           | React Router 7                  | `createBrowserRouter` (client) / `createStaticHandler` (server); explicit `RouteObject[]` |
-| State / data      | TanStack Query + tRPC v11       | `@trpc/tanstack-react-query` (`.queryOptions()`)                                          |
+| State / data      | TanStack Query + tRPC v11       | `@trpc/tanstack-react-query` (`.queryOptions()`); **superjson** on the wire and in SSR state |
+| Validation        | zod 4                           | env, tRPC inputs                                                                          |
 | API               | tRPC, Express mounts            | `/api/trpc`, `/api/auth/*`, `/healthz`                                                    |
-| Database / ORM    | Postgres + Prisma 7             | `pg` driver adapter (`@prisma/adapter-pg`)                                                |
+| Database / ORM    | Postgres + Prisma 7             | `pg` driver adapter (`@prisma/adapter-pg`); `prisma migrate`, committed migrations        |
 | Auth              | better-auth                     | email + password, autoSignIn                                                              |
 | Styling           | Tailwind v4 + shadcn (new-york) | CSS-first, oklch tokens; see `ui.md`                                                      |
-| Tests             | Playwright                      | `e2e/` + committed `__screenshots__` baselines                                            |
+| Tests             | Playwright + `bun:test`         | `e2e/` + committed `__screenshots__` baselines; unit `*.test.ts`                          |
 | Deploy            | Render.com blueprint            | `runtime: node` + `BUN_VERSION`                                                           |
 
 ## Directory structure
@@ -39,7 +43,7 @@ An SSR React starter template — clone it, run `bun run init <name>`, and build
 server.ts                Express entry: request logging, /healthz, auth + tRPC mounts,
                          vite (dev) / static+SSR (prod), startup banner. Dev AND prod.
 server/
-├── env.ts               zod-validated env, parsed at import (throws → no boot)
+├── env.ts               zod-validated env (PORT, DATABASE_URL, BETTER_AUTH_*), parsed at import (throws → no boot)
 ├── logger.ts            ANSI request logger, startup banner, formatError
 ├── prisma.ts            PrismaClient singleton (HMR-safe) via pg adapter
 ├── auth.ts              better-auth instance + Session type
@@ -47,7 +51,7 @@ server/
 └── router.ts            appRouter (me, posts.list, posts.create) + AppRouter type
 src/
 ├── index.tsx            client entry — hydrateRoot + createBrowserRouter
-├── entry-server.tsx     SSR entry — createStaticHandler.query + renderToString, returns {html,status,dehydratedState}
+├── entry-server.tsx     SSR entry — createStaticHandler.query + renderToString, returns {html,status,ssrState}
 ├── App.tsx              providers: QueryClientProvider + HydrationBoundary + TRPCProvider
 ├── app/
 │   ├── routes.tsx       RouteObject[] tree + loaders (root/dashboard/redirectIfSignedIn)
@@ -64,15 +68,17 @@ src/
 │   ├── auth-client.ts   better-auth React client
 │   ├── theme.ts         theme state — applyTheme/setTheme/toggleTheme/followSystemTheme (mirrors index.html script)
 │   ├── trpc.tsx         TRPCProvider + useTRPC + getBrowserClients() (lazy browser QueryClient/tRPC singletons)
+│   ├── ssr-state.ts     superjson (de)serialize of the dehydrated cache (+ ssr-state.test.ts)
 │   └── utils.ts         cn()
 └── styles/app.css       Tailwind v4 import + shadcn oklch tokens (:root light, .dark dark, color-scheme per theme)
 public/                  favicon.svg, robots.txt (served by vite dev / express static prod)
-e2e/                     smoke.spec.ts, global-setup.ts (truncates test DB), __screenshots__/
-scripts/init.ts          clone→rename initializer
+e2e/                     smoke.spec.ts, global-setup.ts (migrate deploy + truncate), db.ts (test DB URL), __screenshots__/
+scripts/init.ts          clone→rename initializer (+ per-project dev port)
 index.html               SSR template — stylesheet <link>, pre-paint theme script, <!--app-html--> + <!--app-state-->
 prisma/schema.prisma     User / Session / Account / Verification + Post
+prisma/migrations/       committed migrations (init + everything after); raw SQL lives here
 prisma.config.ts         Prisma 7 CLI config; loads .env itself (Bun/Prisma don't)
-render.yaml              Render blueprint (web service + managed Postgres)
+render.yaml              Render blueprint (web service + managed Postgres; predeploy = migrate deploy)
 ```
 
 ## File map (concept → path)
@@ -86,10 +92,12 @@ render.yaml              Render blueprint (web service + managed Postgres)
 | tRPC procedures                   | `server/router.ts`                                            |
 | tRPC context / procedure builders | `server/trpc.ts`                                              |
 | DB schema                         | `prisma/schema.prisma`                                        |
+| Migrations / raw SQL              | `prisma/migrations/` (see CLAUDE.md "Raw SQL in a migration") |
+| SSR state (superjson)             | `src/lib/ssr-state.ts`                                        |
 | Auth config                       | `server/auth.ts` (server) · `src/lib/auth-client.ts` (client) |
 | HTTP mounts / SSR / 404 logic     | `server.ts`                                                   |
 | Logging                           | `server/logger.ts`                                            |
-| Env vars                          | `server/env.ts` + `.env.example` + `render.yaml`              |
+| Env vars / dev port               | `server/env.ts` + `.env.example` + `render.yaml`              |
 | Design tokens                     | `src/styles/app.css` (see `ui.md`)                            |
 | Theme (dark mode)                 | `index.html` (pre-paint script) · `src/lib/theme.ts` · `src/components/theme-toggle.tsx` |
 | Browser query/tRPC singletons     | `src/lib/trpc.tsx` (`getBrowserClients()`)                    |
@@ -112,11 +120,11 @@ Routes are explicit in `src/app/routes.tsx` (no file-based routing). All page ro
 
 ## Architecture
 
-Browser ↔ Express 5 (`server.ts`) ↔ Postgres. One Express server runs in dev (Vite middleware + `ssrLoadModule`) and prod (static `dist/client` + built `dist/server/entry-server.js`), gated on `NODE_ENV`. SSR: `render(req)` builds a Fetch Request, runs `createStaticHandler(routes).query()` to execute loaders (session + tRPC prefetch happen here), `renderToString`s with `<StaticRouterProvider>`, and dehydrates the QueryClient into `window.__SSR_STATE__`. The client rehydrates that cache, so `useQuery` has data on first paint. The SSR-side tRPC options proxy calls procedures **directly** (no HTTP). Client-side navigations prefetch the same way through `getBrowserClients()` in the loader's browser branch, so there is no "Loading…" flash either way. The stylesheet is a `<link>` in `index.html` (render-blocking in dev, hashed in prod) and the theme class is applied by an inline `<head>` script before first paint — no unstyled or wrong-theme flash. In dev, Vite's HMR websocket shares the Express `http.Server` (one port).
+Browser ↔ Express 5 (`server.ts`) ↔ Postgres. One Express server runs in dev (Vite middleware + `ssrLoadModule`) and prod (static `dist/client` + built `dist/server/entry-server.js`), gated on `NODE_ENV`. SSR: `render(req)` builds a Fetch Request, runs `createStaticHandler(routes).query()` to execute loaders (session + tRPC prefetch happen here), `renderToString`s with `<StaticRouterProvider>`, and dehydrates the QueryClient into `window.__SSR_STATE__` through superjson (`src/lib/ssr-state.ts`). The client deserializes and rehydrates that cache (Dates stay Dates), so `useQuery` has data on first paint. The SSR-side tRPC options proxy calls procedures **directly** (no HTTP). Client-side navigations prefetch the same way through `getBrowserClients()` in the loader's browser branch, so there is no "Loading…" flash either way. The stylesheet is a `<link>` in `index.html` (render-blocking in dev, hashed in prod) and the theme class is applied by an inline `<head>` script before first paint — no unstyled or wrong-theme flash. In dev, Vite's HMR websocket shares the Express `http.Server` (one port).
 
 ## Data model
 
-`prisma/schema.prisma` — better-auth's required models (`User`, `Session`, `Account`, `Verification`) mapped to lowercase tables via `@@map`; fields are camelCase (better-auth queries by name) with snake_case `@map` columns. App model: `Post` (id, title, content, `authorId` → User `onDelete: Cascade`, createdAt). FK relations to `User` should cascade.
+`prisma/schema.prisma` — better-auth's required models (`User`, `Session`, `Account`, `Verification`) mapped to lowercase tables via `@@map`; fields are camelCase (better-auth queries by name) with snake_case `@map` columns. App model: `Post` (id, title, content, `authorId` → User `onDelete: Cascade`, createdAt). FK relations to `User` should cascade. Every schema change is a committed migration in `prisma/migrations/`; extensions, exclusion constraints, FTS triggers and expression indexes are hand-written SQL in a migration.
 
 ## Systems
 
@@ -126,7 +134,7 @@ Email + password, `autoSignIn` on sign-up. Client (`auth-client.ts`) → `/api/a
 
 ### tRPC
 
-`publicProcedure` / `protectedProcedure` (401 without session). Context attaches the session from request headers. **Lives in:** `server/trpc.ts`, `server/router.ts`, `src/lib/trpc.tsx`.
+`publicProcedure` / `protectedProcedure` (401 without session). Context attaches the session from request headers. superjson transformer on the server and on every link (browser + SSR loopback). **Lives in:** `server/trpc.ts`, `server/router.ts`, `src/lib/trpc.tsx`.
 
 ### Theme (dark mode)
 
@@ -145,11 +153,11 @@ Dependency-free ANSI logger: one line per request (method · status · path · t
 
 ### Add a tRPC procedure
 
-Add to `appRouter` in `server/router.ts`; pick public/protected; validate input with zod; return JSON-safe data (dates → ISO strings).
+Add to `appRouter` in `server/router.ts`; pick public/protected; validate input with zod; return real `Date`s (superjson) and format them deterministically in render.
 
 ### Add a DB table
 
-Edit `prisma/schema.prisma` → `bun run db:push` → `bun run db:generate` → use `prisma.x` in procedures.
+Edit `prisma/schema.prisma` → `bun run db:migrate --name <what>` (applies + regenerates the client) → read and commit `prisma/migrations/<ts>_<what>/` → use `prisma.x` in procedures. Raw SQL: `bun run db:migrate:create --name <what>`, append SQL, then `bun run db:migrate`.
 
 ### Add an e2e test
 
@@ -162,7 +170,10 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 - **Express 5 required** — `*splat` wildcards break on Express 4 (symptom: `/api/auth/*` 404s, auth dead).
 - **`.env` loading**: Bun loads `.env` only into its own runtime, not the Prisma CLI (Node subprocess); Prisma 7 dropped auto-loading — `prisma.config.ts` loads it manually. Keep that block.
 - **Run `bun run db:generate` after schema edits** (auto-runs on `bun install`).
-- **JSON-safe tRPC returns** — convert `Date` → ISO string at the procedure, or SSR/hydration markup diverges.
+- **superjson everywhere** — any new tRPC link needs `transformer: superjson`; SSR state goes through `ssr-state.ts`, never raw `JSON.stringify`. Format Dates deterministically (UTC / fixed `timeZone`) or SSR/hydration markup diverges.
+- **Migrations, never `db push`** — and review generated SQL: Prisma can emit `DROP INDEX` for hand-made expression indexes.
+- **Port** — `PORT` env (default 4780); never 3000/3001/5173/5174/8000/8080/4200/5000.
+- **Types** — `strict` + `noUncheckedIndexedAccess`; no `any`, no `as` casts to paper over mismatches, narrow instead (see `isSsrContext` in `routes.tsx`).
 - **Stylesheet is a `<link>` in `index.html`** — never `import` CSS from a component (Vite injects it after the module graph loads → unstyled flash in dev). `@import` new CSS from `app.css`.
 - **Theme script and `theme.ts` must stay in sync**; never branch on theme in render (use `dark:` classes) or hydration mismatches.
 - **New data routes prefetch in both loader branches** — SSR via `ctx.trpc`, client via `getBrowserClients()` — or the page flickers on client nav.
@@ -173,6 +184,6 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 
 ## Status
 
-- **Done** — SSR + hydration (server and client-nav prefetch), auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, flash-free dark mode + toggle, scroll restoration, immutable asset caching, init script, Playwright e2e + screenshot baselines, Render blueprint. Express 5 + Prisma 7.
-- **Not built** — email verification, OAuth providers, rate limiting, migrations workflow (uses `db push`), CI.
+- **Done** — SSR + hydration (server and client-nav prefetch), auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, flash-free dark mode + toggle, scroll restoration, immutable asset caching, init script (rename + per-project port), Playwright e2e + screenshot baselines, Render blueprint. Express 5 + Prisma 7. superjson (wire + SSR state), zod 4, `noUncheckedIndexedAccess`, `prisma migrate` workflow, `bun:test` unit tests.
+- **Not built** — email verification, OAuth providers, rate limiting, CI, per-route head/meta.
 - **Next:** whatever the cloned product needs — this is a base.
