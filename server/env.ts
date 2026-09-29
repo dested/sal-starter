@@ -7,9 +7,11 @@ export const DEFAULT_PORT = 4780
 const schema = z
   .object({
     PORT: z.coerce.number().int().min(1).max(65535).default(DEFAULT_PORT),
-    DATABASE_URL: z.string().url(),
-    BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 chars'),
-    BETTER_AUTH_URL: z.string().url().optional(),
+    DATABASE_URL: z.url(),
+    BETTER_AUTH_SECRET: z
+      .string()
+      .min(32, { error: 'BETTER_AUTH_SECRET must be at least 32 chars' }),
+    BETTER_AUTH_URL: z.url().optional(),
   })
   .transform((e) => ({ ...e, BETTER_AUTH_URL: e.BETTER_AUTH_URL ?? `http://localhost:${e.PORT}` }))
 
