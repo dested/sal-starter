@@ -119,9 +119,9 @@ async function createServer() {
         render = (await import('./dist/server/entry-server.js')).render
       }
 
-      const { html: appHtml, status, dehydratedState } = await render(req)
+      const { html: appHtml, status, ssrState } = await render(req)
 
-      const stateScript = `<script>window.__SSR_STATE__ = ${jsonForScript({ dehydratedState })}</script>`
+      const stateScript = `<script>window.__SSR_STATE__ = ${ssrState}</script>`
       const html = template
         .replace('<!--app-state-->', stateScript)
         .replace('<!--app-html-->', appHtml)
@@ -156,12 +156,6 @@ async function createServer() {
       routes: ['/', '/sign-in', '/sign-up', '/dashboard', '/healthz', '/api/trpc', '/api/auth'],
     })
   })
-}
-
-// JSON for safe inline-script embedding: escape `<` so `</script>` can't
-// terminate the script tag.
-function jsonForScript(value: unknown): string {
-  return JSON.stringify(value).replace(/</g, '\\u003c')
 }
 
 createServer().catch((e) => {

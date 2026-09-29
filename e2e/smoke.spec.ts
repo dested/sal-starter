@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { deserializeSsrState, isSuperJSONResult } from '../src/lib/ssr-state'
 
 // Fixed user — the DB is truncated in global-setup, so this is deterministic
 // across runs (stable screenshots).
@@ -45,6 +46,23 @@ test('sign up → dashboard → create post → sign out', async ({ page }) => {
   await page.getByRole('button', { name: 'Post' }).click()
   await expect(page.getByText('Hello world')).toBeVisible()
   await expect(page.getByText('My first post on the new stack.')).toBeVisible()
+
+  // SSR hydration keeps Dates: a hard reload server-renders the dashboard with
+  // posts.list prefetched; the inline state, deserialized exactly as index.tsx
+  // does it, must hand React Query a real Date (not an ISO string).
+  await page.reload()
+  await expect(page.getByText('Hello world')).toBeVisible()
+  const payload: unknown = await page.evaluate(() => window.__SSR_STATE__)
+  expect(isSuperJSONResult(payload)).toBe(true)
+  const state = deserializeSsrState(isSuperJSONResult(payload) ? payload : undefined)
+  const posts = state?.queries
+    .map((q) => q.state.data)
+    .find((d): d is unknown[] => Array.isArray(d))
+  const [first]: unknown[] = posts ?? []
+  expect(first).toMatchObject({ title: 'Hello world' })
+  expect(
+    typeof first === 'object' && first !== null && 'createdAt' in first && first.createdAt
+  ).toBeInstanceOf(Date)
 
   // Sign out returns to the signed-out home.
   await page.getByRole('button', { name: 'Sign out' }).click()

@@ -5,6 +5,7 @@ import {
   createTRPCOptionsProxy,
   type TRPCOptionsProxy,
 } from '@trpc/tanstack-react-query'
+import superjson from 'superjson'
 import type { AppRouter } from '../../server/router'
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>()
@@ -36,6 +37,7 @@ function createBrowserClients(): BrowserClients {
     links: [
       httpBatchLink({
         url: '/api/trpc',
+        transformer: superjson,
         fetch(url, options) {
           return fetch(url, { ...options, credentials: 'include' })
         },

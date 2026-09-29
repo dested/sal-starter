@@ -18,6 +18,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "test": "bun test ./src ./server",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:update": "playwright test --update-snapshots",
@@ -45,6 +46,7 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.3",
     "rimraf": "^6.0.1",
+    "superjson": "^2.2.6",
     "tailwind-merge": "^2.5.5",
     "zod": "^3.24.1"
   },

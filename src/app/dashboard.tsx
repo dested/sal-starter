@@ -88,7 +88,7 @@ export function DashboardPage() {
               <CardHeader>
                 <CardTitle>{p.title}</CardTitle>
                 <CardDescription>
-                  by {p.authorName ?? 'unknown'} · {p.createdAt.slice(0, 10)}
+                  by {p.authorName ?? 'unknown'} · {p.createdAt.toISOString().slice(0, 10)}
                 </CardDescription>
               </CardHeader>
               <CardContent>

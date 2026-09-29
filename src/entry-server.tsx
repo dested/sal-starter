@@ -1,20 +1,23 @@
 import type * as express from 'express'
-import { dehydrate, QueryClient, type DehydratedState } from '@tanstack/react-query'
+import { dehydrate, QueryClient } from '@tanstack/react-query'
 import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import ReactDomServer from 'react-dom/server'
+import superjson from 'superjson'
 import { StaticRouterProvider, createStaticHandler, createStaticRouter } from 'react-router-dom'
 import { auth, type Session } from '../server/auth'
 import { env } from '../server/env'
 import { appRouter } from '../server/router'
 import App from './App'
+import { serializeSsrState } from './lib/ssr-state'
 import { routes, type SsrLoaderContext } from './app/routes'
 
 export async function render(req: express.Request): Promise<{
   html: string
   status: number
   session: Session | null
-  dehydratedState: DehydratedState
+  /** superjson-serialized React Query cache, ready to inline as a JS expression */
+  ssrState: string
 }> {
   const fetchRequest = expressToFetch(req)
 
@@ -45,6 +48,7 @@ export async function render(req: express.Request): Promise<{
     links: [
       httpBatchLink({
         url: `http://localhost:${env.PORT}/api/trpc`,
+        transformer: superjson,
         headers: () => (cookieHeader ? { cookie: cookieHeader } : {}),
       }),
     ],
@@ -62,7 +66,7 @@ export async function render(req: express.Request): Promise<{
     html,
     status: routerContext.statusCode,
     session,
-    dehydratedState: dehydrate(queryClient),
+    ssrState: serializeSsrState({ dehydratedState: dehydrate(queryClient) }),
   }
 }
 
