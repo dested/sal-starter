@@ -8,17 +8,18 @@ A starter template (cloned, then mutated into a real product). Every file is int
 
 ## Stack
 
-| layer             | choice                              | notes                                                                                                                                                           |
-| ----------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| runtime / pkg mgr | Bun ≥ 1.3                           | both dev and prod                                                                                                                                               |
-| server            | Express 5 + Vite SSR                | `bun --watch server.ts`; vite middleware in dev, static `dist/client/` + SSR bundle in prod. **Express 5 is required** — routes use named wildcards (`*splat`). |
-| routing           | React Router 7 (`react-router-dom`) | `createBrowserRouter` on the client, `createStaticHandler` + `createStaticRouter` on the server                                                                 |
-| db                | Postgres + Prisma ORM (v7)          | `@prisma/client` via the **`pg` driver adapter** (`@prisma/adapter-pg`), not the binary engine                                                                  |
-| auth              | better-auth                         | email + password only, autoSignIn on sign-up                                                                                                                    |
-| api               | tRPC v11                            | `@trpc/tanstack-react-query` (`.queryOptions()` API), mounted as Express middleware at `/api/trpc`                                                              |
-| styles            | Tailwind v4 + shadcn (new-york)     | CSS-first config, oklch tokens                                                                                                                                  |
-| tests             | Playwright e2e                      | `e2e/` + committed screenshot baselines; runs against an isolated test DB                                                                                       |
-| deploy            | Render.com blueprint                | `runtime: node` + `BUN_VERSION` env var                                                                                                                         |
+| layer             | choice                              | notes                                                                                                                                                              |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| runtime / pkg mgr | Bun ≥ 1.3                           | both dev and prod                                                                                                                                                  |
+| server            | Express 5 + Vite SSR                | `bun --watch server.ts`; vite middleware in dev, static `dist/client/` + SSR bundle in prod. **Express 5 is required** — routes use named wildcards (`*splat`).    |
+| routing           | React Router 7 (`react-router-dom`) | `createBrowserRouter` on the client, `createStaticHandler` + `createStaticRouter` on the server                                                                    |
+| db                | Postgres + Prisma ORM (v7)          | `@prisma/client` via the **`pg` driver adapter** (`@prisma/adapter-pg`), not the binary engine. Schema changes ship as **committed migrations** (`prisma migrate`) |
+| auth              | better-auth                         | email + password only, autoSignIn on sign-up                                                                                                                       |
+| api               | tRPC v11 + superjson                | `@trpc/tanstack-react-query` (`.queryOptions()` API), mounted as Express middleware at `/api/trpc`; superjson transformer, so `Date`s survive the wire and SSR     |
+| validation        | zod 4                               | env, tRPC inputs, anything crossing a boundary                                                                                                                     |
+| styles            | Tailwind v4 + shadcn (new-york)     | CSS-first config, oklch tokens                                                                                                                                     |
+| tests             | Playwright e2e + `bun:test`         | `e2e/` + committed screenshot baselines against an isolated, migrated test DB; unit tests are `*.test.ts` under `src/` / `server/` (`bun run test`)                |
+| deploy            | Render.com blueprint                | `runtime: node` + `BUN_VERSION` env var                                                                                                                            |
 
 ## Layout (load this mental model)
 
@@ -50,15 +51,17 @@ src/
 ├── lib/
 │   ├── auth-client.ts     better-auth React client (signIn, signUp, useSession, signOut)
 │   ├── theme.ts           theme state: applyTheme/setTheme/toggleTheme/followSystemTheme
+│   ├── ssr-state.ts       superjson (de)serialization of the dehydrated React Query cache (SSR → client)
 │   ├── trpc.tsx           TRPCProvider, useTRPC, getBrowserClients() (browser QueryClient + tRPC singletons)
 │   └── utils.ts           cn() helper
 └── styles/app.css         Tailwind v4 import + shadcn tokens (light on :root, dark on .dark)
 
 public/                favicon.svg + robots.txt (served statically by vite/express)
-e2e/                   Playwright specs + committed __screenshots__ baselines
+e2e/                   Playwright specs + committed __screenshots__ baselines; db.ts = the isolated test DB URL
 scripts/init.ts        clone→rename initializer (`bun run init <name>`)
 index.html             Vite entry HTML: stylesheet <link>, pre-paint theme script, `<!--app-html-->`/`<!--app-state-->` placeholders
 prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
+prisma/migrations/     committed migrations — the only way schema reaches a database (Hard rule #15)
 prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule #12)
 ```
 
@@ -91,6 +94,14 @@ prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule 
 
 12. **`.env` is loaded by `prisma.config.ts` itself.** Bun loads `.env` into its own runtime but NOT into the Prisma CLI (a Node subprocess), and Prisma 7 dropped auto-loading — so the config reads `.env` manually with a safe fallback (`prisma generate` works before `.env` exists). Don't delete that block. Runtime `PrismaClient` gets the URL via the pg adapter in `server/prisma.ts`.
 
+13. **Dev port is `PORT` (default 4780), never 3000.** It's validated in `server/env.ts`; `BETTER_AUTH_URL` defaults to `http://localhost:$PORT`. Every project gets its own distinct, uncommon port — `bun run init` derives one from the name (or `--port <n>`) and rewrites `4780` everywhere. Never use 3000/3001/5173/5174/8000/8080/4200/5000. Record the port in `cliffnotes.md`. Playwright uses its own 3100; Render injects its own `PORT`.
+
+14. **superjson end to end.** `initTRPC` and every client link (`src/lib/trpc.tsx`, the SSR loopback in `entry-server.tsx`) use `transformer: superjson` — add it to any new link or the wire breaks. The dehydrated SSR cache goes through `src/lib/ssr-state.ts` (superjson), never raw `JSON.stringify`, so prefetched `Date`s are `Date`s on first client render. Return `Date`s from procedures; format them deterministically (e.g. `toISOString()`, or a fixed `timeZone` in `Intl`) so SSR and client markup match.
+
+15. **Schema changes are migrations, never `db push`.** Edit `schema.prisma` → `bun run db:migrate --name <what>` → commit `prisma/migrations/<ts>_<what>/`. Production (Render `preDeployCommand`) and e2e (`global-setup.ts`) both run `prisma migrate deploy`. Anything Prisma can't model — extensions, exclusion constraints, FTS `tsvector` columns/triggers, expression/partial indexes — is **hand-written SQL in a migration** (see "Raw SQL in a migration").
+
+16. **Types are the guardrail.** `strict` + `noUncheckedIndexedAccess` are on and `tsconfig` covers `e2e/`, `scripts/` and the configs. No `any` (use `unknown` + narrowing, generics, zod at boundaries), no `as` casts to paper over a mismatch, no `!` where narrowing works. Example: React Router types loader `context` as `any`; `routes.tsx` narrows it with `isSsrContext` instead of casting. The one `@ts-ignore` (the `dist/` import in `server.ts`) carries its reason.
+
 ## Architecture flows
 
 ### Auth (browser → cookie → session)
@@ -120,10 +131,10 @@ prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule 
 
 - `entry-server.tsx` creates a per-request `QueryClient` plus a server-side `createTRPCOptionsProxy({ router: appRouter, ctx: { session }, queryClient })` — this proxy calls procedures **directly** (no HTTP), bypassing the network entirely.
 - Both are passed to loaders via `requestContext`. Loaders prefetch with `ctx.queryClient.prefetchQuery(ctx.trpc.posts.list.queryOptions())` (see `src/app/routes.tsx` → `dashboardLoader`).
-- After the static handler resolves, `dehydrate(queryClient)` is serialized into `window.__SSR_STATE__` via the `<!--app-state-->` placeholder in `index.html`.
-- On the client, `index.tsx` reads `window.__SSR_STATE__` and feeds it to `<HydrationBoundary>` in `App.tsx`. Components reading `useQuery(trpc.posts.list.queryOptions())` get cached data instantly. No refetch, no flicker.
+- After the static handler resolves, `dehydrate(queryClient)` is serialized **with superjson** (`serializeSsrState` in `src/lib/ssr-state.ts`) into `window.__SSR_STATE__` via the `<!--app-state-->` placeholder in `index.html`.
+- On the client, `index.tsx` runs `deserializeSsrState(window.__SSR_STATE__)` and feeds the result to `<HydrationBoundary>` in `App.tsx`. Components reading `useQuery(trpc.posts.list.queryOptions())` get cached data instantly. No refetch, no flicker.
 
-**Date handling note**: tRPC procedures must return JSON-safe types — convert `Date` to ISO string at the procedure level (`createdAt: p.createdAt.toISOString()`), or SSR-vs-hydration markup will diverge on `toLocaleString()` and React will warn. See `posts.list` for the pattern. Add SuperJSON if you want transparent Date support.
+**Date handling note**: procedures return real `Date`s (superjson on the wire and in the SSR payload — `src/lib/ssr-state.test.ts` and the e2e smoke prove a `Date` is still a `Date` after hydration). What must stay deterministic is the _formatting_: `toLocaleString()` without a fixed locale/timeZone differs between server and browser and React will warn about a hydration mismatch. `dashboard.tsx` uses `createdAt.toISOString().slice(0, 10)`.
 
 **Client-nav prefetch IS wired up too**: `src/lib/trpc.tsx` exports `getBrowserClients()` — lazy module singletons (`queryClient`, `trpcClient`, and a `createTRPCOptionsProxy` bound to them). `index.tsx` hands the same instances to `<App>`, and the client branch of `dashboardLoader` calls `queryClient.prefetchQuery(trpc.posts.list.queryOptions())` so a client navigation renders with data — no "Loading…" flash. Follow that pattern for any new data route: prefetch in both branches of the loader.
 
@@ -150,9 +161,25 @@ In `server/router.ts`, add to the `appRouter` tree. Choose `publicProcedure` or 
 ### Add a DB table
 
 1. Edit `prisma/schema.prisma` (FK relations to `User` should be `onDelete: Cascade`).
-2. `bun run db:push` — pushes schema directly (dev). Or `bun run db:migrate` to create a migration file.
-3. `bun run db:generate` re-generates the Prisma client. (`bun install` runs this automatically via `postinstall`.)
-4. Use it in tRPC procedures: `prisma.myModel.findMany(...)`.
+2. `bun run db:migrate --name add_my_model` — generates `prisma/migrations/<ts>_add_my_model/migration.sql`, applies it to your dev DB, and regenerates the client. **Read the SQL** and commit the folder with the schema change.
+3. Use it in tRPC procedures: `prisma.myModel.findMany(...)`.
+
+Never `prisma db push` — it skips the migration history and silently drops anything Prisma doesn't model (FTS indexes, triggers).
+
+### Raw SQL in a migration
+
+Prisma can't express Postgres extensions, exclusion constraints, full-text search (`tsvector` columns, GIN expression indexes, update triggers), partial/expression indexes or check constraints. They live in migration SQL:
+
+1. `bun run db:migrate:create --name add_booking_overlap_guard` — writes the migration **without applying it**.
+2. Append SQL to its `migration.sql`, e.g.
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS btree_gist;
+   ALTER TABLE "booking" ADD CONSTRAINT "booking_no_overlap"
+     EXCLUDE USING gist ("room_id" WITH =, tstzrange("starts_at", "ends_at") WITH &&);
+   ```
+   (FTS: a `tsvector` column is `Unsupported("tsvector")?` in `schema.prisma`; the GIN index and the trigger that fills it are SQL.)
+3. `bun run db:migrate` — applies it.
+4. On every later migration, **review the generated SQL**: Prisma's diff can emit `DROP INDEX` for indexes it doesn't know about (expression/partial ones). Delete those lines before applying (`db:migrate:create` first when in doubt).
 
 ### Add a shadcn component
 
@@ -168,18 +195,20 @@ It writes to `src/components/ui/`. `components.json` aliases already point at `~
 
 ### Add an e2e test
 
-Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`tan_starter_test`) on port 3100; `e2e/global-setup.ts` truncates it first so screenshots are deterministic. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
+Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`tan_starter_test`, URL in `e2e/db.ts`, override with `E2E_DATABASE_URL` — the name must end in `_test`) on port 3100; `e2e/global-setup.ts` runs `prisma migrate deploy` on it and then truncates it so screenshots are deterministic. Create it once with `createdb tan_starter_test`. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
 
 ## Build / verify
 
 ```
-bun run typecheck   # tsgo --noEmit (TypeScript Native Preview)
+bun run typecheck   # tsgo --noEmit (TypeScript Native Preview) — strict + noUncheckedIndexedAccess
+bun run test        # bun:test unit tests (*.test.ts under src/ and server/)
 bun run build       # vite build (client) + vite build --ssr (server) → dist/client + dist/server
-bun run dev         # bun --watch server.ts → http://localhost:3000 (HMR on the same port)
+bun run test:e2e    # Playwright against the isolated, migrated test DB on :3100
+bun run dev         # bun --watch server.ts → http://localhost:4780 (HMR on the same port)
 bun run start       # NODE_ENV=production bun server.ts
 ```
 
-If you change anything touching tRPC/auth/Prisma types, run `typecheck`. If you edit `prisma/schema.prisma`, run `bun run db:generate` first so `@prisma/client` types update.
+A change isn't done while `typecheck` is red. If you edit `prisma/schema.prisma`, `bun run db:migrate` regenerates `@prisma/client` (or `bun run db:generate` alone).
 
 ## Production server
 
@@ -195,7 +224,7 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 ## Render deploy gotchas
 
 - `runtime: node`, NOT `runtime: bun`. Render's blueprint spec doesn't expose a bun runtime. Setting `BUN_VERSION` makes the node runtime install Bun and put it on PATH.
-- `preDeployCommand: bunx prisma db push --accept-data-loss` — applies schema directly without migrations. Fine for a starter; switch to `prisma migrate deploy` for real production.
+- `preDeployCommand: bunx prisma migrate deploy` — applies committed migrations only; it never generates or resets anything. A failed migration fails the deploy before traffic moves.
 - `bunx prisma generate` runs in `buildCommand` so the client exists before `vite build` reads it.
 - `BETTER_AUTH_URL` must be set to the public Render URL after first deploy (`sync: false` in the blueprint).
 - The free Postgres plan expires after 30 days on Render — bump the plan when going past prototype.
@@ -207,6 +236,8 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 - Prisma 7.x — `prisma` CLI and `@prisma/client` MUST stay in lockstep on the same major. Uses the `pg` driver adapter (`@prisma/adapter-pg`).
 - Express 5.x — required for the named-wildcard route syntax. Don't downgrade to Express 4.
 - Vite 6.
+- zod 4 — top-level formats (`z.url()`, `z.email()`), `{ error }` for custom messages.
+- superjson 2 — the tRPC transformer; in tRPC v11 it goes on each link (`httpBatchLink({ transformer })`) and in `initTRPC.create()`.
 
 ## Don't
 
@@ -216,5 +247,7 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 - Don't reach for `@trpc/react-query` (the old package) — we use `@trpc/tanstack-react-query` (the new one with `queryOptions()` / `mutationOptions()`).
 - Don't commit `.env`, `dist/`, `node_modules/`, or Playwright run artifacts (`test-results/`, `playwright-report/`). They're in `.gitignore`. DO commit `e2e/__screenshots__/` baselines.
 - Don't hand-edit anything under `node_modules/.prisma/` or `node_modules/@prisma/client/`. Re-run `bun run db:generate` after schema changes.
+- Don't `prisma db push`, and don't edit a migration that has already been applied anywhere shared — add a new one.
+- Don't run the dev server on 3000 (or 3001/5173/5174/8000/8080/4200/5000).
 - Don't downgrade to Express 4 — the route wildcards (`*splat`) need Express 5.
 - Don't sprinkle raw `console.log` in `./server/` — use `log.*` / `formatError` from `server/logger.ts` so output stays consistent.

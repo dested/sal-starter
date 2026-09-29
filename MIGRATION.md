@@ -357,14 +357,27 @@ self-contained; copy the file(s) from a fresh upstream clone and rename tokens.
 | **8. Logging + `/healthz` + startup banner** | `server/logger.ts`             | In `server.ts`: `app.use(requestLogger(isProd))` first; add the `/healthz` route; replace the plain listen `console.log` with `startupBanner(...)`; use `log.*`/`formatError` for errors.                                                                                                                                 |
 | **9. 404 / error boundary**                  | `src/app/error-boundary.tsx`   | In `routes.tsx`: `import { RouteErrorBoundary }` and add `ErrorBoundary: RouteErrorBoundary` to the root route. Requires the SSR `status` change from §5c for correct 404 codes.                                                                                                                                          |
 | **10. Clone→rename init script**             | `scripts/init.ts`              | Add `"init": "bun scripts/init.ts"` to `package.json` scripts.                                                                                                                                                                                                                                                            |
-| **11. E2E + screenshot tracking**            | `playwright.config.ts`, `e2e/` | `bun add -d @playwright/test && bunx playwright install chromium`. Add `test:e2e*` scripts. Create the test DB: `createdb <name>_test && DATABASE_URL=...<name>_test bunx prisma db push`. Generate baselines: `bun run test:e2e:update`. Gitignore `test-results`/`playwright-report`; **commit** `e2e/__screenshots__`. |
+| **11. E2E + screenshot tracking**            | `playwright.config.ts`, `e2e/` | `bun add -d @playwright/test && bunx playwright install chromium`. Add `test:e2e*` scripts. Create the test DB: `createdb <name>_test` (global-setup runs `prisma migrate deploy` on it — see §19). Generate baselines: `bun run test:e2e:update`. Gitignore `test-results`/`playwright-report`; **commit** `e2e/__screenshots__`. |
 | **12. Project docs**                         | `cliffnotes.md`, `ui.md`       |
 | **13. Flash-free dark mode + toggle**        | `src/lib/theme.ts`, `src/components/theme-toggle.tsx` | Copy the inline theme `<script>` from upstream `index.html` (before the stylesheet link), add `color-scheme: light` / `color-scheme: dark` to `:root` / `.dark` in `app.css`, render `<ThemeToggle />` in the nav, call `followSystemTheme()` once in `src/index.tsx`. |
 | **14. Zero-flicker client navigation**       | `src/lib/trpc.tsx`             | `index.tsx` takes `queryClient`/`trpcClient` from `getBrowserClients()`; client branches of data loaders `await queryClient.prefetchQuery(trpc.<proc>.queryOptions())`. Add `<ScrollRestoration />` after `<main>` in `layout.tsx`. |
 | **15. Immutable asset caching (prod)**       | —                              | In `server.ts` pass `setHeaders` to `express.static` and send `Cache-Control: public, max-age=31536000, immutable` for paths under `/assets/`. | Refresh for your project (the cliffnotes plugin reads them).                                                                                                                                                                                                                                                              |
 
-Also worth syncing from upstream: the updated `CLAUDE.md`, `README.md`, and
-`.gitignore` (adds the Playwright artifact ignores).
+### 2026-09-29 hardening (16–20)
+
+Apply in order; run `bun run typecheck` after each.
+
+| Upgrade | Files | Wiring |
+| --- | --- | --- |
+| **16. Dev port off 3000** | `server/env.ts`, `server.ts`, `src/entry-server.tsx`, `.env.example`, `scripts/init.ts` | Add `PORT: z.coerce.number().int().min(1).max(65535).default(<port>)` to the env schema and default `BETTER_AUTH_URL` to `http://localhost:${PORT}`; `server.ts` listens on `env.PORT`; the SSR loopback link uses `env.PORT`. Pick a distinct uncommon port for this project (never 3000/3001/5173/5174/8000/8080/4200/5000), put `PORT=<port>` in `.env`, record it in `cliffnotes.md`. |
+| **17. `noUncheckedIndexedAccess`** | `tsconfig.json` | Add `"noUncheckedIndexedAccess": true` next to `strict`; add `e2e/**/*.ts`, `scripts/**/*.ts`, `playwright.config.ts`, `prisma.config.ts` to `include`. Fix fallout by narrowing (destructure + `undefined` checks, `?? []`), never `!` or `as`. `prisma.config.ts`'s `.env` loop is the one known hit — copy upstream's. |
+| **18. superjson** | `src/lib/ssr-state.ts` (+ `.test.ts`), `server/trpc.ts`, `src/lib/trpc.tsx`, `src/entry-server.tsx`, `src/index.tsx`, `server.ts` | `bun add superjson`. `initTRPC.context<Context>().create({ transformer: superjson })`; `transformer: superjson` on every `httpBatchLink` (browser + SSR loopback). `render()` returns `ssrState: serializeSsrState({ dehydratedState: dehydrate(queryClient) })`; `server.ts` inlines `window.__SSR_STATE__ = ${ssrState}` (drop `jsonForScript`); `index.tsx` uses `deserializeSsrState(window.__SSR_STATE__)`. Then procedures can return `Date`s — **update every consumer** that treated them as ISO strings (`.slice`, `new Date(x)`), and format deterministically. |
+| **19. `prisma migrate`** | `package.json`, `render.yaml`, `e2e/global-setup.ts`, `e2e/db.ts` | Baseline an existing DB: `mkdir -p prisma/migrations/0_init && bunx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql`, then `bunx prisma migrate resolve --applied 0_init` against **each** existing database (dev, prod). Scripts: `db:migrate` = `prisma migrate dev`, `postdb:migrate` = `prisma generate`, `db:migrate:create` = `prisma migrate dev --create-only`, `db:deploy` = `prisma migrate deploy`; delete `db:push`. Render `preDeployCommand: bunx prisma migrate deploy`. Copy upstream's `global-setup.ts` + `e2e/db.ts`. |
+| **20. zod 4** | `package.json`, zod call sites | `bun add zod@^4.3.6`. `z.string().url()` → `z.url()` (same for `email`, `uuid`); `{ message }` → `{ error }` (message still works, deprecated); `.errors` → `.issues`; `z.record(v)` needs a key schema. |
+
+Also worth syncing from upstream: the updated `CLAUDE.md`, `README.md`,
+`cliffnotes.md`, `decisions.md` and `.gitignore` (adds the Playwright artifact
+ignores).
 
 ---
 
@@ -374,12 +387,13 @@ Also worth syncing from upstream: the updated `CLAUDE.md`, `README.md`, and
 bun install
 bun run typecheck          # clean
 bun run build              # dist/client + dist/server
+bun run test               # if you adopted §18
 bun run dev                # banner prints; visit /, /dashboard, a bad URL
-# in another shell:
-curl -s http://localhost:3000/healthz                                   # {"status":"ok",...}
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/auth/get-session   # 200
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/favicon.ico            # 404
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/nope                   # 404
+# in another shell (PORT = your dev port; 3000 on clones that predate §16):
+curl -s http://localhost:$PORT/healthz                                   # {"status":"ok",...}
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:$PORT/api/auth/get-session   # 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:$PORT/favicon.ico            # 404
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:$PORT/nope                   # 404
 bun run test:e2e           # if you adopted §11
 ```
 

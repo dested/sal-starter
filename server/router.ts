@@ -11,13 +11,14 @@ export const appRouter = router({
         orderBy: { createdAt: 'desc' },
         include: { author: { select: { name: true } } },
       })
-      // ISO strings on the wire so SSR-rendered HTML and React Query's
-      // post-hydration render produce identical markup (no Date-locale drift).
+      // `createdAt` stays a Date — superjson carries it over the wire and
+      // through SSR hydration. Format it deterministically (UTC) when rendering
+      // so server and client markup match.
       return rows.map((p) => ({
         id: p.id,
         title: p.title,
         content: p.content,
-        createdAt: p.createdAt.toISOString(),
+        createdAt: p.createdAt,
         authorName: p.author?.name ?? null,
       }))
     }),

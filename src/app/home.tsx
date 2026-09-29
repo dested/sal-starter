@@ -12,7 +12,7 @@ const stack = [
 ]
 
 export function HomePage() {
-  const data = useRouteLoaderData('root') as RootLoaderData | undefined
+  const data = useRouteLoaderData<RootLoaderData>('root')
   const session = data?.session ?? null
 
   return (

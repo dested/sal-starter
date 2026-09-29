@@ -14,7 +14,7 @@ import { createContext } from './server/trpc'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isProd = process.env.NODE_ENV === 'production'
-const PORT = Number(process.env.PORT ?? 3000)
+const PORT = env.PORT
 
 const resolve = (p: string) => path.resolve(__dirname, p)
 
@@ -119,9 +119,9 @@ async function createServer() {
         render = (await import('./dist/server/entry-server.js')).render
       }
 
-      const { html: appHtml, status, dehydratedState } = await render(req)
+      const { html: appHtml, status, ssrState } = await render(req)
 
-      const stateScript = `<script>window.__SSR_STATE__ = ${jsonForScript({ dehydratedState })}</script>`
+      const stateScript = `<script>window.__SSR_STATE__ = ${ssrState}</script>`
       const html = template
         .replace('<!--app-state-->', stateScript)
         .replace('<!--app-html-->', appHtml)
@@ -138,7 +138,7 @@ async function createServer() {
         }
         return
       }
-      if (!isProd && vite) vite.ssrFixStacktrace(e as Error)
+      if (!isProd && vite && e instanceof Error) vite.ssrFixStacktrace(e)
       log.error(`SSR render failed for ${req.method} ${req.originalUrl}`)
       console.error(formatError(e))
       res
@@ -156,12 +156,6 @@ async function createServer() {
       routes: ['/', '/sign-in', '/sign-up', '/dashboard', '/healthz', '/api/trpc', '/api/auth'],
     })
   })
-}
-
-// JSON for safe inline-script embedding: escape `<` so `</script>` can't
-// terminate the script tag.
-function jsonForScript(value: unknown): string {
-  return JSON.stringify(value).replace(/</g, '\\u003c')
 }
 
 createServer().catch((e) => {

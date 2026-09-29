@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/com
 import type { RootLoaderData } from './routes'
 
 export function DashboardPage() {
-  const { session } = useLoaderData() as RootLoaderData
+  const { session } = useLoaderData<RootLoaderData>()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
@@ -88,7 +88,7 @@ export function DashboardPage() {
               <CardHeader>
                 <CardTitle>{p.title}</CardTitle>
                 <CardDescription>
-                  by {p.authorName ?? 'unknown'} · {p.createdAt.slice(0, 10)}
+                  by {p.authorName ?? 'unknown'} · {p.createdAt.toISOString().slice(0, 10)}
                 </CardDescription>
               </CardHeader>
               <CardContent>

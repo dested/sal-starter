@@ -1,5 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import type { CreateExpressContextOptions } from '@trpc/server/adapters/express'
+import superjson from 'superjson'
 import { auth, type Session } from './auth'
 
 export type Context = { session: Session | null }
@@ -18,7 +19,9 @@ export async function createContext({ req }: CreateExpressContextOptions): Promi
   return { session }
 }
 
-const t = initTRPC.context<Context>().create()
+// superjson on the wire: procedures return real Dates/Maps/BigInts and the
+// client gets them back as such. Every client link must use it too.
+const t = initTRPC.context<Context>().create({ transformer: superjson })
 
 export const router = t.router
 export const publicProcedure = t.procedure
