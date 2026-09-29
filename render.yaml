@@ -11,7 +11,7 @@ services:
     plan: free
     region: oregon
     buildCommand: bun install && bunx prisma generate && bun run build
-    preDeployCommand: bunx prisma db push --accept-data-loss
+    preDeployCommand: bunx prisma migrate deploy
     startCommand: bun run start
     envVars:
       # `runtime: node` is required — there is no `runtime: bun`. Setting

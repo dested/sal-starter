@@ -137,7 +137,7 @@ console.log(c.bold('Next steps:'))
 console.log(
   `  ${c.dim('1.')} createdb ${snake}              ${c.dim('# or point .env at any Postgres')}`
 )
-console.log(`  ${c.dim('2.')} bun run db:push`)
+console.log(`  ${c.dim('2.')} bun run db:migrate           ${c.dim('# applies prisma/migrations')}`)
 console.log(
   `  ${c.dim('3.')} bun run dev                  ${c.dim(`# → http://localhost:${port}`)}`
 )

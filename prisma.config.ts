@@ -1,5 +1,5 @@
 // Prisma 7 moved the connection URL out of `schema.prisma` — the CLI tooling
-// (db push, migrate, studio) reads it from here. The runtime `PrismaClient`
+// (migrate, studio) reads it from here. The runtime `PrismaClient`
 // gets it via the pg driver adapter in `server/prisma.ts`.
 //
 // Prisma 7 no longer auto-loads `.env`, and Bun only injects `.env` into its

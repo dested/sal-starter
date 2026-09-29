@@ -1,13 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
+import { E2E_DATABASE_URL } from './e2e/db'
 
 // E2E runs against an isolated test database on a dedicated port so it never
 // touches your dev DB or dev server. `bun run test:e2e` boots the app itself
-// (see `webServer`) and `global-setup.ts` truncates the test DB first so screen-
-// shots are deterministic. Override the DB with E2E_DATABASE_URL if needed.
+// (see `webServer`) and `global-setup.ts` applies migrations (`migrate deploy`)
+// and truncates the test DB first so screenshots are deterministic. Override the
+// DB with E2E_DATABASE_URL (its name must end in `_test`).
 const PORT = 3100
 const baseURL = `http://localhost:${PORT}`
-const DATABASE_URL =
-  process.env.E2E_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tan_starter_test'
 
 export default defineConfig({
   testDir: './e2e',
@@ -39,7 +39,7 @@ export default defineConfig({
     env: {
       PORT: String(PORT),
       NODE_ENV: 'development',
-      DATABASE_URL,
+      DATABASE_URL: E2E_DATABASE_URL,
       BETTER_AUTH_SECRET: 'e2e-secret-at-least-32-characters-long!!',
       BETTER_AUTH_URL: baseURL,
     },
