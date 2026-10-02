@@ -1,0 +1,63 @@
+{
+  "name": "sal-starter",
+  "private": true,
+  "type": "module",
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3",
+      "@types/react": "~19.2.18",
+      "@types/react-dom": "~19.2.7",
+      "zod": "^4.6.5",
+      "@trpc/server": "11.19.0",
+      "@trpc/client": "11.19.0",
+      "@trpc/tanstack-react-query": "11.19.0",
+      "@tanstack/react-query": "^5.104.0",
+      "superjson": "2.2.6",
+      "better-auth": "1.7.6",
+      "@better-auth/expo": "1.7.6",
+      "prisma": "~7.10.0",
+      "@prisma/client": "~7.10.0",
+      "@prisma/adapter-pg": "~7.10.0",
+      "tailwindcss": "4.1.12",
+      "@tailwindcss/vite": "4.1.12",
+      "@tailwindcss/postcss": "4.1.12",
+      "typescript": "7.0.2",
+      "prettier": "^3.8.3"
+    }
+  },
+  "overrides": {
+    "lightningcss": "1.30.1"
+  },
+  "scripts": {
+    "init": "bun scripts/init.ts",
+    "sync": "bun scripts/sync.ts",
+    "add:mobile": "bun scripts/add-mobile.ts",
+    "dev": "bun scripts/dev.ts",
+    "build": "bun run --cwd apps/web build",
+    "start": "bun run --cwd apps/web start",
+    "start:local": "bun run --cwd apps/web start:local",
+    "typecheck": "tsc --noEmit && bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "test:e2e": "bun run --cwd apps/web test:e2e",
+    "test:e2e:ui": "bun run --cwd apps/web test:e2e:ui",
+    "test:e2e:update": "bun run --cwd apps/web test:e2e:update",
+    "db:generate": "bun run --cwd apps/web db:generate",
+    "db:migrate": "bun run --cwd apps/web db:migrate",
+    "db:migrate:create": "bun run --cwd apps/web db:migrate:create",
+    "db:deploy": "bun run --cwd apps/web db:deploy",
+    "db:studio": "bun run --cwd apps/web db:studio",
+    "prettier": "prettier ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "catalog:",
+    "prettier-plugin-tailwindcss": "^0.7.3",
+    "typescript": "catalog:",
+    "zod": "catalog:"
+  }
+}

@@ -1,4 +1,4 @@
-# tan-starter — CliffNotes
+# sal-starter — CliffNotes
 
 > Living map of the project. Read this before any coding session.
 > Last updated: 2026-09-29. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
@@ -16,7 +16,7 @@ An SSR React starter template — clone it, run `bun run init <name>`, and build
 - **Type-check:** `bun run typecheck` (`tsgo --noEmit`; `strict` + `noUncheckedIndexedAccess`, covers e2e/scripts/configs)
 - **Unit tests:** `bun run test` (`bun:test`, `*.test.ts` under `src/` + `server/`)
 - **Build:** `bun run build` → `dist/client` + `dist/server`
-- **E2E:** `bun run test:e2e` (Playwright; isolated DB `tan_starter_test` on :3100, migrated by global-setup, committed screenshots)
+- **E2E:** `bun run test:e2e` (Playwright; isolated DB `sal_starter_test` on :3100, migrated by global-setup, committed screenshots)
 - **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:deploy` (prod/CI)
 - **Health:** `GET /healthz` (pings the DB)
 - **Day-one fact:** server-only code lives in `./server/` — never import it from `src/*.tsx` except `import type` (it'd ship to the browser / leak secrets).

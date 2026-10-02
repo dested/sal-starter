@@ -1,4 +1,4 @@
-# tan-starter — Updates
+# sal-starter — Updates
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 

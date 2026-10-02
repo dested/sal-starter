@@ -1,0 +1,5 @@
+[install]
+# Bun >=1.3.2 defaults new workspaces to isolated installs. Expo's podspecs,
+# native modules and the Prisma CLI shim are happiest with one flat
+# node_modules, so this stays hoisted (decisions.md).
+linker = "hoisted"

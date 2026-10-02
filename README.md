@@ -1,8 +1,8 @@
-# tan-starter
+# sal-starter
 
 An SSR React starter wired with a current, type-safe stack — clone it, rename it, ship.
 
-> Already have a project cloned from an older tan-starter? See [`MIGRATION.md`](./MIGRATION.md) to bring it up to date (it fixes some app-breaking bugs).
+> Already have a project cloned from an older sal-starter? See [`MIGRATION.md`](./MIGRATION.md) to bring it up to date (it fixes some app-breaking bugs).
 
 | layer             | choice                                                                             |
 | ----------------- | ---------------------------------------------------------------------------------- |
@@ -113,10 +113,10 @@ prisma/schema.prisma     User / Session / Account / Verification + Post
 
 ## Testing
 
-Playwright e2e lives in `e2e/`. `bun run test:e2e` boots the app on port 3100 against an **isolated test database** (`tan_starter_test`), applies the committed migrations (`migrate deploy`) and truncates it for determinism, and runs the smoke suite — home, sign-up → dashboard → create post → sign-out, and the 404 page. Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
+Playwright e2e lives in `e2e/`. `bun run test:e2e` boots the app on port 3100 against an **isolated test database** (`sal_starter_test`), applies the committed migrations (`migrate deploy`) and truncates it for determinism, and runs the smoke suite — home, sign-up → dashboard → create post → sign-out, and the 404 page. Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
 
 ```bash
-createdb tan_starter_test                       # once; global-setup migrates it
+createdb sal_starter_test                       # once; global-setup migrates it
 bun run test:e2e                                 # or E2E_DATABASE_URL=postgres://…/x_test bun run test:e2e
 ```
 

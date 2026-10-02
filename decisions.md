@@ -1,6 +1,10 @@
-# tan-starter — Decisions
+# sal-starter — Decisions
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
+
+## 2026-10-02 — Deploy on Drydock (root `drydock.yaml`), not Render
+**Why:** the owner deploys on Drydock. A pre-committed root `drydock.yaml` (`kind: ssr`, `runtime: bun`, `rootDir: apps/web`, `predeploy: bunx prisma migrate deploy`) is the seed every fork inherits; `.gitattributes` marks it `merge=ours` because Drydock rewrites it per project. `predeploy` overrides Drydock's `db push --accept-data-loss` default. `start` has no `--env-file`: prod env comes from Drydock. **Unverified:** Drydock's SSR Dockerfile generator copies `apps/web/bun.lock`, which doesn't exist in a Bun workspace, so a deploy fails until Drydock gets its workspace-aware fix (separate task, owner deferred). The template repo itself is never wired to Drydock.
+**Rejected:** keeping `render.yaml` (not the owner's platform), letting Drydock default to `db push` (drops hand-written SQL).
 
 ## 2026-09-29 — Dev port from `PORT`, default 4780, unique per project
 **Why:** 3000 collides with every other Node project on the machine. `PORT` is zod-validated in `server/env.ts` (default 4780) and `BETTER_AUTH_URL` follows it; `bun run init` derives a per-project port from the name (or `--port`) and rewrites 4780 so clones never share one.

@@ -1,0 +1,11 @@
+{
+  "name": "sal-starter",
+  "displayName": "Sal Starter",
+  "scheme": "salstarter",
+  "bundleId": "com.dested.salstarter",
+  "apiPort": 4780,
+  "metroPort": 4781,
+  "db": "sal_starter",
+  "easProjectId": null,
+  "appleTeamId": null
+}

@@ -19,7 +19,7 @@ describe('SSR state round-trip', () => {
 
     const expr = serializeSsrState({ dehydratedState: dehydrate(server) })
     const state = deserializeSsrState(evaluateInlineExpression(expr))
-    expect(state).not.toBeNull()
+    if (state === null) throw new Error('expected a dehydrated state')
 
     const client = new QueryClient()
     hydrate(client, state)
@@ -33,8 +33,10 @@ describe('SSR state round-trip', () => {
     server.setQueryData<string>(['x'], '</script><script>alert(1)</script>')
     const expr = serializeSsrState({ dehydratedState: dehydrate(server) })
     expect(expr).not.toContain('<')
+    const state = deserializeSsrState(evaluateInlineExpression(expr))
+    if (state === null) throw new Error('expected a dehydrated state')
     const client = new QueryClient()
-    hydrate(client, deserializeSsrState(evaluateInlineExpression(expr)))
+    hydrate(client, state)
     expect(client.getQueryData<string>(['x'])).toBe('</script><script>alert(1)</script>')
   })
 

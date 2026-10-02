@@ -80,7 +80,7 @@ prisma.config.ts       Prisma 7 CLI config — loads .env itself (see Hard rule 
    - `app.use('/api/trpc', createExpressMiddleware({ router: appRouter, createContext }))` — tRPC
      If you add a new HTTP endpoint, mount it in `server.ts` BEFORE the final SSR handler (`app.use(async (req, res) => …)`) or it'll be swallowed. That handler short-circuits to a fast 404 for non-GET requests, paths with a file extension (e.g. `/favicon.ico`), and unknown `/api/*` (JSON) — only extension-less GETs reach the React renderer. SSR returns `routerContext.statusCode`, so unmatched routes get a real 404. `/healthz` (DB ping) is mounted up top.
 
-6. **Env vars are zod-validated at import time** (`server/env.ts`). Any new required env var must be added there AND to `.env.example` AND to `render.yaml`. If `env.ts` throws, the server won't start — that's the design.
+6. **Env vars are zod-validated at import time** (`server/env.ts`). Any new required env var must be added there AND to `.env.example` AND to the Drydock portal (Project → Environment → Apply + redeploy). If `env.ts` throws, the server won't start — that's the design.
 
 7. **better-auth's required schema lives in `prisma/schema.prisma`** (`User`, `Session`, `Account`, `Verification` models — mapped to lowercase tables via `@@map`). better-auth's `prismaAdapter` queries by camelCase Prisma field name, so don't rename fields without checking better-auth's docs. The snake_case `@map(...)` annotations are cosmetic — they preserve the column layout from the prior Drizzle schema.
 
@@ -191,11 +191,11 @@ It writes to `src/components/ui/`. `components.json` aliases already point at `~
 
 ### Add an env var
 
-`server/env.ts` (zod schema) → `.env.example` (placeholder) → `render.yaml` (envVars block, with `sync: false` for secrets the user supplies, or `generateValue: true` if Render should generate it).
+`server/env.ts` (zod schema) → `.env.example` (placeholder) → Drydock portal (Project → Environment → Apply + redeploy). Drydock seeds `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` itself.
 
 ### Add an e2e test
 
-Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`tan_starter_test`, URL in `e2e/db.ts`, override with `E2E_DATABASE_URL` — the name must end in `_test`) on port 3100; `e2e/global-setup.ts` runs `prisma migrate deploy` on it and then truncates it so screenshots are deterministic. Create it once with `createdb tan_starter_test`. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
+Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`sal_starter_test`, URL in `e2e/db.ts`, override with `E2E_DATABASE_URL` — the name must end in `_test`) on port 3100; `e2e/global-setup.ts` runs `prisma migrate deploy` on it and then truncates it so screenshots are deterministic. Create it once with `createdb sal_starter_test`. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
 
 ## Build / verify
 

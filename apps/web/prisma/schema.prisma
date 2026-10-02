@@ -6,7 +6,8 @@
 // existing dev database keeps working unchanged.
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../server/generated/prisma"
 }
 
 datasource db {

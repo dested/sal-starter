@@ -1,0 +1,4 @@
+# Per-project identity: a fork's values always win over upstream's on `bun run sync`.
+# `bun run init` sets `git config merge.ours.driver true` so this driver exists.
+project.json merge=ours
+drydock.yaml merge=ours
