@@ -333,7 +333,9 @@ vite = await createServer({
   appType: 'custom',
 })
 // ...
-httpServer.listen(PORT, () => { /* banner */ })   // was app.listen
+httpServer.listen(PORT, () => {
+  /* banner */
+}) // was app.listen
 ```
 
 **Verify**
@@ -352,32 +354,79 @@ Hard-reload `/` in the browser — no unstyled flash.
 These aren't bug fixes, but they're why the template got better. Each is
 self-contained; copy the file(s) from a fresh upstream clone and rename tokens.
 
-| Upgrade                                      | Files to copy                  | Wiring                                                                                                                                                                                                                                                                                                                    |
-| -------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **8. Logging + `/healthz` + startup banner** | `server/logger.ts`             | In `server.ts`: `app.use(requestLogger(isProd))` first; add the `/healthz` route; replace the plain listen `console.log` with `startupBanner(...)`; use `log.*`/`formatError` for errors.                                                                                                                                 |
-| **9. 404 / error boundary**                  | `src/app/error-boundary.tsx`   | In `routes.tsx`: `import { RouteErrorBoundary }` and add `ErrorBoundary: RouteErrorBoundary` to the root route. Requires the SSR `status` change from §5c for correct 404 codes.                                                                                                                                          |
-| **10. Clone→rename init script**             | `scripts/init.ts`              | Add `"init": "bun scripts/init.ts"` to `package.json` scripts.                                                                                                                                                                                                                                                            |
-| **11. E2E + screenshot tracking**            | `playwright.config.ts`, `e2e/` | `bun add -d @playwright/test && bunx playwright install chromium`. Add `test:e2e*` scripts. Create the test DB: `createdb <name>_test` (global-setup runs `prisma migrate deploy` on it — see §19). Generate baselines: `bun run test:e2e:update`. Gitignore `test-results`/`playwright-report`; **commit** `e2e/__screenshots__`. |
-| **12. Project docs**                         | `cliffnotes.md`, `ui.md`       |
-| **13. Flash-free dark mode + toggle**        | `src/lib/theme.ts`, `src/components/theme-toggle.tsx` | Copy the inline theme `<script>` from upstream `index.html` (before the stylesheet link), add `color-scheme: light` / `color-scheme: dark` to `:root` / `.dark` in `app.css`, render `<ThemeToggle />` in the nav, call `followSystemTheme()` once in `src/index.tsx`. |
-| **14. Zero-flicker client navigation**       | `src/lib/trpc.tsx`             | `index.tsx` takes `queryClient`/`trpcClient` from `getBrowserClients()`; client branches of data loaders `await queryClient.prefetchQuery(trpc.<proc>.queryOptions())`. Add `<ScrollRestoration />` after `<main>` in `layout.tsx`. |
-| **15. Immutable asset caching (prod)**       | —                              | In `server.ts` pass `setHeaders` to `express.static` and send `Cache-Control: public, max-age=31536000, immutable` for paths under `/assets/`. | Refresh for your project (the cliffnotes plugin reads them).                                                                                                                                                                                                                                                              |
+| Upgrade                                      | Files to copy                                         | Wiring                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **8. Logging + `/healthz` + startup banner** | `server/logger.ts`                                    | In `server.ts`: `app.use(requestLogger(isProd))` first; add the `/healthz` route; replace the plain listen `console.log` with `startupBanner(...)`; use `log.*`/`formatError` for errors.                                                                                                                                          |
+| **9. 404 / error boundary**                  | `src/app/error-boundary.tsx`                          | In `routes.tsx`: `import { RouteErrorBoundary }` and add `ErrorBoundary: RouteErrorBoundary` to the root route. Requires the SSR `status` change from §5c for correct 404 codes.                                                                                                                                                   |
+| **10. Clone→rename init script**             | `scripts/init.ts`                                     | Add `"init": "bun scripts/init.ts"` to `package.json` scripts.                                                                                                                                                                                                                                                                     |
+| **11. E2E + screenshot tracking**            | `playwright.config.ts`, `e2e/`                        | `bun add -d @playwright/test && bunx playwright install chromium`. Add `test:e2e*` scripts. Create the test DB: `createdb <name>_test` (global-setup runs `prisma migrate deploy` on it — see §19). Generate baselines: `bun run test:e2e:update`. Gitignore `test-results`/`playwright-report`; **commit** `e2e/__screenshots__`. |
+| **12. Project docs**                         | `cliffnotes.md`, `ui.md`                              |
+| **13. Flash-free dark mode + toggle**        | `src/lib/theme.ts`, `src/components/theme-toggle.tsx` | Copy the inline theme `<script>` from upstream `index.html` (before the stylesheet link), add `color-scheme: light` / `color-scheme: dark` to `:root` / `.dark` in `app.css`, render `<ThemeToggle />` in the nav, call `followSystemTheme()` once in `src/index.tsx`.                                                             |
+| **14. Zero-flicker client navigation**       | `src/lib/trpc.tsx`                                    | `index.tsx` takes `queryClient`/`trpcClient` from `getBrowserClients()`; client branches of data loaders `await queryClient.prefetchQuery(trpc.<proc>.queryOptions())`. Add `<ScrollRestoration />` after `<main>` in `layout.tsx`.                                                                                                |
+| **15. Immutable asset caching (prod)**       | —                                                     | In `server.ts` pass `setHeaders` to `express.static` and send `Cache-Control: public, max-age=31536000, immutable` for paths under `/assets/`.                                                                                                                                                                                     | Refresh for your project (the cliffnotes plugin reads them). |
 
 ### 2026-09-29 hardening (16–20)
 
 Apply in order; run `bun run typecheck` after each.
 
-| Upgrade | Files | Wiring |
-| --- | --- | --- |
-| **16. Dev port off 3000** | `server/env.ts`, `server.ts`, `src/entry-server.tsx`, `.env.example`, `scripts/init.ts` | Add `PORT: z.coerce.number().int().min(1).max(65535).default(<port>)` to the env schema and default `BETTER_AUTH_URL` to `http://localhost:${PORT}`; `server.ts` listens on `env.PORT`; the SSR loopback link uses `env.PORT`. Pick a distinct uncommon port for this project (never 3000/3001/5173/5174/8000/8080/4200/5000), put `PORT=<port>` in `.env`, record it in `cliffnotes.md`. |
-| **17. `noUncheckedIndexedAccess`** | `tsconfig.json` | Add `"noUncheckedIndexedAccess": true` next to `strict`; add `e2e/**/*.ts`, `scripts/**/*.ts`, `playwright.config.ts`, `prisma.config.ts` to `include`. Fix fallout by narrowing (destructure + `undefined` checks, `?? []`), never `!` or `as`. `prisma.config.ts`'s `.env` loop is the one known hit — copy upstream's. |
-| **18. superjson** | `src/lib/ssr-state.ts` (+ `.test.ts`), `server/trpc.ts`, `src/lib/trpc.tsx`, `src/entry-server.tsx`, `src/index.tsx`, `server.ts` | `bun add superjson`. `initTRPC.context<Context>().create({ transformer: superjson })`; `transformer: superjson` on every `httpBatchLink` (browser + SSR loopback). `render()` returns `ssrState: serializeSsrState({ dehydratedState: dehydrate(queryClient) })`; `server.ts` inlines `window.__SSR_STATE__ = ${ssrState}` (drop `jsonForScript`); `index.tsx` uses `deserializeSsrState(window.__SSR_STATE__)`. Then procedures can return `Date`s — **update every consumer** that treated them as ISO strings (`.slice`, `new Date(x)`), and format deterministically. |
-| **19. `prisma migrate`** | `package.json`, `render.yaml`, `e2e/global-setup.ts`, `e2e/db.ts` | Baseline an existing DB: `mkdir -p prisma/migrations/0_init && bunx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql`, then `bunx prisma migrate resolve --applied 0_init` against **each** existing database (dev, prod). Scripts: `db:migrate` = `prisma migrate dev`, `postdb:migrate` = `prisma generate`, `db:migrate:create` = `prisma migrate dev --create-only`, `db:deploy` = `prisma migrate deploy`; delete `db:push`. Render `preDeployCommand: bunx prisma migrate deploy`. Copy upstream's `global-setup.ts` + `e2e/db.ts`. |
-| **20. zod 4** | `package.json`, zod call sites | `bun add zod@^4.3.6`. `z.string().url()` → `z.url()` (same for `email`, `uuid`); `{ message }` → `{ error }` (message still works, deprecated); `.errors` → `.issues`; `z.record(v)` needs a key schema. |
+| Upgrade                            | Files                                                                                                                             | Wiring                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **16. Dev port off 3000**          | `server/env.ts`, `server.ts`, `src/entry-server.tsx`, `.env.example`, `scripts/init.ts`                                           | Add `PORT: z.coerce.number().int().min(1).max(65535).default(<port>)` to the env schema and default `BETTER_AUTH_URL` to `http://localhost:${PORT}`; `server.ts` listens on `env.PORT`; the SSR loopback link uses `env.PORT`. Pick a distinct uncommon port for this project (never 3000/3001/5173/5174/8000/8080/4200/5000), put `PORT=<port>` in `.env`, record it in `cliffnotes.md`.                                                                                                                                                                                                                    |
+| **17. `noUncheckedIndexedAccess`** | `tsconfig.json`                                                                                                                   | Add `"noUncheckedIndexedAccess": true` next to `strict`; add `e2e/**/*.ts`, `scripts/**/*.ts`, `playwright.config.ts`, `prisma.config.ts` to `include`. Fix fallout by narrowing (destructure + `undefined` checks, `?? []`), never `!` or `as`. `prisma.config.ts`'s `.env` loop is the one known hit — copy upstream's.                                                                                                                                                                                                                                                                                    |
+| **18. superjson**                  | `src/lib/ssr-state.ts` (+ `.test.ts`), `server/trpc.ts`, `src/lib/trpc.tsx`, `src/entry-server.tsx`, `src/index.tsx`, `server.ts` | `bun add superjson`. `initTRPC.context<Context>().create({ transformer: superjson })`; `transformer: superjson` on every `httpBatchLink` (browser + SSR loopback). `render()` returns `ssrState: serializeSsrState({ dehydratedState: dehydrate(queryClient) })`; `server.ts` inlines `window.__SSR_STATE__ = ${ssrState}` (drop `jsonForScript`); `index.tsx` uses `deserializeSsrState(window.__SSR_STATE__)`. Then procedures can return `Date`s — **update every consumer** that treated them as ISO strings (`.slice`, `new Date(x)`), and format deterministically.                                    |
+| **19. `prisma migrate`**           | `package.json`, `render.yaml`, `e2e/global-setup.ts`, `e2e/db.ts`                                                                 | Baseline an existing DB: `mkdir -p prisma/migrations/0_init && bunx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql`, then `bunx prisma migrate resolve --applied 0_init` against **each** existing database (dev, prod). Scripts: `db:migrate` = `prisma migrate dev`, `postdb:migrate` = `prisma generate`, `db:migrate:create` = `prisma migrate dev --create-only`, `db:deploy` = `prisma migrate deploy`; delete `db:push`. Render `preDeployCommand: bunx prisma migrate deploy`. Copy upstream's `global-setup.ts` + `e2e/db.ts`. |
+| **20. zod 4**                      | `package.json`, zod call sites                                                                                                    | `bun add zod@^4.3.6`. `z.string().url()` → `z.url()` (same for `email`, `uuid`); `{ message }` → `{ error }` (message still works, deprecated); `.errors` → `.issues`; `z.record(v)` needs a key schema.                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 Also worth syncing from upstream: the updated `CLAUDE.md`, `README.md`,
 `cliffnotes.md`, `decisions.md` and `.gitignore` (adds the Playwright artifact
 ignores).
+
+---
+
+## 21. Moving a single-package clone to the monorepo layout (v2)
+
+sal-starter is now a Bun workspace: the app lives in `apps/web/`, identity in
+`project.json`, an optional Expo app in `apps/mobile/`. The last single-package
+version is tagged **`v1-single`** upstream. Two choices:
+
+**Stay on v1.** Nothing forces the move. Keep applying §1–20 by hand from
+`v1-single`; you just won't get `bun run sync`, `add:mobile` or the mobile app.
+
+**Move to v2.** Do it on a branch, with a clean tree:
+
+```bash
+git remote add upstream https://github.com/dested/sal-starter.git   # if missing
+git fetch upstream
+git checkout -b monorepo
+git merge upstream/main --allow-unrelated-histories --no-commit     # unrelated if you used --fresh-git
+```
+
+Then:
+
+1. **Move your app into `apps/web/`.** Everything that was yours at the root
+   (`server.ts`, `server/`, `src/`, `prisma/`, `e2e/`, `public/`, `index.html`,
+   `vite.config.ts`, `playwright.config.ts`, `prisma.config.ts`, `components.json`)
+   belongs under `apps/web/`. Git usually follows upstream's renames; anything you
+   added at the root after cloning (new routes, migrations, server modules) must be
+   moved by hand with `git mv`. `prisma/migrations/` must keep every migration you
+   already applied, byte for byte.
+2. **Write `project.json`** from upstream's, with your name, scheme, bundle id,
+   `apiPort` (your current `PORT`), `metroPort` (apiPort + 1) and db name. Run
+   `git config merge.ours.driver true` so `.gitattributes` keeps it yours later.
+3. **Move `.env` to the root** if it isn't there; `apps/web` reads `../../.env`.
+4. **Prisma client import.** v2 uses the `prisma-client` generator: every
+   `from '@prisma/client'` in your server code becomes
+   `from './generated/prisma/client'` (relative to `apps/web/server/`).
+5. **Package versions** move to the root `catalog`. Your extra dependencies go in
+   `apps/web/package.json`; keep shared ones as `"catalog:"`.
+6. **Deploy.** `render.yaml` is gone; `drydock.yaml` replaces it. If you still
+   deploy on Render, keep your `render.yaml` and add `rootDir: apps/web`.
+7. **Web only?** `git rm -r apps/mobile packages/native-example`, delete
+   `bun.lock`, `bun install`, and commit that as its own commit.
+
+Verify with the checklist below, plus `bun run sync --from upstream/main` on a
+clean tree reporting nothing to merge. `bun run add:mobile` then works as in a
+fresh fork.
 
 ---
 

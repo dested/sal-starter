@@ -6,7 +6,7 @@
 
 ## North star
 
-**Clean, neutral, system-native — shadcn/ui "new-york" out of the box.** Think Linear/Vercel-dashboard restraint: lots of whitespace, hairline borders, near-black-on-white, one job per screen. Failure looks like (a) too sterile → no hierarchy, walls of muted text; (b) too toy → gratuitous color, heavy shadows, rounded-everything. This template ships intentionally unopinionated so a real brand can be layered on by editing tokens in `src/styles/app.css`.
+**Clean, neutral, system-native — shadcn/ui "new-york" out of the box.** Think Linear/Vercel-dashboard restraint: lots of whitespace, hairline borders, near-black-on-white, one job per screen. Failure looks like (a) too sterile → no hierarchy, walls of muted text; (b) too toy → gratuitous color, heavy shadows, rounded-everything. This template ships intentionally unopinionated so a real brand can be layered on by editing tokens in `apps/web/src/styles/tokens.css` (web and mobile both read it).
 
 1. **Tokens over hardcoded values** — color/radius come from CSS variables; never hardcode hex.
 2. **Borders, not shadows** — separation via 1px `border` + subtle `shadow-xs/sm`, not big elevation.
@@ -15,7 +15,7 @@
 
 ## Tokens
 
-Defined as CSS variables in `src/styles/app.css` (`:root` + `.dark`), exposed to Tailwind via `@theme inline`. Light + dark are both defined; dark activates when `<html>` carries `.dark`, which an inline script in `index.html` sets before first paint (stored choice → OS preference) and `ThemeToggle` flips at runtime. `color-scheme` is set per theme so native controls and scrollbars match. All colors are **oklch**. Every surface must look right in both themes — check both when adding UI.
+Defined as CSS variables in `apps/web/src/styles/tokens.css` (`:root` + `.dark`, plus a native dark block), exposed to Tailwind via `@theme inline`. `app.css` imports it; mobile imports it as `@app/web/tokens.css`. Light + dark are both defined; dark activates when `<html>` carries `.dark`, which an inline script in `index.html` sets before first paint (stored choice → OS preference) and `ThemeToggle` flips at runtime. `color-scheme` is set per theme so native controls and scrollbars match. All colors are **oklch**. Every surface must look right in both themes — check both when adding UI.
 
 ### Color
 
@@ -32,7 +32,7 @@ Defined as CSS variables in `src/styles/app.css` (`:root` + `.dark`), exposed to
 | Border / Input | `border`, `border-input`                 | hairlines, field borders                 |
 | Ring           | `ring-ring`                              | focus rings (`focus-visible:ring-[3px]`) |
 
-Accent discipline: there is **no brand accent** by default — primary is neutral near-black. Introduce a brand color by overriding `--primary` (and friends) in `app.css`, not by sprinkling Tailwind palette classes (`bg-blue-500`) in components.
+Accent discipline: there is **no brand accent** by default — primary is neutral near-black. Introduce a brand color by overriding `--primary` (and friends) in `tokens.css`, not by sprinkling Tailwind palette classes (`bg-blue-500`) in components.
 
 ### Typography
 
@@ -43,7 +43,7 @@ Accent discipline: there is **no brand accent** by default — primary is neutra
 | Section heading | `text-xl font-semibold`                      | subsections                      |
 | Card title      | `CardTitle` (`font-semibold tracking-tight`) | renders a `<div>`, not a heading |
 | Body            | default / `text-sm`                          | content                          |
-| Muted/label     | `text-sm text-muted-foreground`              | descriptions, eyebrows           |
+| Muted/label     | `text-sm text-muted-foreground`              | descriptions, field hints        |
 
 Font: system stack (`ui-sans-serif, system-ui, sans-serif`) set on `body` — no web font loaded.
 
@@ -65,15 +65,15 @@ App shell is `src/app/layout.tsx`: a bordered `header` with a `max-w-5xl` nav (l
 
 Reuse these shadcn primitives — don't hand-roll. They take `className` (merged via `cn()`), no `asChild`.
 
-| Component                   | File                           | Notes                                                                                 |
-| --------------------------- | ------------------------------ | ------------------------------------------------------------------------------------- |
-| `Button` + `buttonVariants` | `src/components/ui/button.tsx` | variants: default/destructive/outline/secondary/ghost/link; sizes: default/sm/lg/icon |
-| `Card` family               | `src/components/ui/card.tsx`   | Card / Header / Title / Description / Content / Footer                                |
-| `Input`                     | `src/components/ui/input.tsx`  | full-width, `aria-invalid` styling                                                    |
-| `Label`                     | `src/components/ui/label.tsx`  | pair with `htmlFor`                                                                   |
+| Component                   | File                              | Notes                                                                                   |
+| --------------------------- | --------------------------------- | --------------------------------------------------------------------------------------- |
+| `Button` + `buttonVariants` | `src/components/ui/button.tsx`    | variants: default/destructive/outline/secondary/ghost/link; sizes: default/sm/lg/icon   |
+| `Card` family               | `src/components/ui/card.tsx`      | Card / Header / Title / Description / Content / Footer                                  |
+| `Input`                     | `src/components/ui/input.tsx`     | full-width, `aria-invalid` styling                                                      |
+| `Label`                     | `src/components/ui/label.tsx`     | pair with `htmlFor`                                                                     |
 | `ThemeToggle`               | `src/components/theme-toggle.tsx` | ghost icon `Button`; Sun/Moon swapped with `dark:hidden` / `dark:block`, never JS state |
-| `cn()`                      | `src/lib/utils.ts`             | clsx + tailwind-merge                                                                 |
-| Icons                       | `lucide-react`                 | icon library (configured in `components.json`)                                        |
+| `cn()`                      | `src/lib/utils.ts`                | clsx + tailwind-merge                                                                   |
+| Icons                       | `lucide-react`                    | icon library (configured in `components.json`)                                          |
 
 Add more: `bunx --bun shadcn@latest add <name>` (writes to `src/components/ui/`). If a component needs `asChild`, install `@radix-ui/react-slot` first.
 
@@ -108,11 +108,22 @@ Signature patterns:
 
 Terse, lowercase-leaning, developer-direct. Sentence case for UI; the brand wordmark is lowercase (`sal-starter`). Short imperative buttons ("Sign in", "Post"). Example good: "No posts yet — be the first." Avoid: marketing fluff, exclamation marks, ALL-CAPS, emoji in UI.
 
+## Mobile (apps/mobile)
+
+Same tokens, same look, native idioms. NativeWind 5 compiles the oklch tokens to native colors; class names are the web's (`bg-background`, `text-muted-foreground`, `border-border`).
+
+- **Dark mode follows the OS**, no toggle. Native can't see the web's `.dark` class, so `tokens.css` repeats the dark values in `@media native and (prefers-color-scheme: dark) { :root { … } }`. Change a dark token in both places; `tokens.test.ts` fails if they drift.
+- **Primitives** in `apps/mobile/src/components/ui/` mirror web's names and cva variants: `Button` (`label` prop, `Pressable` + `Text`; variants default/destructive/outline/secondary/ghost/link, sizes default/sm/lg), `Card` family, `Input`, `Label`. Reuse them; don't style raw `Pressable`s.
+- **Placeholder text** is `#8a8a8a` (a mid grey legible in both themes); `placeholderTextColor` can't take a class.
+- **Screen anatomy:** `SafeAreaView` (`bg-background flex-1`) → `ScrollView` with `contentContainerClassName="gap-8 p-6"`. Auth screens center a single `Card`. Same states as web: muted "Loading…" line, one-sentence empty state, disabled button with a swapped label while pending, inline `text-destructive` errors, and an error `Card` with a Retry button when the server is unreachable.
+- **Splash** is white / `#0a0a0a` (light / dark), matching `--background`.
+- No web-only utilities on native (`hover:`, `shadow-xs`, `focus-visible:`); they compile to nothing.
+
 ## Don'ts
 
-- ❌ Hardcoded colors (`bg-blue-500`, hex) — use token classes; override tokens in `app.css` for brand.
+- ❌ Hardcoded colors (`bg-blue-500`, hex) — use token classes; override tokens in `tokens.css` for brand.
 - ❌ Heavy shadows / `shadow-lg` cards — this is a borders-first look.
-- ❌ `tailwind.config.{js,ts}` — Tailwind v4, tokens live in `app.css`.
+- ❌ `tailwind.config.{js,ts}` — Tailwind v4, tokens live in `tokens.css`.
 - ❌ `asChild` on shadcn components — not supported (no Slot); use `buttonVariants()`.
 - ❌ Treating `CardTitle` as a heading element — it's a `<div>` (matters for a11y + test selectors).
 - ❌ Full-bleed layouts — content stays in the centered `max-w-5xl` column.
