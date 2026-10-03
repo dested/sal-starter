@@ -40,6 +40,9 @@ if (target !== 'web' && hasMobile) {
   procs.push(
     Bun.spawn(['bun', 'x', 'expo', 'start', '--dev-client', '--port', String(project.metroPort)], {
       cwd: 'apps/mobile',
+      // The manifest Metro serves must match the installed dev client (the
+      // `.dev` bundle id + scheme), so local Metro defaults to that variant.
+      env: { ...process.env, APP_VARIANT: process.env.APP_VARIANT ?? 'development' },
       stdin: 'inherit',
       stdout: 'inherit',
       stderr: 'inherit',

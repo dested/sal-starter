@@ -4,3 +4,9 @@ bun.lock
 e2e/__screenshots__
 playwright-report
 test-results
+apps/mobile/.expo
+apps/mobile/.cache
+apps/mobile/ios
+apps/mobile/android
+packages/*/plugin/build
+apps/web/server/generated

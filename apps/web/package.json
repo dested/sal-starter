@@ -30,6 +30,7 @@
     "test:e2e:update": "playwright test --update-snapshots"
   },
   "dependencies": {
+    "@better-auth/expo": "catalog:",
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
     "@tanstack/react-query": "catalog:",
