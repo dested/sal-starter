@@ -252,5 +252,5 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 
 - **Done** — SSR + hydration (server and client-nav prefetch), auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, flash-free dark mode + toggle, scroll restoration, immutable asset caching, init script (rename + per-project port), Playwright e2e + screenshot baselines. Monorepo (`apps/web`, optional `apps/mobile`), `project.json` identity, `init --mobile` / `sync` / `add:mobile`, Drydock seed, Expo SDK 57 mobile app with auth + posts + two native example modules. Express 5 + Prisma 7. superjson (wire + SSR state), zod 4, `noUncheckedIndexedAccess`, `prisma migrate` workflow, `bun:test` unit tests.
 - **Not built** — email verification, OAuth providers, rate limiting, CI, per-route head/meta, Android.
-- **Unverified** — first dev-client build on the Mac/iPad (Gate 3), EAS builds, Drydock deploy of a workspace (needs Drydock's fix), e2e after the rename (screenshot baselines likely need `test:e2e:update`).
+- **Unverified** — first dev-client build on the Mac/iPad (Gate 3), EAS builds, Drydock deploy of a workspace (needs Drydock's fix).
 - **Next:** whatever the cloned product needs — this is a base.
