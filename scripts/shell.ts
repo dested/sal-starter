@@ -13,7 +13,7 @@ export const c = {
 
 // git, capturing stdout. Throws on a non-zero exit.
 export function git(...args: string[]): string {
-  return execFileSync('git', args, { encoding: 'utf8' }).trim()
+  return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim()
 }
 
 // git, returning the exit code instead of throwing (merge exits 1 on conflicts).

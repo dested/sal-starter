@@ -6,11 +6,12 @@
 // It merges WITHOUT committing, auto-resolves what's mechanical, then installs
 // and typechecks so you review a working tree, never a surprise commit:
 //   - project.json / drydock.yaml keep this fork's values (merge=ours driver)
+//   - bun.lock: this fork's copy is kept and `bun install` folds upstream in
 //   - web-only forks: anything upstream changed or added under apps/mobile or
 //     packages/native-example is dropped again (those paths stay deleted)
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
 
-import { existsSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { c, fail, git, gitStatus, hasRemote, MOBILE_PATHS, run, workingTreeClean } from './shell'
 
 const args = process.argv.slice(2)
@@ -46,6 +47,15 @@ if (webOnly) {
       `  ${c.green('kept deleted')} ${c.dim(touched.join(', '))} ${c.dim('(web-only fork)')}`
     )
   }
+}
+
+// bun.lock: keep this fork's copy and let `bun install` below fold in what
+// upstream changed in package.json. A textual merge of a lockfile is either a
+// conflict or, for web-only forks, a silent re-import of the Expo tree.
+const lockConflicted = git('diff', '--name-only', '--diff-filter=U', '--', 'bun.lock') !== ''
+if (webOnly || lockConflicted) {
+  writeFileSync('bun.lock', git('show', 'HEAD:bun.lock') + '\n')
+  git('add', 'bun.lock')
 }
 
 const conflicts = git('diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean)

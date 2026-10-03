@@ -92,6 +92,10 @@ if (!mobile) {
   const present = MOBILE_PATHS.filter((p) => existsSync(p))
   if (present.length > 0) {
     git('rm', '-r', '-q', ...present)
+    // Re-resolve from scratch: Bun keeps @better-auth/expo's optional expo-*
+    // peers (and the whole Expo/Metro tree behind them) once they're in the
+    // lockfile, even after the workspace that needed them is gone.
+    rmSync('bun.lock')
     run('bun', 'install')
     git('add', 'bun.lock')
     git(
