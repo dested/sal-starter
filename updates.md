@@ -2,6 +2,12 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-04 — Expo build fixes + instant OTA from Store Brand
+
+Ask: port what Store Brand needed to build and ship on EAS, so the next project's first EAS build works.
+Done: root cause traced (eas run at the repo root, then EAS_NO_VCS uploading only the app dir; see decisions). `.gitattributes` LF for fingerprint parity; eas.json pins bun 1.3.10 / node 22.22.2 and gives development a channel; app.config `updates` checkAutomatically ON_LOAD + fallbackToCacheTimeout 0, `ios.config.usesNonExemptEncryption`; `src/lib/ota.ts` mounted in the root layout; ship-a-fix + EAS-root docs. Verified: typecheck root + all workspaces, `expo config` resolves. NOT verified: an EAS build or update from the starter.
+Touched: .gitattributes, apps/mobile/{eas.json,app.config.ts,src/lib/ota.ts,src/app/\_layout.tsx}, README.md, cliffnotes.md, decisions.md, verify.md, updates.md
+
 ## 2026-10-02 — monorepo + optional Expo app (branch `monorepo`)
 
 Ask: turn sal-starter into a Bun workspace with an optional Expo iOS app (plan: pickleball `plans/2026-10-02-research-expo-starter.md`), Phases 0–2 and 4, Windows half of 3.

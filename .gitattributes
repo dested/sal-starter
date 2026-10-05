@@ -1,3 +1,8 @@
+# LF everywhere, including Windows checkouts with core.autocrlf=true. The Expo
+# fingerprint (runtimeVersion) hashes file bytes; a CRLF working tree gives a
+# different runtime than the LF copy EAS builds from, so updates never land.
+* text=auto eol=lf
+
 # Per-project identity: a fork's values always win over upstream's on `bun run sync`.
 # `bun run init` sets `git config merge.ours.driver true` so this driver exists.
 project.json merge=ours

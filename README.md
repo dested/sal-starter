@@ -117,7 +117,11 @@ The app runs as a **development build** (a dev client), never Expo Go. The workf
 
 When do you need a new build? When the native fingerprint changes: run `bun run fingerprint` in `apps/mobile` and compare with the fingerprint row at the bottom of the app's Home screen. Swift, native dependencies, config plugins and native `app.config.ts` fields change it; JS doesn't. Move code between machines on a branch, never `master` (pushing `master` deploys web).
 
-**First-time setup per project:** set `appleTeamId` in `project.json`, then in `apps/mobile`: `eas login`, `eas init` (put the id it prints in `project.json` `easProjectId`). Distribution builds: `bun run build:preview` (internal, iPad registered via `bun run add-device`), `bun run build:prod` + `bun run submit:prod`. OTA JS updates: `bun run ota:preview` / `ota:prod`.
+**First-time setup per project:** set `appleTeamId` in `project.json`, then in `apps/mobile`: `eas login`, `eas init` (put the id it prints in `project.json` `easProjectId`; `app.config.ts` derives `updates.url` from it, because `eas init` / `eas update:configure` can't write a dynamic config). Distribution builds: `bun run build:preview` (internal, iPad registered via `bun run add-device`), `bun run build:prod` + `bun run submit:prod`.
+
+**Run `eas` only inside `apps/mobile`.** Run at the repo root, it offers to create a new EAS project with a root `app.json`/`eas.json`; say no and `cd apps/mobile`. EAS uploads the whole git repo, so the workspace (root `bun.lock`, `packages/*`, `@app/web` types) comes along. With `EAS_NO_VCS=1` it uploads only the current directory: set `EAS_PROJECT_ROOT=../..` too, or Metro fails at "Bundle JavaScript" on missing workspace paths.
+
+**Ship a fix (OTA).** JS-only changes go out without a store build: in `apps/mobile`, `eas update --channel production --environment production` (`bun run ota:prod`; `ota:preview` for internal builds). Installed apps check on launch and on every return to the foreground, download, and reload at once (`src/lib/ota.ts`). An update only reaches builds with the same fingerprint `runtimeVersion`: check with `eas fingerprint:compare --build-id <id>` first. Native changes (fingerprint differs) need a new `build:prod`.
 
 ## Testing
 

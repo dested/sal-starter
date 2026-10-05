@@ -75,4 +75,6 @@ Needs the Mac, the iPad and an Apple Developer account. Windows runs `bun run de
 ## EAS and deploy `[heavy — ask first]`
 
 - `bun run build:preview` (in `apps/mobile`) installs on a registered iPad; `bun run ota:preview` reaches it.
+- Before any `eas update`: `eas fingerprint:compare --build-id <build>` says the local runtime matches the build's.
+- OTA: publish a visible JS change with `bun run ota:preview`, background and reopen the app → it reloads into the change.
 - Drydock: blocked until Drydock's workspace-aware Dockerfile fix. Then: deploy, `/healthz` 200, sign up on the deployed URL.

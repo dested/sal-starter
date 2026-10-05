@@ -57,13 +57,25 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     apiPort: project.apiPort,
     ...(project.easProjectId === null ? {} : { eas: { projectId: project.easProjectId } }),
   },
+  // EAS Update. `eas init` / `eas update:configure` can't write a dynamic config:
+  // they print the project id, which goes in project.json easProjectId, and the
+  // url follows. Without it expo-updates is off (lib/ota.ts checks isEnabled).
+  // ON_LOAD + 0: launch never waits on the network; lib/ota.ts applies at once.
   ...(project.easProjectId === null
     ? {}
-    : { updates: { url: `https://u.expo.dev/${project.easProjectId}` } }),
+    : {
+        updates: {
+          url: `https://u.expo.dev/${project.easProjectId}`,
+          checkAutomatically: 'ON_LOAD',
+          fallbackToCacheTimeout: 0,
+        },
+      }),
   ios: {
     bundleIdentifier: `${project.bundleId}${suffix}`,
     supportsTablet: true,
     ...(project.appleTeamId === null ? {} : { appleTeamId: project.appleTeamId }),
+    // Export compliance answered in config, so TestFlight never asks per build.
+    config: { usesNonExemptEncryption: false },
     infoPlist: {
       NSLocalNetworkUsageDescription: LOCAL_NETWORK_USAGE,
       ITSAppUsesNonExemptEncryption: false,

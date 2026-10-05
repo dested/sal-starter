@@ -1,7 +1,7 @@
 # sal-starter — CliffNotes
 
 > Living map of the project. Read this before any coding session.
-> Last updated: 2026-10-02. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
+> Last updated: 2026-10-04. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
 
 ## What this is
 
@@ -21,6 +21,7 @@ An SSR React starter template, now a Bun workspace with an optional Expo iOS app
 - **Build:** `bun run build` → `apps/web/dist/client` + `dist/server`
 - **E2E:** `bun run test:e2e` (Playwright; isolated DB `sal_starter_test` on :3100, migrated by global-setup, committed screenshots)
 - **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:deploy` (prod/CI)
+- **Ship a mobile fix (OTA):** in `apps/mobile`, `eas update --channel production --environment production` (`bun run ota:prod`); check `eas fingerprint:compare --build-id <id>` first. Run `eas` only in `apps/mobile`, never at the root
 - **Mobile checks:** `bun run --cwd apps/mobile doctor` · `bunx expo export --platform ios` (in `apps/mobile`) · `bun run --cwd apps/mobile fingerprint`
 - **Health:** `GET /healthz` (pings the DB)
 - **Verification recipes:** `verify.md`
@@ -108,7 +109,7 @@ prisma.config.ts         Prisma 7 CLI config; loads the root .env itself (Bun/Pr
 ```
 apps/mobile/
 ├── app.config.ts        reads ../../project.json (zod); APP_VARIANT → name/bundle id/scheme; plugins; fingerprint runtimeVersion
-├── eas.json             development / preview / production profiles (bun + node pinned)
+├── eas.json             development / preview / production profiles, channels of the same names (bun 1.3.10 + node 22.22.2 pinned)
 ├── metro.config.js      withNativewind(getDefaultConfig(__dirname)), nothing else
 ├── global.css           tailwind layers + nativewind/theme + @app/web/tokens.css
 ├── modules/app-native/  local Expo module (Swift nativeHello)
@@ -116,7 +117,7 @@ apps/mobile/
     ├── app/             Expo Router: _layout (providers, splash, Stack.Protected), (auth)/, (app)/ — one-line re-exports
     ├── screens/         sign-in, sign-up, home (posts + native examples + fingerprint row)
     ├── components/ui/   button, card, input, label (cva, mirrors web)
-    ├── lib/             api-url, auth-client (expoClient + SecureStore), trpc, query-rn, app-config, utils
+    ├── lib/             api-url, auth-client (expoClient + SecureStore), trpc, query-rn, app-config, ota, utils
     └── env.ts           zod over EXPO_PUBLIC_API_URL
 ```
 
@@ -198,7 +199,7 @@ Email + password, `autoSignIn` on sign-up. Client (`auth-client.ts`) → `/api/a
 
 ### Mobile
 
-Expo dev-client app (never Expo Go). Talks to the web server's `/api/trpc` + `/api/auth/*`; base URL from `EXPO_PUBLIC_API_URL`, else the dev LAN host (Metro `hostUri`) + `apiPort`. Auth: better-auth `expoClient` + SecureStore; the tRPC link sends the cookie as a header. Server trusts the app schemes via `expo()` plugin + `trustedOrigins`. Variants (`APP_VARIANT`) coexist on one device. Native dark mode via the `@media native` block in tokens.css. Native changes need a new dev-client build on the Mac (compare `bun run fingerprint` with the Home screen's fingerprint row). **Lives in:** `apps/mobile/`, `packages/native-example/`, `apps/web/server/auth.ts`.
+Expo dev-client app (never Expo Go). Talks to the web server's `/api/trpc` + `/api/auth/*`; base URL from `EXPO_PUBLIC_API_URL`, else the dev LAN host (Metro `hostUri`) + `apiPort`. Auth: better-auth `expoClient` + SecureStore; the tRPC link sends the cookie as a header. Server trusts the app schemes via `expo()` plugin + `trustedOrigins`. Variants (`APP_VARIANT`) coexist on one device. Native dark mode via the `@media native` block in tokens.css. Native changes need a new dev-client build on the Mac (compare `bun run fingerprint` with the Home screen's fingerprint row). EAS Update: `runtimeVersion` is the fingerprint, `updates.url` comes from `project.json` `easProjectId` (none → expo-updates off), each build profile has its own channel, and `src/lib/ota.ts` (mounted in the root layout) checks on launch and every foreground, fetches and `reloadAsync`s; off in `__DEV__`. `.gitattributes` forces LF so a Windows checkout fingerprints the same as the EAS build. **Lives in:** `apps/mobile/`, `packages/native-example/`, `apps/web/server/auth.ts`.
 
 ### Template workflow
 
@@ -246,6 +247,7 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 - **HMR has no fixed port** — it shares the Express server; giving it one collides with other clones running locally.
 - **shadcn has no `asChild`** (no `@radix-ui/react-slot`) — style a `Link` with `buttonVariants()`.
 - **No `tailwind.config`** — Tailwind v4, tokens in `tokens.css`. Tailwind pinned 4.1.12 + lightningcss 1.30.1 for NativeWind 5 rc.
+- **EAS runs from `apps/mobile` only.** At the root it creates a stray EAS project + root `app.json`/`eas.json`. `EAS_NO_VCS=1` uploads only the cwd: add `EAS_PROJECT_ROOT=../..` or Metro dies with ENOENT on workspace paths.
 - Use `log.*` from `server/logger.ts`, not raw `console.log`, in server code.
 
 ## Status

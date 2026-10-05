@@ -7,6 +7,7 @@ import * as SystemUI from 'expo-system-ui'
 import { useEffect } from 'react'
 import { useColorScheme } from 'react-native'
 import { authClient } from '~/lib/auth-client'
+import { startOta } from '~/lib/ota'
 import { wireReactQueryToNative } from '~/lib/query-rn'
 import { queryClient, trpcClient, TRPCProvider } from '~/lib/trpc'
 
@@ -20,6 +21,9 @@ const BACKGROUND = { light: '#ffffff', dark: '#0a0a0a' }
 export default function RootLayout() {
   const { data: session, isPending } = authClient.useSession()
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
+
+  // A published update installs and reloads at once (lib/ota.ts).
+  useEffect(() => startOta(), [])
 
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(BACKGROUND[scheme])
