@@ -84,7 +84,8 @@ export const SURFACE_SCRIPTS: Record<Surface, Record<string, string>> = {
   },
 }
 
-const packageJsonSchema = z.looseObject({ scripts: z.record(z.string(), z.string()) })
+const packageJsonSchema = z.record(z.string(), z.unknown())
+const scriptsSchema = z.record(z.string(), z.string())
 
 /**
  * Rewrites the root package.json so its scripts match the fork's surfaces:
@@ -93,11 +94,13 @@ const packageJsonSchema = z.looseObject({ scripts: z.record(z.string(), z.string
  */
 export function syncRootScripts(project: Project): boolean {
   const before = readFileSync('package.json', 'utf8')
+  // A record (not an object schema) keeps the file's key order on rewrite.
   const pkg = packageJsonSchema.parse(JSON.parse(before))
+  const current = scriptsSchema.parse(pkg.scripts ?? {})
   const scripts: Record<string, string> = {}
   const owned = new Map<string, Surface>()
   for (const s of SURFACES) for (const name of Object.keys(SURFACE_SCRIPTS[s])) owned.set(name, s)
-  for (const [name, cmd] of Object.entries(pkg.scripts)) {
+  for (const [name, cmd] of Object.entries(current)) {
     const surface = owned.get(name)
     if (surface === undefined || project.surfaces.includes(surface)) scripts[name] = cmd
   }

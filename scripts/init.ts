@@ -140,6 +140,8 @@ const dropped = SURFACES.filter((s) => !surfaces.includes(s))
 const present = dropped.flatMap((s) => SURFACE_PATHS[s]).filter((p) => existsSync(p))
 if (present.length > 0) {
   git('rm', '-r', '-q', ...present)
+  // git rm leaves ignored files (node_modules, build output, generated code).
+  for (const p of present) rmSync(p, { recursive: true, force: true })
   syncRootScripts(next)
   if (!surfaces.includes('web')) dropServerEnv()
   // Re-resolve from scratch: Bun keeps optional peers (e.g. @better-auth/expo's
