@@ -293,6 +293,7 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 - Express 5.x — required for the named-wildcard route syntax. Don't downgrade to Express 4.
 - Vite 6.
 - Expo SDK 57 / RN 0.86.3 / React 19.2.3. NativeWind 5.0.0-rc.0 + react-native-css 3.1.0-rc.0 (exact). Move to SDK 58 in this template first, then forks pick it up with `bun run sync`.
+- `apps/mobile` pins `lru-cache` 5.1.1 as a devDependency only so the hoisted linker keeps v5 at the root: Bun's nested `@babel/helper-compilation-targets` copies don't get their own `lru-cache`, and with v11 hoisted Metro fails with `_lruCache is not a constructor`. Remove it once Bun nests them correctly.
 - better-auth and `@better-auth/expo` move in lockstep (both 1.7.6 in the catalog).
 - zod 4 — top-level formats (`z.url()`, `z.email()`), `{ error }` for custom messages.
 - superjson 2 — the tRPC transformer; in tRPC v11 it goes on each link (`httpBatchLink({ transformer })`) and in `initTRPC.create()`.

@@ -22,6 +22,11 @@
 **Why:** a desktop tool that won't open while Postgres is down is worse than one with a settings file. Desktop-only forks have no Prisma, no auth, no `.env` secrets; app state is a JSON file under `data/.private/`. A desktop app that needs shared data talks to its web app's tRPC, which owns Postgres. Precedent: sal-agent.
 **Rejected:** Postgres + Prisma in every surface (couples a local tool to a running server), SQLite (a second database technology).
 
+## 2026-10-07 — `apps/mobile` pins `lru-cache` 5.1.1; init re-resolves the lock only when mobile goes
+
+**Why:** with the hoisted linker, Bun puts one `lru-cache` at the root and its nested `@babel/helper-compilation-targets` copies (under preset-env plugins) get no `lru-cache` of their own. When a resolve hoists v11, those copies load it and Metro fails: `_lruCache is not a constructor`. A fresh `--mobile` fork hit it after `init` re-resolved the lock. A direct `lru-cache@5.1.1` devDependency in `apps/mobile` keeps v5 at the root; v11 users (path-scurry) get nested copies. `init` also stopped re-resolving the lock unless mobile is dropped.
+**Rejected:** root `overrides` (forces v5 on everything that needs v11), the isolated linker (Metro/autolinking, see above).
+
 ## 2026-10-07 — Design tokens move to `packages/tokens` (`@app/tokens`)
 
 **Why:** a desktop-only fork deletes `apps/web`, which used to own `tokens.css`. Web and desktop import it from `app.css`, mobile from `global.css`, all as `@app/tokens/tokens.css`; `tokens.test.ts` moved with it.
