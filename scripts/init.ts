@@ -8,8 +8,9 @@
 //   1. Drops the surfaces you didn't ask for (apps/mobile + packages/native-example,
 //      apps/desktop + packages/trpc-ipc, or for --desktop-only apps/web + mobile +
 //      drydock.yaml) with their root scripts, in its own commit ("init: web-only",
-//      "init: desktop-only", …) so later syncs keep them deleted, and regenerates
-//      bun.lock from scratch. Bring one back with `bun run add:mobile|add:desktop`.
+//      "init: desktop-only", …) so later syncs keep them deleted, and refreshes
+//      bun.lock (from scratch when mobile goes). Bring one back with
+//      `bun run add:mobile|add:desktop`.
 //   2. Renames the template everywhere (sal-starter / sal_starter / "Sal Starter",
 //      ports 4780–4782) in git-tracked text files. Links to dested/sal-starter stay.
 //   3. Writes the identity file, project.json: name, displayName, scheme,
@@ -144,10 +145,12 @@ if (present.length > 0) {
   for (const p of present) rmSync(p, { recursive: true, force: true })
   syncRootScripts(next)
   if (!surfaces.includes('web')) dropServerEnv()
-  // Re-resolve from scratch: Bun keeps optional peers (e.g. @better-auth/expo's
-  // expo-* tree) in the lockfile once they're there, even after the workspace
-  // that needed them is gone.
-  rmSync('bun.lock')
+  // Dropping mobile: re-resolve from scratch, because Bun keeps optional peers
+  // (@better-auth/expo's expo-* tree) in the lockfile once they're there, even
+  // after the workspace that needed them is gone. Keeping mobile: never
+  // re-resolve, the template's lock is the proven Expo tree (a fresh resolve
+  // hoists lru-cache 11 over Babel's 5 and Metro dies); a plain install prunes.
+  if (dropped.includes('mobile')) rmSync('bun.lock')
   run('bun', 'install')
   git('add', 'bun.lock', 'package.json', '.env.example')
   const label = desktopOnly
