@@ -2,6 +2,31 @@
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
 
+## 2026-10-07 — Optional Electron desktop surface (`apps/desktop`), first fork sal-git
+
+**Why:** desktop tools (sal-git first, later sal-agent's app) should start from the same template as everything else: same tokens, same tRPC, same scripts. Electron because its main process is Node, so the whole app stays TypeScript. electron-vite 5 (Vite 6, like web) builds main/preload/renderer; electron-builder `--dir` only (no installer, no auto-update). `project.json` `surfaces` now says what a fork has, instead of inferring it from the filesystem; `--desktop-only` forks drop web, mobile and Drydock.
+**Rejected:** Tauri (Rust backend, outside the stack), a separate desktop template (two templates drift), an installer + auto-update (Sal pins the exe).
+
+## 2026-10-07 — tRPC over Electron IPC with our own link (`packages/trpc-ipc`)
+
+**Why:** ~250 lines we own: `createIpcHandler` dispatches through `callProcedure`/`getErrorShape` (what tRPC's adapters use; the catalog keeps tRPC pinned exactly), tracks subscriptions per webContents and returns their iterators on stop, abort, navigation or destroy; the preload exposes `{ send, onMessage }` only; `ipcLink` maps AbortSignal to `cancel` and unsubscribe to `subscription.stop`. Round trips are tested over a fake ipc pair with structured clone.
+**Rejected:** `electron-trpc` 0.7.1 (Dec 2024) and `trpc-electron` 0.1.2 (Jan 2025): both stale against tRPC 11.19.
+
+## 2026-10-07 — No superjson over IPC; identity `ipcTransformer` for types
+
+**Why:** Electron IPC is structured clone, which already carries Date, Map, Set and typed arrays; superjson would only burn CPU on big payloads. But a router without a transformer makes tRPC type outputs as JSON (`Date` → `string`), so the desktop router uses `ipcTransformer`, an identity serialize/deserialize that only flips tRPC's types. Any HTTP link to a web server keeps superjson.
+**Rejected:** superjson on the IPC link (wasted work), no transformer (types lie about Dates).
+
+## 2026-10-07 — No database for desktop-only apps
+
+**Why:** a desktop tool that won't open while Postgres is down is worse than one with a settings file. Desktop-only forks have no Prisma, no auth, no `.env` secrets; app state is a JSON file under `data/.private/`. A desktop app that needs shared data talks to its web app's tRPC, which owns Postgres. Precedent: sal-agent.
+**Rejected:** Postgres + Prisma in every surface (couples a local tool to a running server), SQLite (a second database technology).
+
+## 2026-10-07 — Design tokens move to `packages/tokens` (`@app/tokens`)
+
+**Why:** a desktop-only fork deletes `apps/web`, which used to own `tokens.css`. Web and desktop import it from `app.css`, mobile from `global.css`, all as `@app/tokens/tokens.css`; `tokens.test.ts` moved with it.
+**Rejected:** copying tokens into desktop (drift), keeping `@app/web` as a desktop dependency (web is deleted there).
+
 ## 2026-10-02 — Mobile lives in sal-starter as an optional `apps/mobile` (monorepo, option b)
 
 **Why:** one template, one sync story: `init` keeps or drops the app, `add:mobile` restores it from upstream, `sync` merges both. Web-only forks pay nothing at runtime (the Expo tree is pruned from their lockfile). The single-package template is tagged `v1-single` for clones that never move.

@@ -4,8 +4,7 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./router": "./server/router.ts",
-    "./tokens.css": "./src/styles/tokens.css"
+    "./router": "./server/router.ts"
   },
   "scripts": {
     "dev": "bun --env-file=../../.env --watch server.ts",
@@ -30,6 +29,7 @@
     "test:e2e:update": "playwright test --update-snapshots"
   },
   "dependencies": {
+    "@app/tokens": "workspace:*",
     "@better-auth/expo": "catalog:",
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",

@@ -7,7 +7,7 @@
 ```bash
 bun install                 # lockfile resolves; postinstall regenerates the Prisma client
 bun run typecheck           # tsc --noEmit: root + every workspace. Must be green
-bun run test                # bun:test in every workspace (ssr-state, tokens)
+bun run test                # bun:test in every workspace (ssr-state, tokens, trpc-ipc round trips, desktop router)
 bun run build               # apps/web/dist/client + dist/server
 bun pm why react            # exactly one react (the Expo SDK's version)
 ```
@@ -40,12 +40,24 @@ curl -s http://localhost:4781/status            # packager-status:running
 curl -s -H "expo-platform: ios" http://localhost:4781/ -o /dev/null -w "%{http_code}\n"   # 200 manifest
 ```
 
+## Desktop (cheap, Windows)
+
+```bash
+bun run --cwd apps/desktop build     # out/main, out/preload/index.cjs (~1 KB), out/renderer
+bun run dev desktop                  # renderer on 4782 + the window; ping, echo and ticking subscription all work
+bun run release                      # release/win-unpacked/<name>.exe launches and shows the same
+```
+
+Scripted check without clicking: Playwright's `_electron.launch({ args: ['apps/desktop'] })` (or `{ executablePath: '…exe' }`) and read `[data-testid=ping|echo|ticks]`. For dev mode, `bunx electron-vite dev --remoteDebuggingPort 9333` in `apps/desktop` and `chromium.connectOverCDP`. State must land in `data/.private/electron`, nothing in `%APPDATA%`.
+
 ## Template scripts (cheap, in a scratch clone)
 
 Never run these in the template itself. Clone into a temp dir, `git remote rename origin upstream`, `bun install`, then:
 
 - `bun run init demo-web` → commit "init: web-only", no `apps/mobile`, `bun.lock` without `expo` entries, typecheck + test + build green.
 - `bun run add:mobile` in that clone → commit "add apps/mobile from upstream/main @ <sha>", typecheck green.
+- `bun run init demo --desktop-only` → commit "init: desktop-only", no `apps/web`/`apps/mobile`/`drydock.yaml`, no web/db root scripts, `.env.example` without DB/auth; install, typecheck, test, `bun run dev` (window), `bun run release` (exe) green.
+- `bun run init demo --desktop` → web + desktop, commit "init: web + desktop".
 - `bun run init demo-app --mobile` → `git diff --stat` shows only identity strings; `expo export` works.
 - `bun run sync` against an upstream commit that touches `project.json`, `apps/mobile` and a shared file → the fork's `project.json` kept, mobile changes dropped in a web-only fork, shared file merged, nothing committed.
 

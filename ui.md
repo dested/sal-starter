@@ -6,7 +6,7 @@
 
 ## North star
 
-**Clean, neutral, system-native — shadcn/ui "new-york" out of the box.** Think Linear/Vercel-dashboard restraint: lots of whitespace, hairline borders, near-black-on-white, one job per screen. Failure looks like (a) too sterile → no hierarchy, walls of muted text; (b) too toy → gratuitous color, heavy shadows, rounded-everything. This template ships intentionally unopinionated so a real brand can be layered on by editing tokens in `apps/web/src/styles/tokens.css` (web and mobile both read it).
+**Clean, neutral, system-native — shadcn/ui "new-york" out of the box.** Think Linear/Vercel-dashboard restraint: lots of whitespace, hairline borders, near-black-on-white, one job per screen. Failure looks like (a) too sterile → no hierarchy, walls of muted text; (b) too toy → gratuitous color, heavy shadows, rounded-everything. This template ships intentionally unopinionated so a real brand can be layered on by editing tokens in `packages/tokens/tokens.css` (web, mobile and desktop all read it).
 
 1. **Tokens over hardcoded values** — color/radius come from CSS variables; never hardcode hex.
 2. **Borders, not shadows** — separation via 1px `border` + subtle `shadow-xs/sm`, not big elevation.
@@ -15,7 +15,7 @@
 
 ## Tokens
 
-Defined as CSS variables in `apps/web/src/styles/tokens.css` (`:root` + `.dark`, plus a native dark block), exposed to Tailwind via `@theme inline`. `app.css` imports it; mobile imports it as `@app/web/tokens.css`. Light + dark are both defined; dark activates when `<html>` carries `.dark`, which an inline script in `index.html` sets before first paint (stored choice → OS preference) and `ThemeToggle` flips at runtime. `color-scheme` is set per theme so native controls and scrollbars match. All colors are **oklch**. Every surface must look right in both themes — check both when adding UI.
+Defined as CSS variables in `packages/tokens/tokens.css` (`:root` + `.dark`, plus a native dark block), exposed to Tailwind via `@theme inline`. Every app imports it as `@app/tokens/tokens.css` (web and desktop from `app.css`, mobile from `global.css`). Desktop follows the OS theme (no toggle). Light + dark are both defined; dark activates when `<html>` carries `.dark`, which an inline script in `index.html` sets before first paint (stored choice → OS preference) and `ThemeToggle` flips at runtime. `color-scheme` is set per theme so native controls and scrollbars match. All colors are **oklch**. Every surface must look right in both themes — check both when adding UI.
 
 ### Color
 

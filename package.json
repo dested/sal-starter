@@ -27,20 +27,28 @@
       "@tailwindcss/vite": "4.1.12",
       "@tailwindcss/postcss": "4.1.12",
       "typescript": "7.0.2",
-      "prettier": "^3.8.3"
+      "prettier": "^3.8.3",
+      "electron": "44.5.1",
+      "electron-vite": "5.0.0",
+      "electron-builder": "26.15.3"
     }
   },
   "overrides": {
     "lightningcss": "1.30.1"
   },
+  "trustedDependencies": [
+    "electron"
+  ],
   "scripts": {
     "init": "bun scripts/init.ts",
     "sync": "bun scripts/sync.ts",
-    "add:mobile": "bun scripts/add-mobile.ts",
+    "add:mobile": "bun scripts/add-surface.ts mobile",
+    "add:desktop": "bun scripts/add-surface.ts desktop",
     "dev": "bun scripts/dev.ts",
     "build": "bun run --cwd apps/web build",
     "start": "bun run --cwd apps/web start",
     "start:local": "bun run --cwd apps/web start:local",
+    "release": "bun run --cwd apps/desktop release",
     "typecheck": "tsc --noEmit && bun run --filter '*' typecheck",
     "test": "bun run --filter '*' test",
     "test:e2e": "bun run --cwd apps/web test:e2e",

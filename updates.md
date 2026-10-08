@@ -2,6 +2,12 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-07 — desktop surface (Electron) for sal-git
+
+Ask: Phase 0 of sal-git's plan (G:/code/sal-git/plans/2026-10-07-sal-git.md): an optional, thin Electron surface so sal-git can be a `--desktop-only` fork.
+Done: `packages/tokens` (tokens moved out of web), `packages/trpc-ipc` (tRPC v11 over IPC, own link, 9 tests), `apps/desktop` (electron-vite 5, Electron 44.5.1, pinned data dir, single instance, saved bounds, sandbox + CSP, demo query/mutation/subscriptions, unpacked release via electron-builder API). `project.json` gains `surfaces`/`desktopPort`/`appId` (legacy forks migrated by sync); `init --desktop|--desktop-only`, `add:desktop` (add-mobile → add-surface), `sync`/`dev` per surface. Verified: typecheck + tests all workspaces, web build, built app + dev mode + packaged exe driven by Playwright (ping/echo/ticks). Electron 44.7.0 (plan) was blocked by the 3-day minimumReleaseAge, so 44.5.1.
+Touched: packages/{tokens,trpc-ipc}, apps/desktop, apps/{web,mobile} token imports, scripts/\*, project.json, package.json, .gitignore, docs
+
 ## 2026-10-04 — Expo build fixes + instant OTA from Store Brand
 
 Ask: port what Store Brand needed to build and ship on EAS, so the next project's first EAS build works.

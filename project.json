@@ -3,8 +3,11 @@
   "displayName": "Sal Starter",
   "scheme": "salstarter",
   "bundleId": "com.dested.salstarter",
+  "appId": "com.dested.salstarter",
+  "surfaces": ["web", "mobile", "desktop"],
   "apiPort": 4780,
   "metroPort": 4781,
+  "desktopPort": 4782,
   "db": "sal_starter",
   "easProjectId": null,
   "appleTeamId": null

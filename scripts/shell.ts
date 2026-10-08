@@ -1,4 +1,4 @@
-// Tiny helpers shared by the root scripts (init, sync, add-mobile).
+// Tiny helpers shared by the root scripts (init, sync, add-surface).
 
 import { execFileSync, spawnSync } from 'node:child_process'
 
@@ -32,9 +32,6 @@ export function fail(message: string, hint?: string): never {
   if (hint !== undefined) console.error(c.dim(`  ${hint}`))
   process.exit(1)
 }
-
-// Paths that only exist in a fork with the mobile app (`init --mobile`).
-export const MOBILE_PATHS = ['apps/mobile', 'packages/native-example']
 
 export function hasRemote(name: string): boolean {
   return git('remote').split('\n').includes(name)

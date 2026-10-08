@@ -1,7 +1,7 @@
-/* Design tokens (oklch), shared by web and mobile.
- * Web: imported by app.css; `.dark` on <html> switches the palette.
- * Mobile: imported by apps/mobile/global.css as `@app/web/tokens.css`.
- * Change a token here and both apps follow (see ui.md). */
+/* Design tokens (oklch), shared by web, mobile and desktop (@app/tokens).
+ * Web and desktop: imported by app.css as `@app/tokens/tokens.css`; `.dark` on <html> switches the palette.
+ * Mobile: imported by apps/mobile/global.css, same specifier.
+ * Change a token here and every app follows (see ui.md). */
 
 @theme inline {
   --color-background: var(--background);

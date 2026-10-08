@@ -1,27 +1,36 @@
-// `bun run dev`: the web app (API + SSR + HMR on project.json `apiPort`), plus
-// Metro on `metroPort` when apps/mobile exists. One command, both servers.
+// `bun run dev`: every surface this fork has, in one command:
+//   web      API + SSR + HMR on project.json `apiPort`
+//   mobile   Metro on `metroPort`
+//   desktop  electron-vite (renderer dev server on `desktopPort`) + the window
 //
-//   bun run dev            web, and mobile if present
-//   bun run dev web        web only
-//   bun run dev mobile     Metro only (the API is already running elsewhere)
+//   bun run dev                    all of them
+//   bun run dev web|mobile|desktop just one
 //
-// Metro owns the terminal's stdin (its r/j/m keys and the QR code); the web
-// server never reads stdin. Ctrl+C stops both.
+// Metro owns the terminal's stdin (its r/j/m keys and the QR code); nothing
+// else reads stdin. Ctrl+C stops all; if one exits, the rest stop too.
 
 import { existsSync } from 'node:fs'
 import { readProject } from './project'
 
 const target = process.argv[2] ?? 'all'
-if (target !== 'all' && target !== 'web' && target !== 'mobile') {
-  console.error(`Usage: bun run dev [web|mobile]  (got "${target}")`)
+if (target !== 'all' && target !== 'web' && target !== 'mobile' && target !== 'desktop') {
+  console.error(`Usage: bun run dev [web|mobile|desktop]  (got "${target}")`)
   process.exit(1)
 }
 
 const project = readProject()
-const hasMobile = existsSync('apps/mobile/package.json')
+const has = (app: string) => existsSync(`apps/${app}/package.json`)
+const wants = (app: 'web' | 'mobile' | 'desktop') =>
+  target === app || (target === 'all' && has(app))
+if (target !== 'all' && !has(target)) {
+  console.error(
+    `apps/${target} does not exist.${target === 'web' ? '' : ` Add it with \`bun run add:${target}\`.`}`
+  )
+  process.exit(1)
+}
 const procs: Bun.Subprocess[] = []
 
-if (target !== 'mobile') {
+if (wants('web')) {
   procs.push(
     Bun.spawn(['bun', 'run', '--cwd', 'apps/web', 'dev'], {
       stdin: 'ignore',
@@ -31,12 +40,17 @@ if (target !== 'mobile') {
   )
 }
 
-if (target === 'mobile' && !hasMobile) {
-  console.error('apps/mobile does not exist. Add it with `bun run add:mobile`.')
-  process.exit(1)
+if (wants('desktop')) {
+  procs.push(
+    Bun.spawn(['bun', 'run', '--cwd', 'apps/desktop', 'dev'], {
+      stdin: 'ignore',
+      stdout: 'inherit',
+      stderr: 'inherit',
+    })
+  )
 }
 
-if (target !== 'web' && hasMobile) {
+if (wants('mobile')) {
   procs.push(
     Bun.spawn(['bun', 'x', 'expo', 'start', '--dev-client', '--port', String(project.metroPort)], {
       cwd: 'apps/mobile',

@@ -7,12 +7,15 @@
 // and typechecks so you review a working tree, never a surprise commit:
 //   - project.json / drydock.yaml keep this fork's values (merge=ours driver)
 //   - bun.lock: this fork's copy is kept and `bun install` folds upstream in
-//   - web-only forks: anything upstream changed or added under apps/mobile or
-//     packages/native-example is dropped again (those paths stay deleted)
+//   - surfaces this fork doesn't have (project.json `surfaces`): anything
+//     upstream changed or added under their paths is dropped again, and their
+//     root scripts stay out of package.json
+//   - forks older than `surfaces` get it (plus desktopPort, appId) filled in
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
 
-import { existsSync, writeFileSync } from 'node:fs'
-import { c, fail, git, gitStatus, hasRemote, MOBILE_PATHS, run, workingTreeClean } from './shell'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { excludedPaths, projectSchema, readProject, syncRootScripts, writeProject } from './project'
+import { c, fail, git, gitStatus, hasRemote, run, workingTreeClean } from './shell'
 
 const args = process.argv.slice(2)
 const fromIndex = args.indexOf('--from')
@@ -28,7 +31,9 @@ if (!hasRemote(remote)) {
 }
 if (!workingTreeClean()) fail('Working tree is not clean.', 'Commit your changes first.')
 
-const webOnly = !existsSync('apps/mobile')
+const project = readProject()
+const excluded = excludedPaths(project)
+const projectBefore = readFileSync('project.json', 'utf8')
 
 git('config', 'merge.ours.driver', 'true')
 console.log(c.dim(`› git fetch ${remote}`))
@@ -37,23 +42,42 @@ git('fetch', '-q', remote)
 console.log(c.dim(`› git merge --no-commit --no-ff ${ref}`))
 const mergeExit = gitStatus('merge', '--no-commit', '--no-ff', ref)
 
-if (webOnly) {
-  // Modify/delete conflicts and newly added upstream files under the mobile
-  // paths: keep this fork web-only. `git rm` also resolves unmerged entries.
-  const touched = MOBILE_PATHS.filter((p) => git('ls-files', '--', p) !== '')
+if (excluded.length > 0) {
+  // Modify/delete conflicts and newly added upstream files under paths of
+  // surfaces this fork doesn't have: keep them deleted. `git rm` also resolves
+  // unmerged entries.
+  const touched = excluded.filter((p) => git('ls-files', '--', p) !== '')
   if (touched.length > 0) {
     git('rm', '-r', '-q', '-f', '--', ...touched)
     console.log(
-      `  ${c.green('kept deleted')} ${c.dim(touched.join(', '))} ${c.dim('(web-only fork)')}`
+      `  ${c.green('kept deleted')} ${c.dim(touched.join(', '))} ${c.dim(`(${project.surfaces.join(' + ')} fork)`)}`
     )
   }
+}
+
+// Root scripts follow the surfaces (an upstream edit to the scripts block can
+// re-add ones this fork dropped). Only safe once package.json merged cleanly.
+if (
+  git('diff', '--name-only', '--diff-filter=U', '--', 'package.json') === '' &&
+  syncRootScripts(project)
+) {
+  git('add', 'package.json')
+}
+
+// Older forks: persist the surfaces/desktopPort/appId readProject inferred.
+if (!projectSchema.safeParse(JSON.parse(projectBefore)).success) {
+  writeProject(project)
+  git('add', 'project.json')
+  console.log(
+    `  ${c.green('updated')} project.json ${c.dim(`(surfaces: ${project.surfaces.join(', ')})`)}`
+  )
 }
 
 // bun.lock: keep this fork's copy and let `bun install` below fold in what
 // upstream changed in package.json. A textual merge of a lockfile is either a
 // conflict or, for web-only forks, a silent re-import of the Expo tree.
 const lockConflicted = git('diff', '--name-only', '--diff-filter=U', '--', 'bun.lock') !== ''
-if (webOnly || lockConflicted) {
+if (excluded.length > 0 || lockConflicted) {
   writeFileSync('bun.lock', git('show', 'HEAD:bun.lock') + '\n')
   git('add', 'bun.lock')
 }

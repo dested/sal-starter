@@ -1,0 +1,16 @@
+{
+  "name": "@app/tokens",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "catalog:"
+  }
+}

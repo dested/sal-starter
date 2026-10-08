@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@app/native-example": "workspace:*",
+    "@app/tokens": "workspace:*",
     "@better-auth/expo": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@trpc/client": "catalog:",
