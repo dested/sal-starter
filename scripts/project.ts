@@ -21,7 +21,8 @@ export const SURFACE_PATHS: Record<Surface, string[]> = {
 /**
  * The look the kickoff chose (.claude/skills/kickoff): one scheme, never a
  * toggle. `null` until the kickoff runs; while it is, dev shows a "Kickoff
- * pending" ribbon and `bun run test` fails (outside the template).
+ * pending" ribbon and `bun run test` fails. The template carries a placeholder
+ * look so its own checks pass; `init` resets it to null.
  */
 export const lookSchema = z.object({
   scheme: z.enum(['light', 'dark']),

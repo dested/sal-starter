@@ -11,5 +11,8 @@
   "db": "sal_starter",
   "easProjectId": null,
   "appleTeamId": null,
-  "look": null
+  "look": {
+    "scheme": "light",
+    "direction": "template placeholder: init resets this to null, the kickoff sets the real look"
+  }
 }

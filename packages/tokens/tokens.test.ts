@@ -5,7 +5,6 @@ import { emitColors, missingRoles, rootDeclarations, themeCss, toHex, tokensCss 
 
 const project = z
   .object({
-    name: z.string(),
     look: z.object({ scheme: z.enum(['light', 'dark']), direction: z.string() }).nullable(),
   })
   .parse(JSON.parse(readFileSync(new URL('../../project.json', import.meta.url), 'utf8')))
@@ -39,13 +38,10 @@ describe('tokens.css', () => {
 })
 
 describe('kickoff', () => {
-  // The template itself ships the neutral placeholder; every fork must replace it.
-  test.skipIf(project.name === 'sal-starter')(
-    'the look is set (run the kickoff skill: .claude/skills/kickoff/SKILL.md)',
-    () => {
-      expect(project.look).not.toBeNull()
-    }
-  )
+  // `init` sets look to null: every fork replaces the starter's placeholder.
+  test('the look is set (run the kickoff skill: .claude/skills/kickoff/SKILL.md)', () => {
+    expect(project.look).not.toBeNull()
+  })
 
   test('project.json look.scheme matches tokens.css color-scheme', () => {
     const scheme = rootDeclarations(tokensCss).get('color-scheme')

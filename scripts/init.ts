@@ -132,6 +132,8 @@ const next: Project = {
   desktopPort: apiPort + 2,
   db: snake,
   easProjectId: null,
+  // The template's own look is a placeholder; a fork has none until its kickoff.
+  look: null,
 }
 
 // A desktop-only project has no server: no database or auth variables.
@@ -274,10 +276,7 @@ console.log(c.bold(c.green(`✓ Initialized ${title} (${name}): ${surfaces.join(
 console.log(`  ${changed} file(s) updated. ${ports.join(', ')} (record them in cliffnotes.md).`)
 console.log()
 console.log(c.bold('Next steps:'))
-const steps: Array<[string, string]> = [
-  [`git diff && git commit -am "init ${name}"`, ''],
-  ['/kickoff in Claude Code', '# the look, `/`, icon: before any feature work'],
-]
+const steps: Array<[string, string]> = [[`git diff && git commit -am "init ${name}"`, '']]
 if (surfaces.includes('web')) {
   steps.push([`createdb ${snake}`, '# or point .env at any Postgres'])
   steps.push(['bun run db:migrate', '# applies prisma/migrations'])
@@ -286,6 +285,7 @@ steps.push([
   'bun run dev',
   surfaces.includes('web') ? `# → http://localhost:${apiPort}` : '# opens the desktop window',
 ])
+steps.push(['/kickoff in Claude Code', '# the look, `/`, icon: before any feature work'])
 if (surfaces.includes('mobile')) {
   steps.push(['cd apps/mobile && eas init', '# then put the id in project.json easProjectId'])
 }
