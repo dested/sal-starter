@@ -25,7 +25,7 @@ export function SignInScreen() {
   }
 
   return (
-    <SafeAreaView className="bg-background flex-1">
+    <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView behavior="padding" className="flex-1 justify-center p-6">
         <Card className="mx-auto w-full max-w-md">
           <CardHeader>
@@ -53,13 +53,13 @@ export function SignInScreen() {
                 textContentType="password"
               />
             </View>
-            {error !== null && <Text className="text-destructive text-sm">{error}</Text>}
+            {error !== null && <Text className="text-sm text-destructive">{error}</Text>}
             <Button
               label={pending ? 'Signing in…' : 'Sign in'}
               disabled={pending}
               onPress={submit}
             />
-            <Text className="text-muted-foreground text-center text-sm">
+            <Text className="text-center text-sm text-muted-foreground">
               No account?{' '}
               <Link href="/sign-up" className="text-foreground underline">
                 Sign up

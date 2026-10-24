@@ -5,7 +5,13 @@ import { z } from 'zod'
 // The runtime view of app.config.ts (which reads project.json). Validated once
 // so the rest of the app never touches `Constants.expoConfig` directly.
 const schema = z.object({
-  extra: z.object({ apiPort: z.number().int(), apiUrl: z.url(), scheme: z.string() }),
+  extra: z.object({
+    apiPort: z.number().int(),
+    apiUrl: z.url(),
+    scheme: z.string(),
+    colorScheme: z.enum(['light', 'dark']),
+    kickoffPending: z.boolean(),
+  }),
   hostUri: z.string().optional(),
 })
 

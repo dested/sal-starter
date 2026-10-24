@@ -78,9 +78,9 @@ export function DashboardPage() {
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Recent posts</h2>
-        {postsQuery.isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+        {postsQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
         {postsQuery.data?.length === 0 && (
-          <p className="text-muted-foreground text-sm">No posts yet — be the first.</p>
+          <p className="text-sm text-muted-foreground">No posts yet — be the first.</p>
         )}
         <div className="space-y-3">
           {postsQuery.data?.map((p) => (

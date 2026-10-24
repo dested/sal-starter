@@ -6,8 +6,9 @@
 //   - contextIsolation + sandbox, no nodeIntegration, strict CSP (index.html)
 //   - external links go to the OS browser; the window never navigates away
 
+import { colors } from '@app/tokens'
 import { createIpcHandler } from '@app/trpc-ipc/main'
-import { app, BrowserWindow, ipcMain, nativeTheme, screen, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, screen, shell } from 'electron'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { emitLaunch } from './launches'
@@ -47,7 +48,8 @@ function createWindow(): BrowserWindow {
     minHeight: 480,
     show: false,
     title: app.getName(),
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0a0a0a' : '#ffffff',
+    // One theme: the window paints the token background before the renderer loads.
+    backgroundColor: colors.background,
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.cjs'),

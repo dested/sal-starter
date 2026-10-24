@@ -5,7 +5,7 @@ import { cn } from '~/lib/utils'
 function Card({ className, ...props }: ComponentProps<typeof View>) {
   return (
     <View
-      className={cn('bg-card border-border gap-6 rounded-xl border py-6 shadow-sm', className)}
+      className={cn('gap-6 rounded-xl border border-border bg-card py-6 shadow-card', className)}
       {...props}
     />
   )
@@ -18,14 +18,14 @@ function CardHeader({ className, ...props }: ComponentProps<typeof View>) {
 function CardTitle({ className, ...props }: ComponentProps<typeof Text>) {
   return (
     <Text
-      className={cn('text-card-foreground leading-none font-semibold tracking-tight', className)}
+      className={cn('leading-none font-semibold tracking-tight text-card-foreground', className)}
       {...props}
     />
   )
 }
 
 function CardDescription({ className, ...props }: ComponentProps<typeof Text>) {
-  return <Text className={cn('text-muted-foreground text-sm', className)} {...props} />
+  return <Text className={cn('text-sm text-muted-foreground', className)} {...props} />
 }
 
 function CardContent({ className, ...props }: ComponentProps<typeof View>) {

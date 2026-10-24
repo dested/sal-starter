@@ -2,6 +2,8 @@
 
 Briefing for an LLM extending this codebase. Read this before changing files.
 
+**0. Kickoff before any feature work.** While `project.json` `look` is `null`, this fork still wears the starter's neutral placeholder: dev shows a "Kickoff pending" ribbon and `bun run test` fails. Run the kickoff skill (`.claude/skills/kickoff/SKILL.md`, `/kickoff`) first: it asks Sal for the look (one scheme, never a dark mode), then builds tokens, fonts, primitives, the real `/`, icon, splash and `ui.md`.
+
 ## What this is
 
 A starter template (cloned, then mutated into a real product). Every file is intentionally minimal — keep it that way. When asked to add a feature, add the feature; do not also "improve" surrounding files.
@@ -19,7 +21,7 @@ It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Ex
 | auth               | better-auth                         | email + password only, autoSignIn on sign-up                                                                                                                       |
 | api                | tRPC v11 + superjson                | `@trpc/tanstack-react-query` (`.queryOptions()` API), mounted as Express middleware at `/api/trpc`; superjson transformer, so `Date`s survive the wire and SSR     |
 | validation         | zod 4                               | env, tRPC inputs, anything crossing a boundary                                                                                                                     |
-| styles             | Tailwind v4 + shadcn (new-york)     | CSS-first config, oklch tokens                                                                                                                                     |
+| styles             | Tailwind v4 + shadcn (new-york)     | CSS-first config, oklch tokens in `packages/tokens`, ONE theme (no dark mode, no toggle); the kickoff sets the look                                                |
 | tests              | Playwright e2e + `bun:test`         | `e2e/` + committed screenshot baselines against an isolated, migrated test DB; unit tests are `*.test.ts` under `src/` / `server/` (`bun run test`)                |
 | deploy             | Drydock (`drydock.yaml`)            | only `apps/web` deploys (`rootDir: apps/web`, `workspace: "@app/web"`); mobile ships via EAS Build + EAS Update                                                    |
 | analytics          | Crow's Nest                         | one `<script defer>` in `index.html` (silent on localhost); custom events via `cnEvent()` in `src/lib/crowsnest.ts`                                                |
@@ -31,7 +33,9 @@ It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Ex
 
 ```
 project.json         the ONE per-project identity file: name, displayName, scheme, bundleId,
-                     appId, surfaces, apiPort, metroPort, desktopPort, db, easProjectId, appleTeamId (rule #22)
+                     appId, surfaces, apiPort, metroPort, desktopPort, db, easProjectId, appleTeamId,
+                     look ({ scheme, direction } or null until the kickoff) (rule #22)
+.claude/skills/kickoff  the kickoff skill every fork inherits (rule 0)
 package.json         workspace root: catalog (shared pins), overrides, proxy scripts
 bunfig.toml          [install] linker = "hoisted", minimumReleaseAge = 3 days (every machine, every fork)
 tsconfig.base.json   shared strict compiler options (apps extend it)
@@ -42,6 +46,14 @@ apps/web/            @app/web, everything below in this block lives here
 apps/mobile/         @app/mobile (optional), see "Mobile" below
 apps/desktop/        @app/desktop (optional), see "Desktop" below
 packages/            tokens (shared design tokens), trpc-ipc (desktop's tRPC link), native-example (mobile's native demo)
+
+packages/tokens/
+├── theme.css        Tailwind mapping (@theme inline roles, radius scale, shadow-card, `dark:` disabled); merges on sync
+├── tokens.css       the look: ONE :root of values (fork-owned, merge=ours); color-scheme = look.scheme
+├── colors.json      generated hex per role (`bun run tokens`); never edit by hand
+├── index.ts         `colors` (+ ColorRole) for code that can't use classes: native, SVG, Electron
+├── css.ts / emit.ts parser + oklch→hex, and the `bun run tokens` writer
+└── tokens.test.ts   colors.json current, every role has a value, one theme, the kickoff ran
 
 apps/web/
 server.ts            Express server entry. Bun runs this in dev and prod.
@@ -67,25 +79,24 @@ src/
 │   ├── sign-up.tsx        /sign-up
 │   └── dashboard.tsx      /dashboard
 ├── components/
-│   ├── theme-toggle.tsx   light/dark toggle button (nav)
+│   ├── kickoff-ribbon.tsx dev-only "Kickoff pending" bar while project.json look is null
 │   └── ui/                shadcn primitives
 ├── lib/
 │   ├── auth-client.ts     better-auth React client (signIn, signUp, useSession, signOut)
 │   ├── crowsnest.ts       cnEvent(): typed Crow's Nest custom events
-│   ├── theme.ts           theme state: applyTheme/setTheme/toggleTheme/followSystemTheme
 │   ├── ssr-state.ts       superjson (de)serialization of the dehydrated React Query cache (SSR → client)
 │   ├── trpc.tsx           TRPCProvider, useTRPC, getBrowserClients() (browser QueryClient + tRPC singletons)
 │   └── utils.ts           cn() helper
-└── styles/app.css         Tailwind v4 import + shadcn tokens (light on :root, dark on .dark)
+└── styles/app.css         Tailwind v4 + @app/tokens (theme.css, tokens.css) + font mapping + base layer
 
 public/                favicon.svg + robots.txt (served statically by vite/express)
 e2e/                   Playwright specs + committed __screenshots__ baselines; db.ts = the isolated test DB URL
 scripts/init.ts        clone→rename initializer (`bun run init <name>`)
-index.html             Vite entry HTML: stylesheet <link>, pre-paint theme script, `<!--app-html-->`/`<!--app-state-->` placeholders
+index.html             Vite entry HTML: stylesheet <link>, Crow's Nest tag, `<!--app-html-->`/`<!--app-state-->` placeholders
+vite.config.ts         `~` alias + themeMeta plugin (color-scheme from look.scheme, theme-color from colors.json)
 prisma/schema.prisma   DB schema (User/Session/Account/Verification/Post)
 prisma/migrations/     committed migrations — the only way schema reaches a database (Hard rule #15)
 prisma.config.ts       Prisma 7 CLI config — loads the root .env itself (see Hard rule #12)
-(tokens)             design tokens live in packages/tokens (`@import '@app/tokens/tokens.css'` from app.css)
 server/generated/      prisma-client generator output (gitignored; postinstall / db:generate)
 ```
 
@@ -112,7 +123,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 
 9. **The stylesheet is linked from `index.html`, never imported from JS.** `<link rel="stylesheet" href="/src/styles/app.css">` is render-blocking in dev (Vite serves it as compiled CSS and HMR swaps the href) and gets content-hashed into `<head>` by `vite build`. Importing CSS from a component made Vite inject it only after the client module graph loaded, so every dev load painted unstyled SSR HTML first. Don't add `import './x.css'` to components — `@import` it from `app.css`.
 
-10. **Theme is applied before first paint by the inline script in `index.html`**; `src/lib/theme.ts` mirrors the same logic for post-hydration changes (keep them in sync). `.dark` on `<html>` drives the tokens. Components must render identical markup in both themes — swap with `dark:` classes (see `theme-toggle.tsx`), never branch on the theme in JS during render, or SSR and client markup diverge.
+10. **One theme, no dark mode, ever.** The look is `packages/tokens/tokens.css` (one `:root`); its `color-scheme` equals `project.json` `look.scheme`, and `vite.config.ts` injects `color-scheme` + `theme-color` from them. There is no `.dark` class, no toggle, no `prefers-color-scheme`, and `dark:` classes never match (`theme.css` redefines the variant). Don't add any of it back, on any surface. A color change is a `tokens.css` value + `bun run tokens`; code that needs hex imports `colors` from `@app/tokens`.
 
 11. **Dev is one port.** Vite's HMR websocket rides on the Express `http.Server` (`hmr: { server: httpServer }` in `server.ts`). Don't give it a fixed port — two clones of this template running at once would fight over it and HMR would silently die.
 
@@ -186,7 +197,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 - **Auth.** `src/lib/auth-client.ts` = better-auth `expoClient` with SecureStore (cookie + cached session, so a cold start has no signed-out flash). The tRPC link sends the cookie as a `Cookie` header with `credentials: 'omit'`. Server side, `server/auth.ts` has `plugins: [expo()]` and `trustedOrigins` for the app schemes (`exp://` dev only).
 - **Variants.** `APP_VARIANT` = development / preview / production picks name, bundle id (`.dev`/`.preview`) and scheme, so all three installs coexist. `bun run dev` serves Metro as `development` to match the dev client. At runtime the variant and scheme come from the installed binary's bundle id (`variant` / `appScheme` in `src/lib/app-config.ts`), never from the JS bundle, so one update bundle is valid in preview and production.
 - **EAS Update lanes.** `bun run ota:preview --message "…"` publishes to the preview channel; test it on a preview build; `bun run ota:promote` republishes that exact update to production (`eas update:republish`, no rebuild); `bun run ota:prod --message "…"` publishes straight to production (hotfix). Each script sets `APP_VARIANT` itself: `eas update` never reads eas.json's build `env`. The runtimeVersion is the fingerprint; `fingerprint.config.js` keeps it identical locally and on EAS, and eas.json's `bun` equals the local Bun. Check `eas fingerprint:compare --build-id <id>` before the first update to a new build.
-- **Styling.** NativeWind 5 rc: `global.css` imports Tailwind's layers, `nativewind/theme` and `@app/tokens/tokens.css`. Native dark mode follows the OS through the `@media native and (prefers-color-scheme: dark)` block in tokens.css (kept equal to `.dark` by `tokens.test.ts`). UI primitives in `src/components/ui/` mirror web's cva variants.
+- **Styling.** NativeWind 5 rc: `global.css` imports Tailwind's layers, `nativewind/theme`, then `@app/tokens/theme.css` and `tokens.css`. One scheme: `app.config.ts` sets `userInterfaceStyle` from `look.scheme` and the splash from `colors.json`; `_layout.tsx` paints the root view and stack with `colors.background` and fixes the status bar. Never `useColorScheme`. UI primitives in `src/components/ui/` mirror web's cva variants.
 - **React Query on native.** `src/lib/query-rn.ts` wires `focusManager` to AppState and `onlineManager` to expo-network.
 - **Native code.** `modules/app-native` (local Expo module) and `packages/native-example` (workspace package + typed config plugin with committed `plugin/build`) prove both hosting modes; both use `requireOptionalNativeModule` so a stale dev client renders a hint instead of crashing.
 - **Two machines.** Windows: editor, Postgres, `bun run dev` (API + Metro). Mac: `bun run ios:prebuild` then `bun run ios:device` (compiles + installs, no Metro). The iPad dev client scans Windows Metro's QR. EAS is for distribution (`build:preview`, `build:prod`, `ota:*`).
@@ -201,6 +212,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 - **Security.** `contextIsolation`, `sandbox`, no `nodeIntegration`; the preload is CommonJS (sandbox requirement) and tiny; the CSP meta tag is strict in builds and relaxed in dev for Vite (`electron.vite.config.ts`); external links open in the OS browser and the window never navigates away.
 - **Single instance.** A second launch focuses the running window and forwards argv + cwd (the `launches` subscription).
 - **Ship.** `bun run release` → `release/win-unpacked/<name>.exe` (gitignored). No installer, no auto-update. `scripts/release.ts` passes the installed Electron version to electron-builder (it can't read `catalog:`). Electron versions newer than three days are blocked by the global bunfig `minimumReleaseAge`.
+- **One theme.** The window's `backgroundColor` is `colors.background` from `@app/tokens` (no `nativeTheme`), so it opens in the look's color with no flash; the renderer has no theme code.
 - **Desktop-only forks** have no web server, database, auth or `drydock.yaml`. If one needs data, it talks to its web app's tRPC, which owns Postgres.
 
 ## Common tasks
@@ -250,6 +262,10 @@ bunx --bun shadcn@latest add <name>
 ```
 
 It writes to `src/components/ui/`. `components.json` aliases already point at `~/components` and `~/lib/utils`.
+
+### Change the look
+
+Edit values in `packages/tokens/tokens.css` (the one `:root`), then `bun run tokens` (regenerates `colors.json`) and `bun run test`. Switching light ↔ dark means rewriting the palette and setting both `color-scheme` there and `project.json` `look.scheme`; the test fails if they differ. A new role: map it in `theme.css`, give it a value in `tokens.css`. Fonts: `@fontsource-variable/*` imported in `app.css`, then `--font-body` / `--font-heading` in `tokens.css` (the kickoff skill has the mobile half). Follow `ui.md`.
 
 ### Add an env var
 
@@ -306,7 +322,8 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 
 ## Don't
 
-- Don't add `tailwind.config.{js,ts}` — Tailwind v4 doesn't use it; tokens are in `app.css`.
+- Don't add dark mode in any form: a `.dark` block, `prefers-color-scheme`, a theme toggle, `useColorScheme`, `nativeTheme`, `dark:` classes (rule 10).
+- Don't add `tailwind.config.{js,ts}` — Tailwind v4 doesn't use it; tokens are in `packages/tokens`.
 - Don't import server modules (`./server/*`) from anything under `./src/` except as `import type`. That file ends up in the client bundle and will either break the build or leak secrets.
 - Don't add file-based routing back. The `RouteObject[]` in `src/app/routes.tsx` is the source of truth.
 - Don't reach for `@trpc/react-query` (the old package) — we use `@trpc/tanstack-react-query` (the new one with `queryOptions()` / `mutationOptions()`).

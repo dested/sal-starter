@@ -18,15 +18,15 @@
 
 ## What the forks say
 
-| Finding | Evidence |
-| --- | --- |
-| The starter landing is noise | `/` replaced in 13 of 16 forks, 9 of them within about 1.5 h of init. sal-app still ships the stack-cards page 33 h later. The Post demo is still there in 7, the starter nav in 7, the favicon in 10, the starter meta description in 3. 7 forks' e2e smoke still asserts the old landing, so it can't pass |
-| Distinctive looks came from a written direction, not from shadcn | 15 of 16 added fonts (3 different loading methods). The best ones (doki, nbajam, sim-80k, homebase, gamecreatorsclub, weneedacontractor, llm-game) each wrote a north star with failure modes first, used custom display + body fonts, dropped shadcn's neutral surfaces, and built their own component kit. 13 of 15 never touched the 4 shadcn primitives. The 3 that kept the starter's north star look like the starter |
-| The token setup fights a rebrand | 9 forks put their brand outside `tokens.css`, and 5 run two palettes side by side. The body font is hardcoded (no `--font-sans` slot). One new token takes 4 edits (`@theme`, `:root`, `.dark`, the native block). 3 forks hand-built a typed JS mirror of the tokens for SVG, Skia and navigator colours. 6 added success/warning tokens |
-| Dark mode is cost with no payoff | 7 kept the toggle only because they never touched the nav. 4 forced a single theme by hand (about 100 lines in 5 files; 2 left dead code). Every real dark-mode bug was on mobile: React Navigation's own `#F2F2F2` background (all 5 real mobile forks override it), and `SafeAreaView` dropping `className` (white-on-white on a device, sal-app 4ae56c5). 3 of 5 mobile forks forced one scheme |
-| EAS works, but the starter's lanes are broken | Every fork that used EAS (4 of 4) hit a local-vs-EAS fingerprint mismatch. homebase gave up and switched to `appVersion`. The `ota:*` scripts publish against the production config (`APP_VARIANT` lives only in the eas.json build env, which `eas update` doesn't read). A missing `EXPO_PUBLIC_API_URL` crash-looped two OTAs in sal-excersize, and expo-updates silently rolled them back. EAS uploads need a `.easignore` (homebase's first upload was 1.5 GB). `@types/bun: "latest"` broke EAS frozen installs. Proven anyway: mobile-game-2 has a production build in App Review with a production OTA landed; sal-excersize ran preview end to end |
-| Drydock deploys work | 10 of 15 workspace forks are live. The starter's "unverified" note is stale. The seed `drydock.yaml` lacks `workspace: "@app/web"`, and `bunx prisma migrate deploy` now pulls the **Prisma 8 RC** (npm `latest` points at it) |
-| Crow's Nest | in 0 of 16 forks |
+| Finding                                                          | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The starter landing is noise                                     | `/` replaced in 13 of 16 forks, 9 of them within about 1.5 h of init. sal-app still ships the stack-cards page 33 h later. The Post demo is still there in 7, the starter nav in 7, the favicon in 10, the starter meta description in 3. 7 forks' e2e smoke still asserts the old landing, so it can't pass                                                                                                                                                                                                                                                                                                                                                |
+| Distinctive looks came from a written direction, not from shadcn | 15 of 16 added fonts (3 different loading methods). The best ones (doki, nbajam, sim-80k, homebase, gamecreatorsclub, weneedacontractor, llm-game) each wrote a north star with failure modes first, used custom display + body fonts, dropped shadcn's neutral surfaces, and built their own component kit. 13 of 15 never touched the 4 shadcn primitives. The 3 that kept the starter's north star look like the starter                                                                                                                                                                                                                                 |
+| The token setup fights a rebrand                                 | 9 forks put their brand outside `tokens.css`, and 5 run two palettes side by side. The body font is hardcoded (no `--font-sans` slot). One new token takes 4 edits (`@theme`, `:root`, `.dark`, the native block). 3 forks hand-built a typed JS mirror of the tokens for SVG, Skia and navigator colours. 6 added success/warning tokens                                                                                                                                                                                                                                                                                                                   |
+| Dark mode is cost with no payoff                                 | 7 kept the toggle only because they never touched the nav. 4 forced a single theme by hand (about 100 lines in 5 files; 2 left dead code). Every real dark-mode bug was on mobile: React Navigation's own `#F2F2F2` background (all 5 real mobile forks override it), and `SafeAreaView` dropping `className` (white-on-white on a device, sal-app 4ae56c5). 3 of 5 mobile forks forced one scheme                                                                                                                                                                                                                                                          |
+| EAS works, but the starter's lanes are broken                    | Every fork that used EAS (4 of 4) hit a local-vs-EAS fingerprint mismatch. homebase gave up and switched to `appVersion`. The `ota:*` scripts publish against the production config (`APP_VARIANT` lives only in the eas.json build env, which `eas update` doesn't read). A missing `EXPO_PUBLIC_API_URL` crash-looped two OTAs in sal-excersize, and expo-updates silently rolled them back. EAS uploads need a `.easignore` (homebase's first upload was 1.5 GB). `@types/bun: "latest"` broke EAS frozen installs. Proven anyway: mobile-game-2 has a production build in App Review with a production OTA landed; sal-excersize ran preview end to end |
+| Drydock deploys work                                             | 10 of 15 workspace forks are live. The starter's "unverified" note is stale. The seed `drydock.yaml` lacks `workspace: "@app/web"`, and `bunx prisma migrate deploy` now pulls the **Prisma 8 RC** (npm `latest` points at it)                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Crow's Nest                                                      | in 0 of 16 forks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## The plan, by ask
 
@@ -185,18 +185,18 @@
 
 ### 8. Library changes
 
-| Change | Why |
-| --- | --- |
-| better-auth + @better-auth/expo 1.7.6 → 1.7.12 | security: critical magic-link takeover fixed in 1.7.7, reset and JWT hardening after it |
-| express 5.3.0, vite 6.4.5 (then 8), prisma 7.10.1, zod 4.6.7, TanStack Query 5.104.5 | security fixes and patch releases |
-| tailwind-merge 2 → 3.7 (or shadcn's `cn` package) | 2.x targets Tailwind v3 |
-| lucide-react 0.468 → 1.x | stale by about two years; v1 sets aria-hidden by default |
-| React Compiler on (mobile now, web with Vite 8) | Expo's own template enables it |
-| `react-router-dom` → `react-router` 8 | after React 19.3 |
-| Playwright 1.64, Prettier 3.9 + plugin 0.8 with `tailwindStylesheet` | class sorting currently ignores our tokens |
-| electron 44.9.3, electron-builder 26.18 | patch line (45 is 3 days old: wait) |
-| Mobile: Uniwind, plus the baseline list in §4 | §4 |
-| **Not added:** sonner, cmdk, radix-ui, motion on web | 1 of 15 forks each; the games hand-roll toasts and motion. The kickoff adds them when a look calls for them |
+| Change                                                                               | Why                                                                                                         |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| better-auth + @better-auth/expo 1.7.6 → 1.7.12                                       | security: critical magic-link takeover fixed in 1.7.7, reset and JWT hardening after it                     |
+| express 5.3.0, vite 6.4.5 (then 8), prisma 7.10.1, zod 4.6.7, TanStack Query 5.104.5 | security fixes and patch releases                                                                           |
+| tailwind-merge 2 → 3.7 (or shadcn's `cn` package)                                    | 2.x targets Tailwind v3                                                                                     |
+| lucide-react 0.468 → 1.x                                                             | stale by about two years; v1 sets aria-hidden by default                                                    |
+| React Compiler on (mobile now, web with Vite 8)                                      | Expo's own template enables it                                                                              |
+| `react-router-dom` → `react-router` 8                                                | after React 19.3                                                                                            |
+| Playwright 1.64, Prettier 3.9 + plugin 0.8 with `tailwindStylesheet`                 | class sorting currently ignores our tokens                                                                  |
+| electron 44.9.3, electron-builder 26.18                                              | patch line (45 is 3 days old: wait)                                                                         |
+| Mobile: Uniwind, plus the baseline list in §4                                        | §4                                                                                                          |
+| **Not added:** sonner, cmdk, radix-ui, motion on web                                 | 1 of 15 forks each; the games hand-roll toasts and motion. The kickoff adds them when a look calls for them |
 
 ### 9. Bugs and fixes from the forks (no decisions needed)
 
@@ -216,6 +216,7 @@
 ### 10. Server slots that forks keep rebuilding (decision Q4)
 
 Each one is the same code written again by several forks:
+
 - **Sign-in `?next=` return plus a loader helper** (`loaderClients(context)`, `requireSession`): 6 and 5 forks.
 - **Sign-up allowlist** (`SIGNUP_ALLOWLIST`, blank means open) **plus `ADMIN_EMAILS` and `adminProcedure`**: 5 and 4 forks.
 - **An optional-secret env helper**, so a deploy never fails before a key is set: 5 forks.
@@ -230,14 +231,14 @@ Each one is the same code written again by several forks:
 
 ## Open decisions
 
-| # | Question | My pick |
-| --- | --- | --- |
-| Q1 | Mobile styling engine for SDK 58 | **Decided:** Uniwind, after a spike |
-| Q2 | How hard the starter forces the kickoff | **Decided:** ribbon, plus `bun run test` failing until `look` is set. The kickoff shows 3 directions and Sal picks one (mock-first only for big products) |
-| Q3 | OTA apply policy | **Decided:** keep the instant reload, on launch and on resume (my pick was splash-only) |
-| Q4 | Which server slots ship by default | ?next/loader helpers, the allowlist + admin, and the optional env helper as defaults; AI, WebSocket and jobs as `add:*` recipes |
-| Q5 | Expo web preview for bx (3 of 5 mobile forks added it to check screens without a device) | Not in the baseline: Limrun is the source of truth. The kickoff can add it per project |
-| Q6 | EAS Workflows: push to main publishes a preview OTA | Off by default (builds are billed; Drydock already deploys web on push) |
+| #   | Question                                                                                 | My pick                                                                                                                                                   |
+| --- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | Mobile styling engine for SDK 58                                                         | **Decided:** Uniwind, after a spike                                                                                                                       |
+| Q2  | How hard the starter forces the kickoff                                                  | **Decided:** ribbon, plus `bun run test` failing until `look` is set. The kickoff shows 3 directions and Sal picks one (mock-first only for big products) |
+| Q3  | OTA apply policy                                                                         | **Decided:** keep the instant reload, on launch and on resume (my pick was splash-only)                                                                   |
+| Q4  | Which server slots ship by default                                                       | ?next/loader helpers, the allowlist + admin, and the optional env helper as defaults; AI, WebSocket and jobs as `add:*` recipes                           |
+| Q5  | Expo web preview for bx (3 of 5 mobile forks added it to check screens without a device) | Not in the baseline: Limrun is the source of truth. The kickoff can add it per project                                                                    |
+| Q6  | EAS Workflows: push to main publishes a preview OTA                                      | Off by default (builds are billed; Drydock already deploys web on push)                                                                                   |
 
 ## Execution order
 
@@ -247,9 +248,10 @@ Each one is the same code written again by several forks:
    - the Drydock seed and the tailwind-merge 3 bump;
    - the `ota:*` variant fix, `.easignore`, the `@types/bun` pin, `apiUrl` and the bun pin;
    - Crow's Nest, the repo `bunfig.toml` release age, the e2e port, and the doc fixes.
-2. **B, single theme plus kickoff:** remove dark mode, reshape the tokens (slots, typed export, one `:root`), the kickoff skill and forcing function, `init` changes (placeholder `/`, demo strip, history truncation, EAS init), and the `ui.md` template.
-3. **C, Expo 58:** the styling spike (Q1), SDK 58, the mobile baseline and scaffold, the EAS promote lane, and the fingerprint **verify** (one EAS build).
+2. **B, single theme plus kickoff:** remove dark mode, reshape the tokens (slots, typed export, one `:root`), the kickoff skill and forcing function, `init` changes (placeholder `/`, fresh `updates.md`), and the `ui.md` template.
+   - Moved out of B while building it: stripping the Post demo is a kickoff step, not `init` (the first real feature replaces it, with its own drop migration and e2e update); `init` keeps `decisions.md` (its entries bind forks; it merges with `merge=union`); EAS project creation in `init --mobile` goes to C (it creates real EAS projects); `init --no-auth` goes to E with the other auth work. `tokens.css` split into `theme.css` (mapping, merges) and `tokens.css` (values, `merge=ours`) instead of putting `merge=ours` on `app.css`.
+3. **C, Expo 58:** the styling spike (Q1), SDK 58, the mobile baseline and scaffold, `init --mobile` creating the EAS project, the EAS promote lane, and the fingerprint **verify** (one EAS build).
 4. **D:** React 19.3 → React Router 8; Vite 8, plugin-react 6 and electron-vite 6; Tailwind 4.3; React Compiler on web.
-5. **E:** the server slots from Q4.
+5. **E:** the server slots from Q4, plus SIGNUP_ALLOWLIST, ADMIN_EMAILS + `adminProcedure`, the sign-in `?next=` return and `init --no-auth`.
 
 Every phase runs typecheck, test and build, plus an init → typecheck → build pass in a scratch clone. e2e needs your local Postgres credentials (**ask**). The first EAS build and the Limrun run need a go-ahead (billed).

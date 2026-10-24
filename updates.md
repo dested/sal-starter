@@ -2,6 +2,12 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-24 — overhaul phase B: one theme, generated token hex, kickoff
+
+Ask: no dark mode ever, no more neutral shadcn / stack-showcase home, force a look per fork (plans/2026-10-24-starter-overhaul.md, phase B).
+Done: dark mode removed on web (pre-paint script, theme.ts, ThemeToggle), mobile (useColorScheme, dark splash; `userInterfaceStyle` from `look.scheme`) and desktop (followSystemTheme, nativeTheme); `@app/tokens` split into `theme.css` (mapping, `dark:` never matches, `shadow-card`) + `tokens.css` (one `:root`, success/warning/font/card-shadow slots), `bun run tokens` → `colors.json` (oklch→hex) exported as `colors`; web themeMeta plugin (color-scheme + theme-color); `project.json` `look` (legacy forks get a placeholder); placeholder `/`; dev ribbon (web + mobile) + banner line + failing test while `look` is null; `.claude/skills/kickoff`; ui.md fill-in template; init writes a fresh updates.md and prints the kickoff step; merge=ours for tokens.css/colors.json/ui.md/updates.md, union for decisions.md; global CLAUDE.md rule (sals-powershell-setup 7fdb040). Repo re-formatted (prettier tailwind class order from phase A). Verified: typecheck, unit tests, web + desktop build, dev `expo export` (ribbon + native shadow-card compile), doctor 21/21, dev server banner + meta, bx screenshots of `/` and `/sign-up`. NOT verified: e2e (no E2E_DATABASE_URL yet), a device run.
+Touched: packages/tokens/*, project.json, scripts/{project,init,sync}.ts, package.json, .gitattributes, .claude/skills/kickoff/SKILL.md, apps/web/{vite.config.ts,index.html,server/logger.ts,src/{index.tsx,app/{home,layout}.tsx,components/{kickoff-ribbon.tsx,ui/card.tsx},styles/app.css}}, apps/mobile/{app.config.ts,global.css,src/{app/_layout.tsx,lib/app-config.ts,components/{kickoff-ribbon.tsx,ui/{card,input}.tsx}}}, apps/desktop/src/{main/index.ts,renderer/{index.html,src/{main.tsx,styles/app.css,components/ui/card.tsx}}}, ui.md, CLAUDE.md, cliffnotes.md, README.md, verify.md, decisions.md, plan
+
 ## 2026-10-24 — overhaul phase A: bumps, fork-proven fixes, EAS lanes, Crow's Nest
 
 Ask: audit the forks + versions and make the starter rock solid (plans/2026-10-24-starter-overhaul.md, phase A).

@@ -31,7 +31,7 @@ export function RouteErrorBoundary() {
         <h1 className="text-5xl font-bold tracking-tight">{title}</h1>
         <p className="text-muted-foreground">{message}</p>
         {import.meta.env.DEV && error instanceof Error && error.stack && (
-          <pre className="bg-muted text-muted-foreground max-w-full overflow-auto rounded-md p-4 text-xs">
+          <pre className="max-w-full overflow-auto rounded-md bg-muted p-4 text-xs text-muted-foreground">
             {error.stack}
           </pre>
         )}

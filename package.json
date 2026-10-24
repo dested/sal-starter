@@ -63,6 +63,7 @@
     "db:migrate:sql": "bun run --cwd apps/web db:migrate:sql",
     "db:deploy": "bun run --cwd apps/web db:deploy",
     "db:studio": "bun run --cwd apps/web db:studio",
+    "tokens": "bun run --cwd packages/tokens emit",
     "prettier": "prettier ."
   },
   "devDependencies": {

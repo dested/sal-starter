@@ -10,5 +10,6 @@
   "desktopPort": 4782,
   "db": "sal_starter",
   "easProjectId": null,
-  "appleTeamId": null
+  "appleTeamId": null,
+  "look": null
 }

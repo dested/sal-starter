@@ -13,7 +13,8 @@ An SSR React starter template, now a Bun workspace with an optional Expo iOS app
 
 - **Ports:** API **4780** (web + `/api/*`), Metro **4781** (mobile only), desktop renderer **4782** (desktop dev only), Playwright e2e **4783** (apiPort + 3). All come from `project.json` (`apiPort`, `metroPort`, `desktopPort`); `init` picks a per-name base. Never 3000/3001/5173/5174/8000/8080/4200/5000
 - **Dev:** `bun run dev` (root) → web on http://localhost:4780 (HMR shares the port) + Metro on 4781 if `apps/mobile` exists + the Electron window (renderer on 4782) if `apps/desktop` exists. `bun run dev web|mobile|desktop` for one
-- **New project:** `git clone … <name> && git remote rename origin upstream && bun install && bun run init <name> [--mobile] [--desktop | --desktop-only]` then (web) `createdb <name>` → `bun run db:migrate` → `bun run dev`
+- **New project:** `git clone … <name> && git remote rename origin upstream && bun install && bun run init <name> [--mobile] [--desktop | --desktop-only]` then (web) `createdb <name>` → `bun run db:migrate` → `bun run dev`, then **the kickoff** (`.claude/skills/kickoff`, `/kickoff`) before any feature: until `project.json` `look` is set, dev shows a "Kickoff pending" ribbon and `bun run test` fails
+- **Look:** ONE theme, no dark mode, no toggle. Values in `packages/tokens/tokens.css` → `bun run tokens` (regenerates `colors.json`) → `bun run test`
 - **Template updates:** `bun run sync` (merge `upstream/main`, never commits) · `bun run add:mobile` / `add:desktop` (bring a dropped app back)
 - **Desktop release:** `bun run release` → `release/win-unpacked/<name>.exe` (unpacked, no installer)
 - **Entry point:** `apps/web/server.ts` (Express; same file dev + prod) → SSR via `src/entry-server.tsx`; client hydrates via `src/index.tsx`. Mobile: `apps/mobile/src/app/_layout.tsx`
@@ -66,7 +67,9 @@ scripts/
 └── shell.ts             git/run/fail helpers
 apps/mobile/             @app/mobile (optional; see Mobile below)
 apps/desktop/            @app/desktop (optional; see Desktop below)
-packages/tokens/         @app/tokens: tokens.css (oklch, light/.dark/native dark) + tokens.test.ts, used by every app
+packages/tokens/         @app/tokens, used by every app: theme.css (Tailwind mapping, merges on sync), tokens.css (the look:
+                         one :root, fork-owned), colors.json (generated hex) + index.ts (`colors`), css.ts/emit.ts, tokens.test.ts
+.claude/skills/kickoff/  the kickoff skill (look → tokens, fonts, primitives, `/`, icon, ui.md, project.json look)
 packages/trpc-ipc/       @app/trpc-ipc: tRPC v11 over Electron IPC (main / preload / renderer entries + tests)
 packages/native-example/ @app/native-example: Swift module + typed config plugin (plugin/build committed)
 
@@ -95,20 +98,20 @@ src/
 │   ├── sign-up.tsx      /sign-up
 │   └── dashboard.tsx    /dashboard (protected; posts list + create form)
 ├── components/
-│   ├── theme-toggle.tsx light/dark toggle (nav); icons swapped via `dark:` so SSR markup matches
+│   ├── kickoff-ribbon.tsx dev-only "Kickoff pending" bar while project.json look is null
 │   └── ui/              shadcn primitives (button, card, input, label)
 ├── lib/
 │   ├── auth-client.ts   better-auth React client
 │   ├── crowsnest.ts     cnEvent(name, props): typed Crow's Nest custom events (no-op on the server)
-│   ├── theme.ts         theme state — applyTheme/setTheme/toggleTheme/followSystemTheme (mirrors index.html script)
 │   ├── trpc.tsx         TRPCProvider + useTRPC + getBrowserClients() (lazy browser QueryClient/tRPC singletons)
 │   ├── ssr-state.ts     superjson (de)serialize of the dehydrated cache (+ ssr-state.test.ts)
 │   └── utils.ts         cn()
 └── styles/
-    └── app.css          Tailwind v4 import + @app/tokens/tokens.css + custom variant/base layer
+    └── app.css          Tailwind v4 + @app/tokens theme.css/tokens.css + font mapping + base layer
 public/                  favicon.svg, robots.txt (served by vite dev / express static prod)
 e2e/                     smoke.spec.ts, global-setup.ts (db:deploy + truncate), db.ts (port + test DB URL from project.json), __screenshots__/
-index.html               SSR template — Crow's Nest tag, stylesheet <link>, pre-paint theme script, <!--app-html--> + <!--app-state-->
+index.html               SSR template — Crow's Nest tag, stylesheet <link>, <!--app-html--> + <!--app-state--> (meta description: the kickoff's)
+vite.config.ts           `~` alias, tailwind, react, themeMeta (color-scheme + theme-color from project.json look / colors.json)
 prisma/schema.prisma     User / Session / Account / Verification + Post
 prisma/migrations/       committed migrations (init + everything after); raw SQL lives here
 prisma.config.ts         Prisma 7 CLI config; loads the root .env itself (Bun/Prisma don't)
@@ -120,7 +123,7 @@ apps/mobile/
 ├── eas.json             development / preview / production profiles, channels of the same names (bun 1.4.3 = local, node 22.22.2)
 ├── fingerprint.config.js keeps the runtime fingerprint identical locally and on EAS (ignores plugin JS, Gradle output, .bun-tag-*)
 ├── metro.config.js      withNativewind(getDefaultConfig(__dirname)), nothing else
-├── global.css           tailwind layers + nativewind/theme + @app/tokens/tokens.css
+├── global.css           tailwind layers + nativewind/theme + @app/tokens theme.css/tokens.css
 ├── modules/app-native/  local Expo module (Swift nativeHello)
 └── src/
     ├── app/             Expo Router: _layout (providers, splash, Stack.Protected), (auth)/, (app)/ — one-line re-exports
@@ -139,55 +142,57 @@ apps/desktop/
     ├── main/            index.ts (lifecycle, pinned paths, single instance, window, IPC handler), router.ts (+ test),
     │                    launches.ts (second-instance argv hub), window-state.ts (bounds), env.d.ts
     ├── preload/         index.ts: exposeTrpcIpc() only (built as CJS for the sandbox)
-    └── renderer/        index.html (CSP meta, stylesheet link), src/{main.tsx, App.tsx (demo), lib/{trpc,theme,utils}.ts,
+    └── renderer/        index.html (CSP meta, stylesheet link), src/{main.tsx, App.tsx (demo), lib/{trpc,utils}.ts,
                          components/ui/ (button, card, input, label mirrored from web), styles/app.css}
 ```
 
 ## File map (concept → path)
 
-| Concept / task                    | Location                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------------------- |
-| App providers                     | `src/App.tsx`                                                                            |
-| Routing + loaders                 | `src/app/routes.tsx`                                                                     |
-| New page component                | `src/app/<name>.tsx`                                                                     |
-| 404 / error UI                    | `src/app/error-boundary.tsx`                                                             |
-| tRPC procedures                   | `server/router.ts`                                                                       |
-| tRPC context / procedure builders | `server/trpc.ts`                                                                         |
-| DB schema                         | `prisma/schema.prisma`                                                                   |
-| Migrations / raw SQL              | `prisma/migrations/` (see CLAUDE.md "Raw SQL in a migration")                            |
-| SSR state (superjson)             | `src/lib/ssr-state.ts`                                                                   |
-| Auth config                       | `server/auth.ts` (server) · `src/lib/auth-client.ts` (client)                            |
-| HTTP mounts / SSR / 404 logic     | `server.ts`                                                                              |
-| Logging                           | `server/logger.ts`                                                                       |
-| Env vars / dev port               | `server/env.ts` + `.env.example` (root) + `project.json`                                 |
-| Project identity / ports          | `project.json` (read by `scripts/project.ts`, `app.config.ts`)                           |
-| Design tokens (all apps)          | `packages/tokens/tokens.css` (see `ui.md`)                                               |
-| Desktop main / router             | `apps/desktop/src/main/{index,router}.ts`                                                |
-| tRPC over IPC                     | `packages/trpc-ipc/src/{main,preload,renderer,protocol}.ts`                              |
-| Mobile screens / routes           | `apps/mobile/src/screens/` · `apps/mobile/src/app/`                                      |
-| Mobile API base URL               | `apps/mobile/src/lib/api-url.ts`                                                         |
-| Mobile native config              | `apps/mobile/app.config.ts` · config plugins                                             |
-| Swift code                        | `apps/mobile/modules/<name>/` · `packages/<name>/ios/`                                   |
-| Template sync / init              | `scripts/{init,sync,add-surface,project}.ts`                                             |
-| Deploy                            | `drydock.yaml`                                                                           |
-| Theme (dark mode)                 | `index.html` (pre-paint script) · `src/lib/theme.ts` · `src/components/theme-toggle.tsx` |
-| Browser query/tRPC singletons     | `src/lib/trpc.tsx` (`getBrowserClients()`)                                               |
-| E2E tests                         | `e2e/*.spec.ts`                                                                          |
+| Concept / task                    | Location                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| App providers                     | `src/App.tsx`                                                                                   |
+| Routing + loaders                 | `src/app/routes.tsx`                                                                            |
+| New page component                | `src/app/<name>.tsx`                                                                            |
+| 404 / error UI                    | `src/app/error-boundary.tsx`                                                                    |
+| tRPC procedures                   | `server/router.ts`                                                                              |
+| tRPC context / procedure builders | `server/trpc.ts`                                                                                |
+| DB schema                         | `prisma/schema.prisma`                                                                          |
+| Migrations / raw SQL              | `prisma/migrations/` (see CLAUDE.md "Raw SQL in a migration")                                   |
+| SSR state (superjson)             | `src/lib/ssr-state.ts`                                                                          |
+| Auth config                       | `server/auth.ts` (server) · `src/lib/auth-client.ts` (client)                                   |
+| HTTP mounts / SSR / 404 logic     | `server.ts`                                                                                     |
+| Logging                           | `server/logger.ts`                                                                              |
+| Env vars / dev port               | `server/env.ts` + `.env.example` (root) + `project.json`                                        |
+| Project identity / ports          | `project.json` (read by `scripts/project.ts`, `app.config.ts`)                                  |
+| Design tokens / the look          | `packages/tokens/tokens.css` (values) · `theme.css` (mapping) · `ui.md`                         |
+| Token hex in code                 | `import { colors } from '@app/tokens'` (generated `colors.json`)                                |
+| Desktop main / router             | `apps/desktop/src/main/{index,router}.ts`                                                       |
+| tRPC over IPC                     | `packages/trpc-ipc/src/{main,preload,renderer,protocol}.ts`                                     |
+| Mobile screens / routes           | `apps/mobile/src/screens/` · `apps/mobile/src/app/`                                             |
+| Mobile API base URL               | `apps/mobile/src/lib/api-url.ts`                                                                |
+| Mobile native config              | `apps/mobile/app.config.ts` · config plugins                                                    |
+| Swift code                        | `apps/mobile/modules/<name>/` · `packages/<name>/ios/`                                          |
+| Template sync / init              | `scripts/{init,sync,add-surface,project}.ts`                                                    |
+| Deploy                            | `drydock.yaml`                                                                                  |
+| Browser chrome color              | `vite.config.ts` (themeMeta: color-scheme + theme-color)                                        |
+| Kickoff                           | `.claude/skills/kickoff/SKILL.md` · `project.json` `look` · `src/components/kickoff-ribbon.tsx` |
+| Browser query/tRPC singletons     | `src/lib/trpc.tsx` (`getBrowserClients()`)                                                      |
+| E2E tests                         | `e2e/*.spec.ts`                                                                                 |
 
 ## Routes / URLs
 
 Routes are explicit in `src/app/routes.tsx` (no file-based routing). All page routes nest under the root `Layout`.
 
-| Route         | Serves                | File                             | Loader                                   |
-| ------------- | --------------------- | -------------------------------- | ---------------------------------------- |
-| `/`           | Landing               | `src/app/home.tsx`               | `rootLoader` (session)                   |
-| `/sign-in`    | Sign in               | `src/app/sign-in.tsx`            | `redirectIfSignedIn`                     |
-| `/sign-up`    | Sign up               | `src/app/sign-up.tsx`            | `redirectIfSignedIn`                     |
-| `/dashboard`  | Protected app         | `src/app/dashboard.tsx`          | `dashboardLoader` (redirects + prefetch) |
-| `/healthz`    | DB health JSON        | `server.ts`                      | —                                        |
-| `/api/auth/*` | better-auth           | `server.ts` (`toNodeHandler`)    | —                                        |
-| `/api/trpc/*` | tRPC                  | `server.ts` → `server/router.ts` | —                                        |
-| unmatched GET | 404 page (status 404) | `error-boundary.tsx`             | —                                        |
+| Route         | Serves                        | File                             | Loader                                   |
+| ------------- | ----------------------------- | -------------------------------- | ---------------------------------------- |
+| `/`           | Placeholder until the kickoff | `src/app/home.tsx`               | `rootLoader` (session)                   |
+| `/sign-in`    | Sign in                       | `src/app/sign-in.tsx`            | `redirectIfSignedIn`                     |
+| `/sign-up`    | Sign up                       | `src/app/sign-up.tsx`            | `redirectIfSignedIn`                     |
+| `/dashboard`  | Protected app                 | `src/app/dashboard.tsx`          | `dashboardLoader` (redirects + prefetch) |
+| `/healthz`    | DB health JSON                | `server.ts`                      | —                                        |
+| `/api/auth/*` | better-auth                   | `server.ts` (`toNodeHandler`)    | —                                        |
+| `/api/trpc/*` | tRPC                          | `server.ts` → `server/router.ts` | —                                        |
+| unmatched GET | 404 page (status 404)         | `error-boundary.tsx`             | —                                        |
 
 Mobile routes (Expo Router, file-based; each file re-exports a screen):
 
@@ -201,7 +206,7 @@ Mobile routes (Expo Router, file-based; each file re-exports a screen):
 
 ## Architecture
 
-Browser ↔ Express 5 (`server.ts`) ↔ Postgres. One Express server runs in dev (Vite middleware + `ssrLoadModule`) and prod (static `dist/client` + built `dist/server/entry-server.js`), gated on `NODE_ENV`. SSR: `render(req)` builds a Fetch Request, runs `createStaticHandler(routes).query()` to execute loaders (session + tRPC prefetch happen here), `renderToString`s with `<StaticRouterProvider>`, and dehydrates the QueryClient into `window.__SSR_STATE__` through superjson (`src/lib/ssr-state.ts`). The client deserializes and rehydrates that cache (Dates stay Dates), so `useQuery` has data on first paint. The SSR-side tRPC options proxy calls procedures **directly** (no HTTP). Client-side navigations prefetch the same way through `getBrowserClients()` in the loader's browser branch, so there is no "Loading…" flash either way. The stylesheet is a `<link>` in `index.html` (render-blocking in dev, hashed in prod) and the theme class is applied by an inline `<head>` script before first paint — no unstyled or wrong-theme flash. In dev, Vite's HMR websocket shares the Express `http.Server` (one port).
+Browser ↔ Express 5 (`server.ts`) ↔ Postgres. One Express server runs in dev (Vite middleware + `ssrLoadModule`) and prod (static `dist/client` + built `dist/server/entry-server.js`), gated on `NODE_ENV`. SSR: `render(req)` builds a Fetch Request, runs `createStaticHandler(routes).query()` to execute loaders (session + tRPC prefetch happen here), `renderToString`s with `<StaticRouterProvider>`, and dehydrates the QueryClient into `window.__SSR_STATE__` through superjson (`src/lib/ssr-state.ts`). The client deserializes and rehydrates that cache (Dates stay Dates), so `useQuery` has data on first paint. The SSR-side tRPC options proxy calls procedures **directly** (no HTTP). Client-side navigations prefetch the same way through `getBrowserClients()` in the loader's browser branch, so there is no "Loading…" flash either way. The stylesheet is a `<link>` in `index.html` (render-blocking in dev, hashed in prod), so there's no unstyled flash; there is one theme, so no theme script. In dev, Vite's HMR websocket shares the Express `http.Server` (one port).
 
 ## Data model
 
@@ -217,13 +222,13 @@ Email + password, `autoSignIn` on sign-up. Client (`auth-client.ts`) → `/api/a
 
 `publicProcedure` / `protectedProcedure` (401 without session). Context attaches the session from request headers. superjson transformer on the server and on every link (browser + SSR loopback). **Lives in:** `server/trpc.ts`, `server/router.ts`, `src/lib/trpc.tsx`.
 
-### Theme (dark mode)
+### Look (one theme) and the kickoff
 
-`.dark` on `<html>` switches the oklch tokens; `color-scheme` follows so form controls/scrollbars match. Resolution order: `localStorage.theme` (`'light'|'dark'`) → `prefers-color-scheme`. The inline script in `index.html` applies it before first paint; `src/lib/theme.ts` handles toggles (`toggleTheme`) and OS changes while no explicit choice is stored (`followSystemTheme`, called once in `index.tsx`). `ThemeToggle` (nav) renders both icons and hides one with `dark:` so server and client markup are identical. **Lives in:** `index.html`, `src/lib/theme.ts`, `src/components/theme-toggle.tsx`, `src/styles/app.css`.
+There is one theme per project and no dark mode anywhere. `packages/tokens/tokens.css` holds the values (one `:root`, `color-scheme` = `project.json` `look.scheme`); `theme.css` maps them to Tailwind and redefines `dark:` to never match. `bun run tokens` turns the roles into hex in `colors.json`, which `@app/tokens` exports as `colors` for the places classes can't reach: `<meta name="theme-color">` (web `vite.config.ts` themeMeta, which also sets `color-scheme`), the native splash, root view and status bar (`app.config.ts`, `_layout.tsx`), input placeholders, and the Electron window background. `tokens.test.ts` keeps `colors.json` current, checks every mapped role has a value and the scheme matches, and (outside the template) fails while `look` is null. That, the dev ribbon (`kickoff-ribbon.tsx` on web and mobile) and the dev banner line push every fork through the kickoff skill, which replaces the neutral placeholder with a real direction. On `bun run sync`, `tokens.css`, `colors.json` and `ui.md` keep the fork's copy (merge=ours). **Lives in:** `packages/tokens/`, `.claude/skills/kickoff/`, `vite.config.ts`, `src/styles/app.css`.
 
 ### Mobile
 
-Expo dev-client app (never Expo Go). Talks to the web server's `/api/trpc` + `/api/auth/*`; base URL from `EXPO_PUBLIC_API_URL`, else the dev LAN host (Metro `hostUri`) + `apiPort`, else the deployed `https://<name>.dested.com`. Auth: better-auth `expoClient` + SecureStore; the tRPC link sends the cookie as a header. Server trusts the app schemes via `expo()` plugin + `trustedOrigins`. Variants (`APP_VARIANT`) coexist on one device; at runtime the variant/scheme come from the native bundle id, so an update bundle is variant-agnostic and `ota:promote` (republish preview → production) ships the tested artifact. Native dark mode via the `@media native` block in tokens.css. Native changes need a new dev-client build on the Mac (compare `bun run fingerprint` with the Home screen's fingerprint row). EAS Update: `runtimeVersion` is the fingerprint, `updates.url` comes from `project.json` `easProjectId` (none → expo-updates off), each build profile has its own channel, and `src/lib/ota.ts` (mounted in the root layout) checks on launch and every foreground, fetches and `reloadAsync`s; off in `__DEV__`. `.gitattributes` forces LF and `fingerprint.config.js` drops machine-dependent sources so a local `eas update` fingerprints the same as the EAS build; the `ota:*` scripts set `APP_VARIANT` themselves (`eas update` ignores eas.json build env). **Lives in:** `apps/mobile/`, `packages/native-example/`, `apps/web/server/auth.ts`.
+Expo dev-client app (never Expo Go). Talks to the web server's `/api/trpc` + `/api/auth/*`; base URL from `EXPO_PUBLIC_API_URL`, else the dev LAN host (Metro `hostUri`) + `apiPort`, else the deployed `https://<name>.dested.com`. Auth: better-auth `expoClient` + SecureStore; the tRPC link sends the cookie as a header. Server trusts the app schemes via `expo()` plugin + `trustedOrigins`. Variants (`APP_VARIANT`) coexist on one device; at runtime the variant/scheme come from the native bundle id, so an update bundle is variant-agnostic and `ota:promote` (republish preview → production) ships the tested artifact. One scheme: `userInterfaceStyle` from `look.scheme`, splash/root/stack background from `colors.json`. Native changes need a new dev-client build on the Mac (compare `bun run fingerprint` with the Home screen's fingerprint row). EAS Update: `runtimeVersion` is the fingerprint, `updates.url` comes from `project.json` `easProjectId` (none → expo-updates off), each build profile has its own channel, and `src/lib/ota.ts` (mounted in the root layout) checks on launch and every foreground, fetches and `reloadAsync`s; off in `__DEV__`. `.gitattributes` forces LF and `fingerprint.config.js` drops machine-dependent sources so a local `eas update` fingerprints the same as the EAS build; the `ota:*` scripts set `APP_VARIANT` themselves (`eas update` ignores eas.json build env). **Lives in:** `apps/mobile/`, `packages/native-example/`, `apps/web/server/auth.ts`.
 
 ### Desktop
 
@@ -270,11 +275,12 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 - **Port** — `PORT` env (default `project.json` apiPort, 4780); Metro = apiPort + 1, desktop renderer + 2, e2e + 3; never 3000/3001/5173/5174/8000/8080/4200/5000.
 - **Types** — `strict` + `noUncheckedIndexedAccess`; no `any`, no `as` casts to paper over mismatches, narrow instead (see `isSsrContext` in `routes.tsx`).
 - **Stylesheet is a `<link>` in `index.html`** — never `import` CSS from a component (Vite injects it after the module graph loads → unstyled flash in dev). `@import` new CSS from `app.css`.
-- **Theme script and `theme.ts` must stay in sync**; never branch on theme in render (use `dark:` classes) or hydration mismatches.
+- **One theme, never dark mode** — no `.dark`, `prefers-color-scheme`, toggle, `useColorScheme` or `nativeTheme` anywhere; `dark:` classes compile to nothing. After any `tokens.css` edit run `bun run tokens` or `tokens.test.ts` fails.
+- **`vite.config.ts` imports `@app/tokens/colors.json` with `with { type: 'json' }`** — Node loads the config's workspace imports unbundled; importing `@app/tokens` (index.ts) there fails with ERR_IMPORT_ATTRIBUTE_MISSING.
 - **New data routes prefetch in both loader branches** — SSR via `ctx.trpc`, client via `getBrowserClients()` — or the page flickers on client nav.
 - **HMR has no fixed port** — it shares the Express server; giving it one collides with other clones running locally.
 - **shadcn has no `asChild`** (no `@radix-ui/react-slot`) — style a `Link` with `buttonVariants()`.
-- **No `tailwind.config`** — Tailwind v4, tokens in `tokens.css`. Tailwind pinned 4.1.12 + lightningcss 1.30.1 for NativeWind 5 rc.
+- **No `tailwind.config`** — Tailwind v4, tokens in `packages/tokens`. Tailwind pinned 4.1.12 + lightningcss 1.30.1 for NativeWind 5 rc.
 - **EAS runs from `apps/mobile` only.** At the root it creates a stray EAS project + root `app.json`/`eas.json`. `EAS_NO_VCS=1` uploads only the cwd: add `EAS_PROJECT_ROOT=../..` or Metro dies with ENOENT on workspace paths.
 - Use `log.*` from `server/logger.ts`, not raw `console.log`, in server code.
 - **Desktop IPC has no superjson** — never add a transformer other than `ipcTransformer` to the desktop router or `ipcLink`. Every procedure output must survive structured clone (no functions, no class instances you need back).
@@ -286,7 +292,7 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 
 ## Status
 
-- **Done** — SSR + hydration (server and client-nav prefetch), auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, flash-free dark mode + toggle, scroll restoration, immutable asset caching, init script (rename + per-project port), Playwright e2e + screenshot baselines. Monorepo (`apps/web`, optional `apps/mobile`, optional `apps/desktop`), `project.json` identity + `surfaces`, `init --mobile|--desktop|--desktop-only` / `sync` / `add:mobile|add:desktop`, `@app/tokens`, Electron desktop surface with tRPC over IPC (`@app/trpc-ipc`) and unpacked releases, Drydock seed, Expo SDK 57 mobile app with auth + posts + two native example modules. Express 5 + Prisma 7. superjson (wire + SSR state), zod 4, `noUncheckedIndexedAccess`, `prisma migrate` workflow, `bun:test` unit tests.
+- **Done** — SSR + hydration (server and client-nav prefetch), auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, one-theme tokens + generated `colors` + kickoff skill/ribbon/test, scroll restoration, immutable asset caching, init script (rename + per-project port), Playwright e2e + screenshot baselines. Monorepo (`apps/web`, optional `apps/mobile`, optional `apps/desktop`), `project.json` identity + `surfaces`, `init --mobile|--desktop|--desktop-only` / `sync` / `add:mobile|add:desktop`, `@app/tokens`, Electron desktop surface with tRPC over IPC (`@app/trpc-ipc`) and unpacked releases, Drydock seed, Expo SDK 57 mobile app with auth + posts + two native example modules. Express 5 + Prisma 7. superjson (wire + SSR state), zod 4, `noUncheckedIndexedAccess`, `prisma migrate` workflow, `bun:test` unit tests.
 - **Not built** — email verification, OAuth providers, rate limiting, CI, per-route head/meta, Android.
 - **Unverified** — first dev-client build with `enableSceneSupport` and `expo-application`, `ota:promote` end to end, fingerprint parity on a real EAS build since the bun pin moved to 1.4.3. Drydock deploys of the workspace shape are proven by 10 forks.
 - **Next:** whatever the cloned product needs — this is a base.

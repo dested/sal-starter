@@ -36,6 +36,8 @@ bun run db:migrate                  # apply prisma/migrations
 bun run dev                         # → http://localhost:<the port init printed>
 ```
 
+Then run the **kickoff** before building anything: `/kickoff` in Claude Code (`.claude/skills/kickoff`). It settles the product's look with you (three directions or "wing it", one light or dark scheme, never a toggle) and builds it into the tokens, fonts, components, the real home page, icon and splash. Until it runs, `project.json` `look` is `null`: dev shows a "Kickoff pending" ribbon and `bun run test` fails.
+
 `init` renames everything, writes `project.json` (the project's identity: name, scheme, bundle id, surfaces, ports, db), picks per-project ports and writes a fresh `.env` (web only). Surfaces you didn't ask for are deleted in their own commit ("init: web-only", "init: desktop-only", …); `bun run add:mobile` / `add:desktop` bring one back any time. `--port <n>` picks the API port yourself (Metro gets n + 1, the desktop renderer n + 2). `--fresh-git` wipes history instead, which also cuts you off from `sync`.
 
 **Ports:** every project gets its own distinct, uncommon pair and records it in `cliffnotes.md`. Never 3000/3001/5173/5174/8000/8080/4200/5000. The template uses 4780 (API) and 4781 (Metro).
@@ -108,7 +110,7 @@ packages/native-example/ shared Expo module + config plugin (the template's nati
 
 **Migrations.** Schema changes are committed `prisma migrate` migrations, never `db push`. Postgres features Prisma can't model are hand-written SQL in a migration. See `CLAUDE.md` → "Raw SQL in a migration".
 
-**Styling.** One set of oklch tokens in `packages/tokens/tokens.css` (`@app/tokens`). Web and desktop import it from `app.css`; mobile imports it through NativeWind, which compiles the colors for native and follows the OS dark mode.
+**Styling.** One theme, no dark mode: oklch tokens in `packages/tokens/tokens.css` (`@app/tokens`), mapped to Tailwind by `theme.css`. Web and desktop import both from `app.css`; mobile imports them through NativeWind, which compiles the colors for native. `bun run tokens` writes the hex copies (`colors.json`, exported as `colors`) that the splash, browser chrome, Electron window and SVG props use.
 
 ## Mobile: Windows + Mac + iPad
 
@@ -137,7 +139,7 @@ bun run test:e2e                                 # or E2E_DATABASE_URL=postgres:
 
 The e2e DB name must end in `_test`. Screenshots are OS/font specific; regenerate on the platform your CI uses.
 
-Unit tests: `bun run test`. `ssr-state.test.ts` proves a `Date` survives SSR dehydrate → hydrate; `tokens.test.ts` keeps the native dark tokens equal to the web ones.
+Unit tests: `bun run test`. `ssr-state.test.ts` proves a `Date` survives SSR dehydrate → hydrate; `tokens.test.ts` keeps `colors.json` in step with `tokens.css` and fails until the kickoff has set the look.
 
 Mobile has no device test runner in the template. `bunx expo export --platform ios` (in `apps/mobile`) proves the app bundles; `bun run doctor` checks the Expo setup. `verify.md` lists every check.
 

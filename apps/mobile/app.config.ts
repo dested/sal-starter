@@ -16,11 +16,28 @@ const projectSchema = z.object({
   db: z.string(),
   easProjectId: z.string().nullable(),
   appleTeamId: z.string().nullable(),
+  // Set by the kickoff; a fork older than `look` has none (treated as light).
+  look: z
+    .object({ scheme: z.enum(['light', 'dark']), direction: z.string() })
+    .nullable()
+    .optional(),
 })
 
 const project = projectSchema.parse(
   JSON.parse(readFileSync(join(__dirname, '..', '..', 'project.json'), 'utf8'))
 )
+
+// One theme, never the OS's: the app's scheme is the look's, and native
+// surfaces (splash, root view) paint the token background, generated from
+// tokens.css into @app/tokens colors.json (`bun run tokens`).
+const colorScheme = project.look?.scheme ?? 'light'
+const { background: BACKGROUND } = z
+  .object({ background: z.string() })
+  .parse(
+    JSON.parse(
+      readFileSync(join(__dirname, '..', '..', 'packages', 'tokens', 'colors.json'), 'utf8')
+    )
+  )
 
 // APP_VARIANT picks the install: development (local/Mac dev client), preview
 // (ad hoc), production (store). Variants get their own bundle id + scheme so
@@ -36,10 +53,6 @@ const nameSuffix =
 // Info.plist usage strings, named so they're easy to find and reword.
 const LOCAL_NETWORK_USAGE = `${project.displayName} connects to your development server on the local network.`
 
-// Splash/system background before first paint, matching tokens.css --background.
-const BACKGROUND_LIGHT = '#ffffff'
-const BACKGROUND_DARK = '#0a0a0a'
-
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: `${project.displayName}${nameSuffix}`,
@@ -48,8 +61,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: '1.0.0',
   orientation: 'default',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
-  backgroundColor: BACKGROUND_LIGHT,
+  userInterfaceStyle: colorScheme,
+  backgroundColor: BACKGROUND,
   runtimeVersion: { policy: 'fingerprint' },
   // Read at runtime by src/lib/app-config.ts. apiPort lets LAN dev find the API
   // next to Metro without a mobile .env (identity stays in project.json).
@@ -61,6 +74,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     apiPort: project.apiPort,
     apiUrl: `https://${project.name}.dested.com`,
     scheme: project.scheme,
+    colorScheme,
+    kickoffPending: project.look === null,
     ...(project.easProjectId === null ? {} : { eas: { projectId: project.easProjectId } }),
   },
   // EAS Update. `eas init` / `eas update:configure` can't write a dynamic config:
@@ -104,8 +119,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         image: './assets/splash-icon.png',
         imageWidth: 160,
         resizeMode: 'contain',
-        backgroundColor: BACKGROUND_LIGHT,
-        dark: { image: './assets/splash-icon.png', backgroundColor: BACKGROUND_DARK },
+        backgroundColor: BACKGROUND,
       },
     ],
     '@app/native-example',

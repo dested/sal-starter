@@ -2,6 +2,21 @@
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
 
+## 2026-10-24 — One theme per project, no dark mode anywhere (supersedes 2026-09-11 dark mode, 2026-10-02 native dark mode)
+
+**Why:** Sal: "I actually don't want a toggleable dark mode in any of my projects ever. Whatever color we pick, that's the color." Two themes kept breaking on web and especially in the app (OS flips, splash and navigator in the wrong color, a second palette nobody designed). `tokens.css` is one `:root`; `color-scheme` there equals `project.json` `look.scheme`; `theme.css` redefines `dark:` as `&:not(*)` so copy-pasted shadcn `dark:` classes never switch on (Tailwind v4's default `dark:` follows the OS, which is how it kept sneaking back). The pre-paint script, `theme.ts`, `ThemeToggle`, mobile `useColorScheme`, desktop `nativeTheme` and the native dark block are gone.
+**Rejected:** keeping dark mode but OS-only (still two palettes to design and test), keeping the toggle hidden (dead code that agents revive).
+
+## 2026-10-24 — Every fork runs a kickoff before feature work; the starter's look is a placeholder
+
+**Why:** every fork shipped the same neutral shadcn look and the same stack-showcase home page until someone redesigned it; the forks that looked good had written a direction first and used their own fonts and surfaces. `.claude/skills/kickoff` (travels with every fork) asks Sal for the look (three directions, or wing it; mock-first for a big product), then builds tokens, fonts, primitives, `/`, icon, splash, meta and `ui.md`, and sets `project.json` `look`. While `look` is `null`, dev shows a ribbon and a banner line, and `bun run test` fails (the template itself is exempt). `/` is a placeholder (displayName + one action).
+**Rejected:** a new "house default" look (at 10 apps a day it becomes the new sameness), a hard `init` prompt (init is non-interactive and agents run it), a ribbon only (agents ignore what doesn't fail).
+
+## 2026-10-24 — Token hex is generated (`colors.json`), and the look is fork-owned on sync
+
+**Why:** native splash, `theme-color`, Electron's window, placeholder text and SVG/Skia props can't read CSS variables; three forks hand-built a hex mirror that drifted. `bun run tokens` converts the oklch roles to `colors.json` (`@app/tokens` exports `colors`), and `tokens.test.ts` fails when it's stale. `theme.css` (the Tailwind mapping) merges from upstream; `tokens.css`, `colors.json`, `ui.md` and `updates.md` are `merge=ours`, so `bun run sync` never resets a fork's look or log; a role upstream adds fails the test until the fork gives it a value. `decisions.md` is `merge=union` (upstream decisions bind forks too). `init` starts a fresh `updates.md` and keeps `decisions.md`.
+**Rejected:** a TS source of truth that generates CSS (agents and shadcn edit CSS), a runtime CSS-variable read on native (no DOM), truncating `decisions.md` in forks (its entries still bind them).
+
 ## 2026-10-24 — OTA promotion republishes one variant-agnostic bundle
 
 **Why:** `eas update` never reads eas.json's build `env`, so the old `ota:*` scripts bundled against the production config on every lane (mobile-game-2 6eeb16d, sal-excersize 47b3f37). Each script now sets `APP_VARIANT`, and the app reads its variant and scheme from the installed binary's bundle id (`expo-application`), never from the JS bundle. One bundle is then valid in preview and production, so `ota:promote` (`eas update:republish --channel preview --destination-channel production`) ships exactly what was tested.

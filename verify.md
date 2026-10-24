@@ -7,7 +7,7 @@
 ```bash
 bun install                 # lockfile resolves; postinstall regenerates the Prisma client
 bun run typecheck           # tsc --noEmit: root + every workspace. Must be green
-bun run test                # bun:test in every workspace (ssr-state, tokens, trpc-ipc round trips, desktop router)
+bun run test                # bun:test in every workspace (ssr-state, tokens + kickoff, trpc-ipc round trips, desktop router)
 bun run build               # apps/web/dist/client + dist/server
 bun pm why react            # exactly one react (the Expo SDK's version)
 ```
@@ -18,7 +18,10 @@ Web boots without a database for pages that don't query:
 bun run dev web             # → http://localhost:4780
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:4780/                       # 200
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:4780/api/auth/get-session   # 200
+curl -s http://localhost:4780/ | grep -o '<meta name="\(color-scheme\|theme-color\)"[^>]*>'  # look.scheme + colors.background
 ```
+
+The look (after the kickoff): `bx` screenshots of `/`, `/sign-in` and the signed-in page at desktop width and 390px. No "Kickoff pending" ribbon, no neutral placeholder left.
 
 ## Mobile (cheap, Windows)
 
@@ -82,7 +85,7 @@ Needs the Mac, the iPad and an Apple Developer account. Windows runs `bun run de
 3. Sign up on the iPad → a post created there shows up on web `/dashboard` (and vice versa).
 4. Home shows "Hello from Swift" and the `@app/native-example` plist value. The fingerprint row matches `bun run fingerprint`.
 5. Kill the API on Windows → Home shows the "Can’t reach the server" card; Retry recovers once it's back.
-6. Toggle iPad dark mode → the app follows.
+6. Toggle iPad dark mode → the app does NOT change: same colors, keyboard and alerts in the look's scheme.
 
 ## EAS and deploy `[heavy — ask first]`
 

@@ -1,37 +1,26 @@
-/* Design tokens (oklch), shared by web, mobile and desktop (@app/tokens).
- * Web and desktop: imported by app.css as `@app/tokens/tokens.css`; `.dark` on <html> switches the palette.
- * Mobile: imported by apps/mobile/global.css, same specifier.
- * Change a token here and every app follows (see ui.md). */
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
+/* The project's look: one theme, as design tokens (oklch), shared by web,
+ * mobile and desktop (@app/tokens). Fork-owned: `bun run sync` keeps this
+ * file's values (merge=ours); the Tailwind mapping is theme.css.
+ *
+ * ONE theme. There is no dark mode and no toggle: the look (light or dark) is
+ * these values, and `color-scheme` says which (it must equal project.json
+ * `look.scheme`). Until the kickoff (.claude/skills/kickoff) replaces them,
+ * these are a neutral placeholder.
+ *
+ * After editing: `bun run tokens` regenerates colors.json (hex copies for what
+ * can't read CSS: native splash and system UI, <meta name="theme-color">, the
+ * Electron window, SVG/Skia props). tokens.test.ts fails while it's stale. */
 
 :root {
   color-scheme: light;
+  /* The surface rule: corner radius and the card's elevation (`shadow-card`). */
   --radius: 0.625rem;
+  --card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  /* Font stacks (web + desktop map them to font-sans / font-display / font-mono
+   * in app.css; mobile loads its fonts with expo-font). */
+  --font-body: ui-sans-serif, system-ui, sans-serif;
+  --font-heading: ui-sans-serif, system-ui, sans-serif;
+  --font-code: ui-monospace, SFMono-Regular, Menlo, monospace;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -48,57 +37,11 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.627 0.17 149.2);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.769 0.165 70.1);
+  --warning-foreground: oklch(0.205 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-}
-
-.dark {
-  color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-}
-
-/* Native dark mode. NativeWind follows the OS color scheme and can't read a
- * `.dark` class, so the dark palette is repeated here for native only. The
- * `native` media type never matches in a browser. Keep in sync with .dark. */
-@media native and (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-  }
 }

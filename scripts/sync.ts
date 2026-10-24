@@ -5,7 +5,8 @@
 //
 // It merges WITHOUT committing, auto-resolves what's mechanical, then installs
 // and typechecks so you review a working tree, never a surprise commit:
-//   - project.json / drydock.yaml keep this fork's values (merge=ours driver)
+//   - project.json, drydock.yaml, the look (tokens.css, colors.json, ui.md) and
+//     updates.md keep this fork's values (merge=ours driver, .gitattributes)
 //   - bun.lock: this fork's copy is kept and `bun install` folds upstream in
 //   - surfaces this fork doesn't have (project.json `surfaces`): anything
 //     upstream changed or added under their paths is dropped again, and their
@@ -104,3 +105,4 @@ run('bun', 'run', 'typecheck')
 console.log()
 console.log(c.bold(c.green(`✓ Merged ${ref}; install + typecheck green.`)))
 console.log(c.dim('  Review with `git diff --cached`, then `git commit` (or `git merge --abort`).'))
+console.log(c.dim('  `bun run test` names any token a new theme.css role needs in tokens.css.'))

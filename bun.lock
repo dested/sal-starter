@@ -157,6 +157,9 @@
     },
     "packages/tokens": {
       "name": "@app/tokens",
+      "dependencies": {
+        "zod": "catalog:",
+      },
       "devDependencies": {
         "@types/bun": "catalog:",
         "typescript": "catalog:",

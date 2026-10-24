@@ -8,7 +8,7 @@ import {
   useRouteLoaderData,
 } from 'react-router-dom'
 import { authClient } from '~/lib/auth-client'
-import { ThemeToggle } from '~/components/theme-toggle'
+import { KickoffRibbon } from '~/components/kickoff-ribbon'
 import type { RootLoaderData } from './routes'
 
 export function Layout() {
@@ -27,17 +27,18 @@ export function Layout() {
 
   return (
     <>
+      <KickoffRibbon />
       <header className="border-b">
         <nav className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-4">
-          <Link to="/" className="font-semibold">
-            sal-starter
+          <Link to="/" className="font-display font-semibold">
+            Sal Starter
           </Link>
           <NavLink
             to="/dashboard"
             className={({ isActive }) =>
               isActive
-                ? 'text-foreground text-sm'
-                : 'text-muted-foreground hover:text-foreground text-sm'
+                ? 'text-sm text-foreground'
+                : 'text-sm text-muted-foreground hover:text-foreground'
             }>
             Dashboard
           </NavLink>
@@ -59,7 +60,6 @@ export function Layout() {
                 </Link>
               </>
             )}
-            <ThemeToggle />
           </div>
         </nav>
       </header>

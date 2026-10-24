@@ -15,7 +15,7 @@ export function App() {
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Sal Starter</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           Electron, React and tRPC over IPC. Edit <code>src/renderer/src/App.tsx</code> to start.
         </p>
       </header>
@@ -136,7 +136,7 @@ function LaunchesCard() {
       </CardHeader>
       <CardContent className="flex flex-col gap-2 font-mono text-xs">
         {launches.length === 0 ? (
-          <span className="text-muted-foreground flex items-center gap-2">
+          <span className="flex items-center gap-2 text-muted-foreground">
             <Rocket className="size-4" /> none yet
           </span>
         ) : (

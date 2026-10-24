@@ -9,6 +9,7 @@
 //   formatError    — consistent error rendering for the SSR catch-all
 
 import type { NextFunction, Request, Response } from 'express'
+import project from '../../../project.json'
 
 const useColor = Boolean(process.stdout.isTTY) && process.env.NO_COLOR === undefined
 
@@ -114,6 +115,9 @@ export function startupBanner(opts: {
   console.log(`  ${c.dim('health')}   ${c.cyan(`http://localhost:${opts.port}/healthz`)}`)
   console.log(`  ${c.dim('database')} ${safeDbUrl(opts.databaseUrl)}`)
   console.log(`  ${c.dim('routes')}   ${opts.routes.map((r) => c.gray(r)).join(c.dim(' · '))}`)
+  if (!opts.isProd && project.look === null) {
+    console.log(`  ${c.yellow('kickoff')}  pending: run the kickoff skill (.claude/skills/kickoff)`)
+  }
   console.log()
 }
 

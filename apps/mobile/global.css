@@ -5,6 +5,7 @@
 @import 'tailwindcss/preflight.css' layer(base);
 @import 'tailwindcss/utilities.css';
 @import 'nativewind/theme';
+@import '@app/tokens/theme.css';
 @import '@app/tokens/tokens.css';
 
 @source './src';

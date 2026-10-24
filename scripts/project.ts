@@ -18,6 +18,16 @@ export const SURFACE_PATHS: Record<Surface, string[]> = {
   desktop: ['apps/desktop', 'packages/trpc-ipc'],
 }
 
+/**
+ * The look the kickoff chose (.claude/skills/kickoff): one scheme, never a
+ * toggle. `null` until the kickoff runs; while it is, dev shows a "Kickoff
+ * pending" ribbon and `bun run test` fails (outside the template).
+ */
+export const lookSchema = z.object({
+  scheme: z.enum(['light', 'dark']),
+  direction: z.string().min(1),
+})
+
 export const projectSchema = z.object({
   name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   displayName: z.string().min(1),
@@ -31,16 +41,20 @@ export const projectSchema = z.object({
   db: z.string().regex(/^[a-z][a-z0-9_]*$/),
   easProjectId: z.string().nullable(),
   appleTeamId: z.string().nullable(),
+  look: lookSchema.nullable(),
 })
 
 export type Project = z.infer<typeof projectSchema>
 
-// Forks made before `surfaces`/`desktopPort`/`appId` existed: fill them in from
-// what's on disk, once. `sync` writes the result back.
+// Forks made before `surfaces`/`desktopPort`/`appId`/`look` existed: fill them
+// in from what's on disk, once. `sync` writes the result back. A fork older than
+// the kickoff already has its own look, so it gets a light placeholder to edit,
+// not a failing kickoff check.
 const legacySchema = projectSchema.extend({
   appId: projectSchema.shape.appId.optional(),
   surfaces: projectSchema.shape.surfaces.optional(),
   desktopPort: projectSchema.shape.desktopPort.optional(),
+  look: projectSchema.shape.look.optional(),
 })
 
 export function readProject(): Project {
@@ -51,6 +65,8 @@ export function readProject(): Project {
     appId: legacy.appId ?? legacy.bundleId,
     surfaces: legacy.surfaces ?? SURFACES.filter((s) => existsSync(`apps/${s}`)),
     desktopPort: legacy.desktopPort ?? legacy.apiPort + 2,
+    look:
+      legacy.look === undefined ? { scheme: 'light', direction: 'pre-kickoff fork' } : legacy.look,
   })
 }
 

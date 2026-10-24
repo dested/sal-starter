@@ -3,14 +3,11 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import App from './App'
 import { routes } from './app/routes'
 import { deserializeSsrState } from '~/lib/ssr-state'
-import { followSystemTheme } from '~/lib/theme'
 import { getBrowserClients } from '~/lib/trpc'
 
 const dehydratedState = deserializeSsrState(window.__SSR_STATE__)
 
 const { queryClient, trpcClient } = getBrowserClients()
-
-followSystemTheme()
 
 const router = createBrowserRouter(routes)
 

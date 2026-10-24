@@ -17,10 +17,14 @@
 //      bundleId + appId (com.dested.<scheme>), surfaces, apiPort, metroPort
 //      (apiPort + 1), desktopPort (apiPort + 2), db. appleTeamId is kept (same
 //      team for every fork); easProjectId resets.
-//   4. With web: writes a fresh root `.env` (new auth secret). Then sets the
-//      `merge=ours` driver that keeps project.json/drydock.yaml yours on sync,
-//      and runs `bun install` to refresh the lockfile.
-// Everything after step 1 is left uncommitted for you to review.
+//   4. Starts the fork's own updates.md (the template's task log is noise here;
+//      decisions.md stays, its entries bind the fork too).
+//   5. With web: writes a fresh root `.env` (new auth secret). Then sets the
+//      `merge=ours` driver that keeps the fork's identity, look and logs on sync
+//      (.gitattributes), and runs `bun install` to refresh the lockfile.
+// Everything after step 1 is left uncommitted for you to review. Then the
+// kickoff (.claude/skills/kickoff, `/kickoff` in Claude Code) sets the look.
+// Until it does, dev shows a "Kickoff pending" ribbon and `bun run test` fails.
 //
 // Flags:
 //   --mobile        keep the Expo app (apps/mobile)
@@ -77,6 +81,7 @@ const current = readProject()
 if (current.name !== TEMPLATE_NAME) {
   fail(`Already initialized as "${current.name}" (project.json).`, 'init runs once per clone.')
 }
+const templateSha = git('rev-parse', '--short', 'HEAD')
 
 const surfaces: Surface[] = desktopOnly
   ? ['desktop']
@@ -208,7 +213,26 @@ for (const file of tracked) {
 writeProject(next)
 console.log(`  ${c.green('wrote')}   project.json`)
 
-// 4. Local env, merge driver, lockfile.
+// 4. The fork's own task log.
+writeFileSync(
+  'updates.md',
+  [
+    `# ${name} — Updates`,
+    '',
+    '> Terse, newest-first log: what was asked → what was done. One entry per finished task.',
+    '',
+    `## ${new Date().toISOString().slice(0, 10)} — init from sal-starter`,
+    '',
+    `Ran \`bun run init ${args.join(' ')}\` on dested/sal-starter ${templateSha} (${surfaces.join(' + ')}). Next: the kickoff (look, \`/\`, icon).`,
+    'Touched: everything `init` renames, project.json, updates.md',
+    '',
+  ].join('\n')
+)
+console.log(
+  `  ${c.green('wrote')}   updates.md ${c.dim('(fresh log; the template keeps its own)')}`
+)
+
+// 5. Local env, merge driver, lockfile.
 if (!surfaces.includes('web')) {
   console.log(`  ${c.dim('skipped')} .env ${c.dim('(no web server)')}`)
 } else if (existsSync('.env')) {
@@ -234,8 +258,8 @@ if (freshGit) {
   console.log(`  ${c.green('reset')}   git history (new repo; upstream link severed)`)
 }
 
-// `project.json merge=ours` / `drydock.yaml merge=ours` in .gitattributes need
-// this driver; without it git silently does a normal merge.
+// The `merge=ours` entries in .gitattributes (project.json, drydock.yaml, the
+// look, the logs) need this driver; without it git silently does a normal merge.
 git('config', 'merge.ours.driver', 'true')
 run('bun', 'install')
 
@@ -250,7 +274,10 @@ console.log(c.bold(c.green(`✓ Initialized ${title} (${name}): ${surfaces.join(
 console.log(`  ${changed} file(s) updated. ${ports.join(', ')} (record them in cliffnotes.md).`)
 console.log()
 console.log(c.bold('Next steps:'))
-const steps: Array<[string, string]> = [[`git diff && git commit -am "init ${name}"`, '']]
+const steps: Array<[string, string]> = [
+  [`git diff && git commit -am "init ${name}"`, ''],
+  ['/kickoff in Claude Code', '# the look, `/`, icon: before any feature work'],
+]
 if (surfaces.includes('web')) {
   steps.push([`createdb ${snake}`, '# or point .env at any Postgres'])
   steps.push(['bun run db:migrate', '# applies prisma/migrations'])

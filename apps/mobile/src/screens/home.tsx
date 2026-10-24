@@ -40,11 +40,11 @@ export function HomeScreen() {
   if (!session) return null
 
   return (
-    <SafeAreaView className="bg-background flex-1" edges={['top', 'left', 'right']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
       <ScrollView contentContainerClassName="gap-8 p-6" keyboardShouldPersistTaps="handled">
         <View className="flex-row items-start justify-between gap-4">
           <View className="flex-1 gap-1">
-            <Text className="text-foreground text-3xl font-bold tracking-tight">Home</Text>
+            <Text className="text-3xl font-bold tracking-tight text-foreground">Home</Text>
             <Text className="text-muted-foreground">
               Welcome back, {session.user.name || session.user.email}.
             </Text>
@@ -74,7 +74,7 @@ export function HomeScreen() {
               <Input value={content} onChangeText={setContent} />
             </View>
             {createPost.isError && (
-              <Text className="text-destructive text-sm">{createPost.error.message}</Text>
+              <Text className="text-sm text-destructive">{createPost.error.message}</Text>
             )}
             <Button
               label={createPost.isPending ? 'Posting…' : 'Post'}
@@ -95,8 +95,8 @@ export function HomeScreen() {
         </Card>
 
         <View className="gap-3">
-          <Text className="text-foreground text-xl font-semibold">Recent posts</Text>
-          {postsQuery.isLoading && <Text className="text-muted-foreground text-sm">Loading…</Text>}
+          <Text className="text-xl font-semibold text-foreground">Recent posts</Text>
+          {postsQuery.isLoading && <Text className="text-sm text-muted-foreground">Loading…</Text>}
           {postsQuery.isError && (
             <Card>
               <CardHeader>
@@ -109,7 +109,7 @@ export function HomeScreen() {
             </Card>
           )}
           {postsQuery.data?.length === 0 && (
-            <Text className="text-muted-foreground text-sm">No posts yet — be the first.</Text>
+            <Text className="text-sm text-muted-foreground">No posts yet — be the first.</Text>
           )}
           {postsQuery.data?.map((p) => (
             <Card key={p.id}>
@@ -120,7 +120,7 @@ export function HomeScreen() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Text className="text-card-foreground text-sm">{p.content}</Text>
+                <Text className="text-sm text-card-foreground">{p.content}</Text>
               </CardContent>
             </Card>
           ))}
@@ -140,14 +140,14 @@ function NativeExamples() {
   const plist = pluginValue()
   return (
     <View className="gap-1 pb-6">
-      <Text className="text-muted-foreground text-xs">
+      <Text className="text-xs text-muted-foreground">
         modules/app-native: {hello ?? 'not in this build (rebuild the dev client)'}
       </Text>
-      <Text className="text-muted-foreground text-xs">
+      <Text className="text-xs text-muted-foreground">
         @app/native-example: {plist ?? 'not in this build (rebuild the dev client)'}
       </Text>
       {__DEV__ && (
-        <Text className="text-muted-foreground text-xs">
+        <Text className="text-xs text-muted-foreground">
           fingerprint: {Updates.runtimeVersion ?? 'unknown'}
         </Text>
       )}

@@ -3,14 +3,21 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./tokens.css": "./tokens.css"
+    ".": "./index.ts",
+    "./theme.css": "./theme.css",
+    "./tokens.css": "./tokens.css",
+    "./colors.json": "./colors.json"
   },
   "scripts": {
+    "emit": "bun emit.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "typescript": "catalog:"
+  },
+  "dependencies": {
+    "zod": "catalog:"
   }
 }
