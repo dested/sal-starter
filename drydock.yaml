@@ -1,11 +1,12 @@
-name: sal-starter          # init → project.json name; also the Postgres db/user and <name>.dested.com
+name: sal-starter # init → project.json name; also the Postgres db/user and <name>.dested.com
 kind: ssr
 runtime: bun
-port: 4780                 # container port; the task def injects it as PORT, which server/env.ts already reads
+port: 4780 # container port; the task def injects it as PORT, which server/env.ts already reads
 size: s
 rootDir: apps/web
-build: bun run build       # runs in apps/web after the root workspace install (needs Drydock's workspace fix)
-start: bun run start       # cross-env NODE_ENV=production bun server.ts. No --env-file in start: prod env comes from ECS/SSM
+workspace: '@app/web' # Bun workspace member: Drydock installs from the root bun.lock with --filter
+build: bun run build # runs in apps/web after the root workspace install
+start: bun run start # cross-env NODE_ENV=production bun server.ts. No --env-file in start: prod env comes from ECS/SSM
 database: true
 prisma: true
-predeploy: bunx prisma migrate deploy   # never Drydock's `db push --accept-data-loss` default
+predeploy: bun run db:deploy # committed migrations only, with the pinned CLI (bunx falls back to npm latest = Prisma 8 RC). Never Drydock's `db push --accept-data-loss` default

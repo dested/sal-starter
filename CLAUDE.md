@@ -21,7 +21,8 @@ It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Ex
 | validation         | zod 4                               | env, tRPC inputs, anything crossing a boundary                                                                                                                     |
 | styles             | Tailwind v4 + shadcn (new-york)     | CSS-first config, oklch tokens                                                                                                                                     |
 | tests              | Playwright e2e + `bun:test`         | `e2e/` + committed screenshot baselines against an isolated, migrated test DB; unit tests are `*.test.ts` under `src/` / `server/` (`bun run test`)                |
-| deploy             | Drydock (`drydock.yaml`)            | only `apps/web` deploys (`rootDir: apps/web`); mobile ships via EAS. **Unverified** until Drydock's workspace-aware Dockerfile fix lands                           |
+| deploy             | Drydock (`drydock.yaml`)            | only `apps/web` deploys (`rootDir: apps/web`, `workspace: "@app/web"`); mobile ships via EAS Build + EAS Update                                                    |
+| analytics          | Crow's Nest                         | one `<script defer>` in `index.html` (silent on localhost); custom events via `cnEvent()` in `src/lib/crowsnest.ts`                                                |
 | mobile (optional)  | Expo SDK 57 + Expo Router           | dev client (never Expo Go), NativeWind 5 rc over `@app/tokens`, better-auth Expo plugin, tRPC + superjson via `import type` from `@app/web/router`                 |
 | desktop (optional) | Electron 44 + electron-vite 5       | tRPC v11 over IPC (`@app/trpc-ipc`, no superjson), React 19 + Tailwind 4 over `@app/tokens`; unpacked builds via electron-builder, no installer                    |
 | types              | TypeScript 7 `tsc`                  | `strict` + `noUncheckedIndexedAccess` everywhere; `bun run typecheck` fans out over every workspace                                                                |
@@ -32,9 +33,10 @@ It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Ex
 project.json         the ONE per-project identity file: name, displayName, scheme, bundleId,
                      appId, surfaces, apiPort, metroPort, desktopPort, db, easProjectId, appleTeamId (rule #22)
 package.json         workspace root: catalog (shared pins), overrides, proxy scripts
-bunfig.toml          [install] linker = "hoisted"
+bunfig.toml          [install] linker = "hoisted", minimumReleaseAge = 3 days (every machine, every fork)
 tsconfig.base.json   shared strict compiler options (apps extend it)
-drydock.yaml         deploy seed (rootDir apps/web, predeploy = prisma migrate deploy)
+drydock.yaml         deploy seed (rootDir apps/web, workspace @app/web, predeploy = bun run db:deploy)
+.easignore           EAS upload filter (EAS reads it instead of every .gitignore)
 scripts/             init, sync, add-surface, dev, project (identity schema + surface paths/scripts), shell helpers
 apps/web/            @app/web, everything below in this block lives here
 apps/mobile/         @app/mobile (optional), see "Mobile" below
@@ -45,6 +47,7 @@ apps/web/
 server.ts            Express server entry. Bun runs this in dev and prod.
 server/
 ├── env.ts           zod-validated env at import time
+├── asset-path.ts    isAssetPath(): which paths 404 before SSR (+ test)
 ├── logger.ts        color request logging, startup banner, error formatting
 ├── prisma.ts        PrismaClient singleton (survives HMR; pg adapter)
 ├── auth.ts          better-auth instance + Session type
@@ -68,6 +71,7 @@ src/
 │   └── ui/                shadcn primitives
 ├── lib/
 │   ├── auth-client.ts     better-auth React client (signIn, signUp, useSession, signOut)
+│   ├── crowsnest.ts       cnEvent(): typed Crow's Nest custom events
 │   ├── theme.ts           theme state: applyTheme/setTheme/toggleTheme/followSystemTheme
 │   ├── ssr-state.ts       superjson (de)serialization of the dehydrated React Query cache (SSR → client)
 │   ├── trpc.tsx           TRPCProvider, useTRPC, getBrowserClients() (browser QueryClient + tRPC singletons)
@@ -98,7 +102,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 5. **API routes are Express mounts in `server.ts`** — not file-based:
    - `app.all('/api/auth/*splat', toNodeHandler(auth))` — better-auth (Express 5 named-wildcard syntax)
    - `app.use('/api/trpc', createExpressMiddleware({ router: appRouter, createContext }))` — tRPC
-     If you add a new HTTP endpoint, mount it in `server.ts` BEFORE the final SSR handler (`app.use(async (req, res) => …)`) or it'll be swallowed. That handler short-circuits to a fast 404 for non-GET requests, paths with a file extension (e.g. `/favicon.ico`), and unknown `/api/*` (JSON) — only extension-less GETs reach the React renderer. SSR returns `routerContext.statusCode`, so unmatched routes get a real 404. `/healthz` (DB ping) is mounted up top.
+     If you add a new HTTP endpoint, mount it in `server.ts` BEFORE the final SSR handler (`app.use(async (req, res) => …)`) or it'll be swallowed. That handler short-circuits to a fast 404 for non-GET requests, asset paths (`server/asset-path.ts`: a known extension like `/favicon.ico`, `.map`, a `.php` probe), and unknown `/api/*` (JSON) — every other GET reaches the React renderer, dotted page paths (`/u/ada.lovelace`) included. SSR returns `routerContext.statusCode`, so unmatched routes get a real 404. `/healthz` (DB ping) is mounted up top.
 
 6. **Env vars are zod-validated at import time** (`server/env.ts`). Any new required env var must be added there AND to `.env.example` AND to the Drydock portal (Project → Environment → Apply + redeploy). If `env.ts` throws, the server won't start — that's the design.
 
@@ -114,7 +118,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 
 12. **`.env` lives at the repo root and is loaded by `prisma.config.ts` itself.** `apps/web` scripts pass `--env-file=../../.env` (Bun only autoloads `.env` from the cwd). Bun loads `.env` into its own runtime but NOT into the Prisma CLI (a Node subprocess), and Prisma 7 dropped auto-loading — so the config reads `.env` manually with a safe fallback (`prisma generate` works before `.env` exists). Don't delete that block. Runtime `PrismaClient` gets the URL via the pg adapter in `server/prisma.ts`.
 
-13. **Dev port is `PORT` (default `project.json` `apiPort`, 4780 in the template), never 3000.** It's validated in `server/env.ts`; `BETTER_AUTH_URL` defaults to `http://localhost:$PORT`. Every project gets its own distinct, uncommon port — `bun run init` derives one from the name (or `--port <n>`) and rewrites `4780` everywhere. Never use 3000/3001/5173/5174/8000/8080/4200/5000. Record the port in `cliffnotes.md`. Playwright uses its own 3100; Drydock injects its own `PORT`. Metro (mobile) runs on `metroPort` = apiPort + 1, the desktop renderer dev server on `desktopPort` = apiPort + 2.
+13. **Dev port is `PORT` (default `project.json` `apiPort`, 4780 in the template), never 3000.** It's validated in `server/env.ts`; `BETTER_AUTH_URL` defaults to `http://localhost:$PORT`. Every project gets its own distinct, uncommon port — `bun run init` derives one from the name (or `--port <n>`) and rewrites `4780` everywhere. Never use 3000/3001/5173/5174/8000/8080/4200/5000. Record the port in `cliffnotes.md`. Playwright e2e runs on apiPort + 3 (`e2e/db.ts`); Drydock injects its own `PORT`. Metro (mobile) runs on `metroPort` = apiPort + 1, the desktop renderer dev server on `desktopPort` = apiPort + 2.
 
 14. **superjson end to end.** `initTRPC` and every client link (`src/lib/trpc.tsx`, the SSR loopback in `entry-server.tsx`) use `transformer: superjson` — add it to any new link or the wire breaks. The dehydrated SSR cache goes through `src/lib/ssr-state.ts` (superjson), never raw `JSON.stringify`, so prefetched `Date`s are `Date`s on first client render. Return `Date`s from procedures; format them deterministically (e.g. `toISOString()`, or a fixed `timeZone` in `Intl`) so SSR and client markup match.
 
@@ -178,9 +182,10 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 
 ## Mobile (apps/mobile)
 
-- **Talks to the web server.** Same `/api/trpc` and `/api/auth/*`; there is no second API. `src/lib/api-url.ts` resolves the base URL: `EXPO_PUBLIC_API_URL` if set, otherwise in `__DEV__` the LAN host from Metro's `hostUri` plus `project.json` `apiPort` (passed through `app.config.ts` `extra`). Anything else throws.
+- **Talks to the web server.** Same `/api/trpc` and `/api/auth/*`; there is no second API. `src/lib/api-url.ts` resolves the base URL: `EXPO_PUBLIC_API_URL` if set, otherwise in `__DEV__` the LAN host from Metro's `hostUri` plus `project.json` `apiPort` (passed through `app.config.ts` `extra`), otherwise the deployed server `extra.apiUrl` (`https://<name>.dested.com`). Never a throw: an OTA bundle that can't start gets rolled back silently.
 - **Auth.** `src/lib/auth-client.ts` = better-auth `expoClient` with SecureStore (cookie + cached session, so a cold start has no signed-out flash). The tRPC link sends the cookie as a `Cookie` header with `credentials: 'omit'`. Server side, `server/auth.ts` has `plugins: [expo()]` and `trustedOrigins` for the app schemes (`exp://` dev only).
-- **Variants.** `APP_VARIANT` = development / preview / production picks name, bundle id (`.dev`/`.preview`) and scheme, so all three installs coexist. `bun run dev` serves Metro as `development` to match the Mac-built dev client.
+- **Variants.** `APP_VARIANT` = development / preview / production picks name, bundle id (`.dev`/`.preview`) and scheme, so all three installs coexist. `bun run dev` serves Metro as `development` to match the dev client. At runtime the variant and scheme come from the installed binary's bundle id (`variant` / `appScheme` in `src/lib/app-config.ts`), never from the JS bundle, so one update bundle is valid in preview and production.
+- **EAS Update lanes.** `bun run ota:preview --message "…"` publishes to the preview channel; test it on a preview build; `bun run ota:promote` republishes that exact update to production (`eas update:republish`, no rebuild); `bun run ota:prod --message "…"` publishes straight to production (hotfix). Each script sets `APP_VARIANT` itself: `eas update` never reads eas.json's build `env`. The runtimeVersion is the fingerprint; `fingerprint.config.js` keeps it identical locally and on EAS, and eas.json's `bun` equals the local Bun. Check `eas fingerprint:compare --build-id <id>` before the first update to a new build.
 - **Styling.** NativeWind 5 rc: `global.css` imports Tailwind's layers, `nativewind/theme` and `@app/tokens/tokens.css`. Native dark mode follows the OS through the `@media native and (prefers-color-scheme: dark)` block in tokens.css (kept equal to `.dark` by `tokens.test.ts`). UI primitives in `src/components/ui/` mirror web's cva variants.
 - **React Query on native.** `src/lib/query-rn.ts` wires `focusManager` to AppState and `onlineManager` to expo-network.
 - **Native code.** `modules/app-native` (local Expo module) and `packages/native-example` (workspace package + typed config plugin with committed `plugin/build`) prove both hosting modes; both use `requireOptionalNativeModule` so a stale dev client renders a hint instead of crashing.
@@ -218,6 +223,7 @@ In `server/router.ts`, add to the `appRouter` tree. Choose `publicProcedure` or 
 
 1. Edit `prisma/schema.prisma` (FK relations to `User` should be `onDelete: Cascade`).
 2. `bun run db:migrate --name add_my_model` — generates `prisma/migrations/<ts>_add_my_model/migration.sql`, applies it to your dev DB, and regenerates the client. **Read the SQL** and commit the folder with the schema change.
+   In an agent shell `prisma migrate dev` refuses (non-interactive). Instead, with the dev DB at the latest migration, in `apps/web`: `mkdir -p prisma/migrations/<YYYYMMDDHHMMSS>_<name> && bun run db:migrate:sql -o prisma/migrations/<YYYYMMDDHHMMSS>_<name>/migration.sql` (the diff from the dev DB to the schema), read the SQL, then `bun run db:deploy && bun run db:generate`.
 3. Use it in tRPC procedures: `prisma.myModel.findMany(...)`.
 
 Never `prisma db push` — it skips the migration history and silently drops anything Prisma doesn't model (FTS indexes, triggers).
@@ -251,7 +257,7 @@ It writes to `src/components/ui/`. `components.json` aliases already point at `~
 
 ### Add an e2e test
 
-Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`sal_starter_test`, URL in `e2e/db.ts`, override with `E2E_DATABASE_URL` — the name must end in `_test`) on port 3100; `e2e/global-setup.ts` runs `prisma migrate deploy` on it and then truncates it so screenshots are deterministic. Create it once with `createdb sal_starter_test`. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
+Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`<project.json db>_test`, here `sal_starter_test`; URL in `e2e/db.ts`, override with `E2E_DATABASE_URL` — the name must end in `_test`) on apiPort + 3 (4783 here); `e2e/global-setup.ts` runs `prisma migrate deploy` on it and then truncates it so screenshots are deterministic. Create it once with `createdb sal_starter_test`. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
 
 ## Build / verify
 
@@ -259,7 +265,7 @@ Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`s
 bun run typecheck   # tsc --noEmit (TypeScript 7) in every workspace — strict + noUncheckedIndexedAccess
 bun run test        # bun:test unit tests (*.test.ts under src/ and server/)
 bun run build       # vite build (client) + vite build --ssr (server) → dist/client + dist/server
-bun run test:e2e    # Playwright against the isolated, migrated test DB on :3100
+bun run test:e2e    # Playwright against the isolated, migrated test DB on :4783 (apiPort + 3)
 bun run dev         # web: bun --watch server.ts → http://localhost:4780 (HMR on the same port) + Metro on 4781 if apps/mobile exists
 bun run start       # NODE_ENV=production bun server.ts
 ```
@@ -279,22 +285,22 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 
 ## Drydock deploy gotchas
 
-- Only `apps/web` deploys. `drydock.yaml` (root) sets `rootDir: apps/web`, `kind: ssr`, `runtime: bun`, `build: bun run build`, `start: bun run start`.
-- `predeploy: bunx prisma migrate deploy` applies committed migrations only. Never let it fall back to Drydock's `db push --accept-data-loss` default.
+- Only `apps/web` deploys. `drydock.yaml` (root) sets `rootDir: apps/web`, `workspace: "@app/web"` (Drydock installs from the root `bun.lock` with `--filter`), `kind: ssr`, `runtime: bun`, `build: bun run build`, `start: bun run start`.
+- `predeploy: bun run db:deploy` applies committed migrations only, with the workspace's pinned Prisma CLI. Never let it fall back to Drydock's `db push --accept-data-loss` default.
 - `start` must not use `--env-file`: prod env comes from Drydock (it seeds `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`). Use `bun run start:local` to run a prod build against the local `.env`.
-- **Unverified:** Drydock's SSR Dockerfile generator copies `apps/web/bun.lock`, which a Bun workspace doesn't have. Deploys fail until Drydock gets its workspace-aware fix (separate task).
 - Every push to `master`/`main` redeploys web, even for mobile-only commits. The container disk is wiped on every deploy.
 
 ## Versions to be aware of
 
 - React Router 7.5+. The `RouteObject` shape uses `Component` (capital C) and `ErrorBoundary` (capital E). Don't reach for `element: <Foo />` unless you've got a reason.
 - Tailwind v4 uses `@import 'tailwindcss'` (not `@tailwind base/components/utilities`). Theme tokens go in `@theme inline { ... }`. There is no `tailwind.config.ts`.
-- Prisma 7.10 — `prisma` CLI and `@prisma/client` MUST stay in lockstep (`~7.10.0` in the catalog; the CLI's `latest` tag is the 8.0 RC, a separate migration). Uses the `pg` driver adapter and the `prisma-client` generator (output `server/generated/prisma`, import from `./generated/prisma/client`).
+- Prisma 7.10 — `prisma` CLI and `@prisma/client` MUST stay in lockstep (`~7.10.1` in the catalog). npm `latest` is the Prisma 8 RC (a rewrite: no `PrismaClient`, `Temporal` dates, no better-auth adapter), so run the CLI through `bun run db:*` scripts, never `bunx prisma` / `bun add prisma` outside the catalog. Sessions are pinned to UTC in `server/prisma.ts`. Uses the `pg` driver adapter and the `prisma-client` generator (output `server/generated/prisma`, import from `./generated/prisma/client`).
 - Express 5.x — required for the named-wildcard route syntax. Don't downgrade to Express 4.
-- Vite 6.
+- Vite 6.4 (Vite 8 waits on the lightningcss override). tailwind-merge 3 (2.x only understands Tailwind v3 classes).
+- Bun 1.4. The repo `bunfig.toml` sets `minimumReleaseAge` (3 days), so a version younger than that won't install anywhere.
 - Expo SDK 57 / RN 0.86.3 / React 19.2.3. NativeWind 5.0.0-rc.0 + react-native-css 3.1.0-rc.0 (exact). Move to SDK 58 in this template first, then forks pick it up with `bun run sync`.
 - `apps/mobile` pins `lru-cache` 5.1.1 as a devDependency only so the hoisted linker keeps v5 at the root: Bun's nested `@babel/helper-compilation-targets` copies don't get their own `lru-cache`, and with v11 hoisted Metro fails with `_lruCache is not a constructor`. Remove it once Bun nests them correctly.
-- better-auth and `@better-auth/expo` move in lockstep (both 1.7.6 in the catalog).
+- better-auth and `@better-auth/expo` move in lockstep (both 1.7.12 in the catalog).
 - zod 4 — top-level formats (`z.url()`, `z.email()`), `{ error }` for custom messages.
 - superjson 2 — the tRPC transformer; in tRPC v11 it goes on each link (`httpBatchLink({ transformer })`) and in `initTRPC.create()`.
 
@@ -309,6 +315,7 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 - Don't add ESLint, `expo lint` or any linter. `tsc` is the gate, Prettier formats.
 - Don't use Expo Go or write code that branches on it. The dev client is the only dev runtime.
 - Don't `prisma db push`, and don't edit a migration that has already been applied anywhere shared — add a new one.
+- Don't `bunx prisma`: outside the workspace it pulls npm `latest`, the Prisma 8 RC. Use the `bun run db:*` scripts.
 - Don't run the dev server on 3000 (or 3001/5173/5174/8000/8080/4200/5000).
 - Don't downgrade to Express 4 — the route wildcards (`*splat`) need Express 5.
 - Don't sprinkle raw `console.log` in `./server/` — use `log.*` / `formatError` from `server/logger.ts` so output stays consistent.

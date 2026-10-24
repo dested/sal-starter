@@ -12,7 +12,8 @@ export default async function globalSetup() {
   if (!dbName.endsWith('_test')) {
     throw new Error(`E2E_DATABASE_URL must point at a *_test database, got "${dbName}"`)
   }
-  execFileSync('bun', ['x', 'prisma', 'migrate', 'deploy'], {
+  // The workspace's pinned Prisma CLI, never `bunx prisma` (npm latest is Prisma 8).
+  execFileSync('bun', ['run', 'db:deploy'], {
     env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL },
     stdio: 'inherit',
   })

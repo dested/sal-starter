@@ -75,7 +75,7 @@ All run from the repo root.
 | `bun run db:studio`                      | Prisma Studio                                                             |
 | `bun run prettier`                       | format the repo                                                           |
 
-Mobile-only scripts live in `apps/mobile/package.json`: `doctor`, `fingerprint`, `ios:prebuild`, `ios:device`, `ios:sim`, `add-device`, `build:dev|preview|prod`, `submit:prod`, `ota:preview|prod`.
+Mobile-only scripts live in `apps/mobile/package.json`: `doctor`, `fingerprint`, `ios:prebuild`, `ios:device`, `ios:sim`, `add-device`, `build:dev|preview|prod`, `submit:prod`, `ota:preview|promote|prod`.
 
 ## Layout
 
@@ -124,11 +124,11 @@ When do you need a new build? When the native fingerprint changes: run `bun run 
 
 **Run `eas` only inside `apps/mobile`.** Run at the repo root, it offers to create a new EAS project with a root `app.json`/`eas.json`; say no and `cd apps/mobile`. EAS uploads the whole git repo, so the workspace (root `bun.lock`, `packages/*`, `@app/web` types) comes along. With `EAS_NO_VCS=1` it uploads only the current directory: set `EAS_PROJECT_ROOT=../..` too, or Metro fails at "Bundle JavaScript" on missing workspace paths.
 
-**Ship a fix (OTA).** JS-only changes go out without a store build: in `apps/mobile`, `eas update --channel production --environment production` (`bun run ota:prod`; `ota:preview` for internal builds). Installed apps check on launch and on every return to the foreground, download, and reload at once (`src/lib/ota.ts`). An update only reaches builds with the same fingerprint `runtimeVersion`: check with `eas fingerprint:compare --build-id <id>` first. Native changes (fingerprint differs) need a new `build:prod`.
+**Ship a fix (OTA).** JS-only changes go out without a store build. In `apps/mobile`: `bun run ota:preview --message "what changed"`, check it on a preview build, then `bun run ota:promote` republishes that exact update to production (the bundle doesn't depend on the variant: the app reads it from its own bundle id). `bun run ota:prod --message "…"` publishes straight to production for a hotfix. Each script sets `APP_VARIANT` itself, because `eas update` never reads eas.json's build `env`. Installed apps check on launch and on every return to the foreground, download, and reload at once (`src/lib/ota.ts`). An update only reaches builds with the same fingerprint `runtimeVersion`: check with `eas fingerprint:compare --build-id <id>` first. Native changes (fingerprint differs) need a new `build:prod`.
 
 ## Testing
 
-Playwright e2e lives in `apps/web/e2e/`. `bun run test:e2e` boots the app on port 3100 against an **isolated test database** (`sal_starter_test`), applies the committed migrations and truncates it, and runs the smoke suite (home, sign-up → dashboard → create post → sign-out, the 404 page). Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
+Playwright e2e lives in `apps/web/e2e/`. `bun run test:e2e` boots the app on port 4783 (`project.json` apiPort + 3) against an **isolated test database** (`sal_starter_test`, from `project.json` db), applies the committed migrations and truncates it, and runs the smoke suite (home, sign-up → dashboard → create post → sign-out, the 404 page). Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
 
 ```bash
 createdb sal_starter_test                       # once; global-setup migrates it

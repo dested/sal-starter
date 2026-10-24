@@ -1,0 +1,42 @@
+# EAS upload filter (EAS uploads the whole repo, from the root). When this file
+# exists EAS reads it INSTEAD of every .gitignore, so it repeats them with
+# root-anchored paths; without it a local prebuild (ios/, android/) goes up too.
+node_modules
+dist
+.vite
+.cache
+.env
+.env.*
+!.env.example
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.log
+test-results
+playwright-report
+apps/web/server/generated
+apps/desktop/out
+release
+data/.private
+.claude
+
+# mobile: generated native projects (EAS prebuilds them itself)
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/modules/*/android/build
+apps/mobile/modules/*/android/.cxx
+apps/mobile/.expo
+apps/mobile/expo-env.d.ts
+*.tsbuildinfo
+.metro-health-check*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# not part of the app
+plans
+apps/web/e2e

@@ -3,3 +3,7 @@
 # native modules and the Prisma CLI shim are happiest with one flat
 # node_modules, so this stays hoisted (decisions.md).
 linker = "hoisted"
+# Only install versions published at least 3 days ago (supply-chain gate). It
+# lives here, not only in a per-user bunfig, so every machine and every fork
+# (WSL, Windows, EAS, Drydock) gets the same resolution.
+minimumReleaseAge = 259200

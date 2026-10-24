@@ -21,7 +21,7 @@
     "electron": "*"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "catalog:",
     "electron": "catalog:",
     "typescript": "catalog:"
   }

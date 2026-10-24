@@ -1,12 +1,12 @@
 import { defineConfig, devices } from '@playwright/test'
-import { E2E_DATABASE_URL } from './e2e/db'
+import { E2E_DATABASE_URL, E2E_PORT } from './e2e/db'
 
-// E2E runs against an isolated test database on a dedicated port so it never
-// touches your dev DB or dev server. `bun run test:e2e` boots the app itself
+// E2E runs against an isolated test database on its own port (project.json
+// apiPort + 3) so it never touches your dev DB, your dev server or another fork's. `bun run test:e2e` boots the app itself
 // (see `webServer`) and `global-setup.ts` applies migrations (`migrate deploy`)
 // and truncates the test DB first so screenshots are deterministic. Override the
 // DB with E2E_DATABASE_URL (its name must end in `_test`).
-const PORT = 3100
+const PORT = E2E_PORT
 const baseURL = `http://localhost:${PORT}`
 
 export default defineConfig({

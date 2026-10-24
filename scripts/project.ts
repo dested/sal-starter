@@ -75,6 +75,7 @@ export const SURFACE_SCRIPTS: Record<Surface, Record<string, string>> = {
     'db:generate': 'bun run --cwd apps/web db:generate',
     'db:migrate': 'bun run --cwd apps/web db:migrate',
     'db:migrate:create': 'bun run --cwd apps/web db:migrate:create',
+    'db:migrate:sql': 'bun run --cwd apps/web db:migrate:sql',
     'db:deploy': 'bun run --cwd apps/web db:deploy',
     'db:studio': 'bun run --cwd apps/web db:studio',
   },

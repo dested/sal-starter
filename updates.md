@@ -2,6 +2,12 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-24 — overhaul phase A: bumps, fork-proven fixes, EAS lanes, Crow's Nest
+
+Ask: audit the forks + versions and make the starter rock solid (plans/2026-10-24-starter-overhaul.md, phase A).
+Done: security/patch bumps (better-auth 1.7.12, express 5.3, vite 6.4.5, prisma 7.10.1, tailwind-merge 3, lucide 1.x, playwright 1.64, electron 44.9.3, Expo 57.0.31 patches; @types/bun pinned via catalog); repo bunfig `minimumReleaseAge`; `server/asset-path.ts` (dotted routes render, +test); pg sessions in UTC; Drydock seed `workspace` + `bun run db:deploy`; `db:migrate:sql`; e2e port/DB from project.json (apiPort + 3); Crow's Nest tag + `cnEvent()`; mobile: `ota:preview|promote|prod` set APP_VARIANT, variant/scheme from the native bundle id (expo-application), `extra.apiUrl` fallback, iOS scene support, `fingerprint.config.js`, eas.json bun 1.4.3, root `.easignore`; `doctor` script fixed. Verified: typecheck all workspaces, unit tests, web + desktop build, `expo export --platform ios`, expo-doctor 21/21, playwright `--list`, dev server probe (dotted paths → SSR, assets → 404, tag served). NOT verified: e2e (needs DB creds), any EAS build/update, a dev-client build.
+Touched: package.json, bunfig.toml, bun.lock, drydock.yaml, .easignore, prettier.config.js, scripts/{init,project}.ts, apps/web/{package.json,server.ts,server/{asset-path,asset-path.test,prisma}.ts,src/lib/crowsnest.ts,index.html,playwright.config.ts,e2e/{db,global-setup}.ts}, apps/mobile/{package.json,app.config.ts,eas.json,fingerprint.config.js,src/lib/{app-config,api-url,auth-client}.ts}, apps/desktop/package.json, packages/{tokens,trpc-ipc}/package.json, CLAUDE.md, cliffnotes.md, README.md, verify.md, decisions.md
+
 ## 2026-10-07 — desktop surface (Electron) for sal-git
 
 Ask: Phase 0 of sal-git's plan (G:/code/sal-git/plans/2026-10-07-sal-git.md): an optional, thin Electron surface so sal-git can be a `--desktop-only` fork.

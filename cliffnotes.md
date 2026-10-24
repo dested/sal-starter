@@ -1,7 +1,7 @@
 # sal-starter — CliffNotes
 
 > Living map of the project. Read this before any coding session.
-> Last updated: 2026-10-07. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
+> Last updated: 2026-10-24. Deep briefing → `CLAUDE.md` · human quickstart → `README.md`.
 
 ## What this is
 
@@ -11,7 +11,7 @@ An SSR React starter template, now a Bun workspace with an optional Expo iOS app
 
 ## Quick Reference
 
-- **Ports:** API **4780** (web + `/api/*`), Metro **4781** (mobile only), desktop renderer **4782** (desktop dev only). All come from `project.json` (`apiPort`, `metroPort`, `desktopPort`); `init` picks a per-name base. Never 3000/3001/5173/5174/8000/8080/4200/5000
+- **Ports:** API **4780** (web + `/api/*`), Metro **4781** (mobile only), desktop renderer **4782** (desktop dev only), Playwright e2e **4783** (apiPort + 3). All come from `project.json` (`apiPort`, `metroPort`, `desktopPort`); `init` picks a per-name base. Never 3000/3001/5173/5174/8000/8080/4200/5000
 - **Dev:** `bun run dev` (root) → web on http://localhost:4780 (HMR shares the port) + Metro on 4781 if `apps/mobile` exists + the Electron window (renderer on 4782) if `apps/desktop` exists. `bun run dev web|mobile|desktop` for one
 - **New project:** `git clone … <name> && git remote rename origin upstream && bun install && bun run init <name> [--mobile] [--desktop | --desktop-only]` then (web) `createdb <name>` → `bun run db:migrate` → `bun run dev`
 - **Template updates:** `bun run sync` (merge `upstream/main`, never commits) · `bun run add:mobile` / `add:desktop` (bring a dropped app back)
@@ -20,9 +20,9 @@ An SSR React starter template, now a Bun workspace with an optional Expo iOS app
 - **Type-check:** `bun run typecheck` (`tsc --noEmit`, TypeScript 7, root + every workspace; `strict` + `noUncheckedIndexedAccess`)
 - **Unit tests:** `bun run test` (`bun:test` in every workspace that has a `test` script)
 - **Build:** `bun run build` → `apps/web/dist/client` + `dist/server`
-- **E2E:** `bun run test:e2e` (Playwright; isolated DB `sal_starter_test` on :3100, migrated by global-setup, committed screenshots)
-- **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:deploy` (prod/CI)
-- **Ship a mobile fix (OTA):** in `apps/mobile`, `eas update --channel production --environment production` (`bun run ota:prod`); check `eas fingerprint:compare --build-id <id>` first. Run `eas` only in `apps/mobile`, never at the root
+- **E2E:** `bun run test:e2e` (Playwright; isolated DB `sal_starter_test` on :4783, both from `project.json`; migrated by global-setup, committed screenshots)
+- **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:migrate:sql -o <file>` (agent shells, where `migrate dev` refuses; CLAUDE.md → Add a DB table) · `bun run db:deploy` (prod/CI). Never `bunx prisma` (npm latest is the Prisma 8 RC)
+- **Ship a mobile fix (OTA):** in `apps/mobile`: `bun run ota:preview --message "…"` → test on a preview build → `bun run ota:promote` (republishes that exact update to production). Hotfix straight to prod: `bun run ota:prod --message "…"`. Check `eas fingerprint:compare --build-id <id>` before the first update to a build. Run `eas` only in `apps/mobile`, never at the root
 - **Mobile checks:** `bun run --cwd apps/mobile doctor` · `bunx expo export --platform ios` (in `apps/mobile`) · `bun run --cwd apps/mobile fingerprint`
 - **Health:** `GET /healthz` (pings the DB)
 - **Verification recipes:** `verify.md`
@@ -30,31 +30,33 @@ An SSR React starter template, now a Bun workspace with an optional Expo iOS app
 
 ## Stack
 
-| Layer              | Choice                          | Notes                                                                                        |
-| ------------------ | ------------------------------- | -------------------------------------------------------------------------------------------- |
-| Runtime / pkg mgr  | Bun ≥ 1.3, workspaces           | root `bun.lock`, hoisted linker, shared pins in the root `catalog`                           |
-| Server             | **Express 5** + Vite SSR        | required for `*splat` route wildcards                                                        |
-| Routing            | React Router 7                  | `createBrowserRouter` (client) / `createStaticHandler` (server); explicit `RouteObject[]`    |
-| State / data       | TanStack Query + tRPC v11       | `@trpc/tanstack-react-query` (`.queryOptions()`); **superjson** on the wire and in SSR state |
-| Validation         | zod 4                           | env, tRPC inputs                                                                             |
-| API                | tRPC, Express mounts            | `/api/trpc`, `/api/auth/*`, `/healthz`                                                       |
-| Database / ORM     | Postgres + Prisma 7             | `pg` driver adapter (`@prisma/adapter-pg`); `prisma migrate`, committed migrations           |
-| Auth               | better-auth                     | email + password, autoSignIn                                                                 |
-| Styling            | Tailwind v4 + shadcn (new-york) | CSS-first, oklch tokens; see `ui.md`                                                         |
-| Tests              | Playwright + `bun:test`         | `e2e/` + committed `__screenshots__` baselines; unit `*.test.ts`                             |
-| Types              | TypeScript 7 `tsc`              | `tsconfig.base.json` shared by every workspace                                               |
-| Deploy             | Drydock (`drydock.yaml`)        | `rootDir: apps/web`; unverified until Drydock's workspace fix                                |
-| Mobile (optional)  | Expo SDK 57, RN 0.86, Router    | dev client only; NativeWind 5 rc; better-auth Expo plugin; EAS for distribution              |
-| Desktop (optional) | Electron 44, electron-vite 5    | tRPC over IPC (`@app/trpc-ipc`), no superjson, no DB; electron-builder `--dir` releases      |
+| Layer              | Choice                          | Notes                                                                                             |
+| ------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Runtime / pkg mgr  | Bun 1.4, workspaces             | root `bun.lock`, hoisted linker, 3-day `minimumReleaseAge`, shared pins in the root `catalog`     |
+| Server             | **Express 5** + Vite SSR        | required for `*splat` route wildcards                                                             |
+| Routing            | React Router 7                  | `createBrowserRouter` (client) / `createStaticHandler` (server); explicit `RouteObject[]`         |
+| State / data       | TanStack Query + tRPC v11       | `@trpc/tanstack-react-query` (`.queryOptions()`); **superjson** on the wire and in SSR state      |
+| Validation         | zod 4                           | env, tRPC inputs                                                                                  |
+| API                | tRPC, Express mounts            | `/api/trpc`, `/api/auth/*`, `/healthz`                                                            |
+| Database / ORM     | Postgres + Prisma 7             | `pg` driver adapter (`@prisma/adapter-pg`); `prisma migrate`, committed migrations                |
+| Auth               | better-auth                     | email + password, autoSignIn                                                                      |
+| Styling            | Tailwind v4 + shadcn (new-york) | CSS-first, oklch tokens; see `ui.md`                                                              |
+| Tests              | Playwright + `bun:test`         | `e2e/` + committed `__screenshots__` baselines; unit `*.test.ts`                                  |
+| Types              | TypeScript 7 `tsc`              | `tsconfig.base.json` shared by every workspace                                                    |
+| Deploy             | Drydock (`drydock.yaml`)        | `rootDir: apps/web`, `workspace: "@app/web"`, predeploy `bun run db:deploy`                       |
+| Analytics          | Crow's Nest                     | `<script defer src="https://cn.dested.com/cn.js">` in `index.html`; `cnEvent()` for custom events |
+| Mobile (optional)  | Expo SDK 57, RN 0.86, Router    | dev client only; NativeWind 5 rc; better-auth Expo plugin; EAS for distribution                   |
+| Desktop (optional) | Electron 44, electron-vite 5    | tRPC over IPC (`@app/trpc-ipc`), no superjson, no DB; electron-builder `--dir` releases           |
 
 ## Directory structure
 
 ```
 project.json             per-project identity (name, scheme, bundleId, appId, surfaces, apiPort, metroPort, desktopPort, db, easProjectId, appleTeamId)
 package.json             workspace root: catalog, overrides (lightningcss), proxy scripts
-bunfig.toml              linker = "hoisted"
+bunfig.toml              linker = "hoisted", minimumReleaseAge = 259200 (3 days, in-repo so WSL/EAS/Drydock all get it)
 tsconfig.base.json       shared strict compiler options
 drydock.yaml             deploy seed (merge=ours with project.json, see .gitattributes)
+.easignore               EAS upload filter (replaces every .gitignore on EAS; keeps ios/, android/, plans out)
 scripts/
 ├── init.ts              clone → rename, project.json, per-project ports, drops unwanted surfaces (own commit)
 ├── sync.ts              merge upstream/main without committing; keeps identity, lockfile, dropped surfaces dropped
@@ -73,8 +75,9 @@ server.ts                Express entry: request logging, /healthz, auth + tRPC m
                          vite (dev) / static+SSR (prod), startup banner. Dev AND prod.
 server/
 ├── env.ts               zod-validated env (PORT, DATABASE_URL, BETTER_AUTH_*), parsed at import (throws → no boot)
+├── asset-path.ts        isAssetPath(): known asset extensions 404 before SSR; dotted page paths render (+ test)
 ├── logger.ts            ANSI request logger, startup banner, formatError
-├── prisma.ts            PrismaClient singleton (HMR-safe) via pg adapter
+├── prisma.ts            PrismaClient singleton (HMR-safe) via pg adapter, sessions pinned to UTC
 ├── auth.ts              better-auth instance + Session type
 ├── trpc.ts              createContext + initTRPC + public/protectedProcedure
 ├── router.ts            appRouter (me, posts.list, posts.create) + AppRouter type (exported as @app/web/router)
@@ -96,6 +99,7 @@ src/
 │   └── ui/              shadcn primitives (button, card, input, label)
 ├── lib/
 │   ├── auth-client.ts   better-auth React client
+│   ├── crowsnest.ts     cnEvent(name, props): typed Crow's Nest custom events (no-op on the server)
 │   ├── theme.ts         theme state — applyTheme/setTheme/toggleTheme/followSystemTheme (mirrors index.html script)
 │   ├── trpc.tsx         TRPCProvider + useTRPC + getBrowserClients() (lazy browser QueryClient/tRPC singletons)
 │   ├── ssr-state.ts     superjson (de)serialize of the dehydrated cache (+ ssr-state.test.ts)
@@ -103,8 +107,8 @@ src/
 └── styles/
     └── app.css          Tailwind v4 import + @app/tokens/tokens.css + custom variant/base layer
 public/                  favicon.svg, robots.txt (served by vite dev / express static prod)
-e2e/                     smoke.spec.ts, global-setup.ts (migrate deploy + truncate), db.ts (test DB URL), __screenshots__/
-index.html               SSR template — stylesheet <link>, pre-paint theme script, <!--app-html--> + <!--app-state-->
+e2e/                     smoke.spec.ts, global-setup.ts (db:deploy + truncate), db.ts (port + test DB URL from project.json), __screenshots__/
+index.html               SSR template — Crow's Nest tag, stylesheet <link>, pre-paint theme script, <!--app-html--> + <!--app-state-->
 prisma/schema.prisma     User / Session / Account / Verification + Post
 prisma/migrations/       committed migrations (init + everything after); raw SQL lives here
 prisma.config.ts         Prisma 7 CLI config; loads the root .env itself (Bun/Prisma don't)
@@ -112,8 +116,9 @@ prisma.config.ts         Prisma 7 CLI config; loads the root .env itself (Bun/Pr
 
 ```
 apps/mobile/
-├── app.config.ts        reads ../../project.json (zod); APP_VARIANT → name/bundle id/scheme; plugins; fingerprint runtimeVersion
-├── eas.json             development / preview / production profiles, channels of the same names (bun 1.3.10 + node 22.22.2 pinned)
+├── app.config.ts        reads ../../project.json (zod); APP_VARIANT → name/bundle id/scheme; extra (apiPort, apiUrl, base scheme); plugins (scene support for Xcode 27); fingerprint runtimeVersion
+├── eas.json             development / preview / production profiles, channels of the same names (bun 1.4.3 = local, node 22.22.2)
+├── fingerprint.config.js keeps the runtime fingerprint identical locally and on EAS (ignores plugin JS, Gradle output, .bun-tag-*)
 ├── metro.config.js      withNativewind(getDefaultConfig(__dirname)), nothing else
 ├── global.css           tailwind layers + nativewind/theme + @app/tokens/tokens.css
 ├── modules/app-native/  local Expo module (Swift nativeHello)
@@ -121,7 +126,8 @@ apps/mobile/
     ├── app/             Expo Router: _layout (providers, splash, Stack.Protected), (auth)/, (app)/ — one-line re-exports
     ├── screens/         sign-in, sign-up, home (posts + native examples + fingerprint row)
     ├── components/ui/   button, card, input, label (cva, mirrors web)
-    ├── lib/             api-url, auth-client (expoClient + SecureStore), trpc, query-rn, app-config, ota, utils
+    ├── lib/             api-url (env → LAN dev → deployed apiUrl), auth-client (expoClient + SecureStore), trpc, query-rn,
+    │                    app-config (validated extra + variant/appScheme from the native bundle id), ota, utils
     └── env.ts           zod over EXPO_PUBLIC_API_URL
 ```
 
@@ -217,7 +223,7 @@ Email + password, `autoSignIn` on sign-up. Client (`auth-client.ts`) → `/api/a
 
 ### Mobile
 
-Expo dev-client app (never Expo Go). Talks to the web server's `/api/trpc` + `/api/auth/*`; base URL from `EXPO_PUBLIC_API_URL`, else the dev LAN host (Metro `hostUri`) + `apiPort`. Auth: better-auth `expoClient` + SecureStore; the tRPC link sends the cookie as a header. Server trusts the app schemes via `expo()` plugin + `trustedOrigins`. Variants (`APP_VARIANT`) coexist on one device. Native dark mode via the `@media native` block in tokens.css. Native changes need a new dev-client build on the Mac (compare `bun run fingerprint` with the Home screen's fingerprint row). EAS Update: `runtimeVersion` is the fingerprint, `updates.url` comes from `project.json` `easProjectId` (none → expo-updates off), each build profile has its own channel, and `src/lib/ota.ts` (mounted in the root layout) checks on launch and every foreground, fetches and `reloadAsync`s; off in `__DEV__`. `.gitattributes` forces LF so a Windows checkout fingerprints the same as the EAS build. **Lives in:** `apps/mobile/`, `packages/native-example/`, `apps/web/server/auth.ts`.
+Expo dev-client app (never Expo Go). Talks to the web server's `/api/trpc` + `/api/auth/*`; base URL from `EXPO_PUBLIC_API_URL`, else the dev LAN host (Metro `hostUri`) + `apiPort`, else the deployed `https://<name>.dested.com`. Auth: better-auth `expoClient` + SecureStore; the tRPC link sends the cookie as a header. Server trusts the app schemes via `expo()` plugin + `trustedOrigins`. Variants (`APP_VARIANT`) coexist on one device; at runtime the variant/scheme come from the native bundle id, so an update bundle is variant-agnostic and `ota:promote` (republish preview → production) ships the tested artifact. Native dark mode via the `@media native` block in tokens.css. Native changes need a new dev-client build on the Mac (compare `bun run fingerprint` with the Home screen's fingerprint row). EAS Update: `runtimeVersion` is the fingerprint, `updates.url` comes from `project.json` `easProjectId` (none → expo-updates off), each build profile has its own channel, and `src/lib/ota.ts` (mounted in the root layout) checks on launch and every foreground, fetches and `reloadAsync`s; off in `__DEV__`. `.gitattributes` forces LF and `fingerprint.config.js` drops machine-dependent sources so a local `eas update` fingerprints the same as the EAS build; the `ota:*` scripts set `APP_VARIANT` themselves (`eas update` ignores eas.json build env). **Lives in:** `apps/mobile/`, `packages/native-example/`, `apps/web/server/auth.ts`.
 
 ### Desktop
 
@@ -244,7 +250,7 @@ Add to `appRouter` in `server/router.ts`; pick public/protected; validate input 
 
 ### Add a DB table
 
-Edit `prisma/schema.prisma` → `bun run db:migrate --name <what>` (applies + regenerates the client) → read and commit `prisma/migrations/<ts>_<what>/` → use `prisma.x` in procedures. Raw SQL: `bun run db:migrate:create --name <what>`, append SQL, then `bun run db:migrate`.
+Edit `prisma/schema.prisma` → `bun run db:migrate --name <what>` (applies + regenerates the client) → read and commit `prisma/migrations/<ts>_<what>/` → use `prisma.x` in procedures. In an agent shell (`migrate dev` refuses): `bun run db:migrate:sql -o prisma/migrations/<ts>_<what>/migration.sql`, read it, `bun run db:deploy && bun run db:generate`. Raw SQL: `bun run db:migrate:create --name <what>`, append SQL, then `bun run db:migrate`.
 
 ### Add an e2e test
 
@@ -261,7 +267,7 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 - **Run `bun run db:generate` after schema edits** (auto-runs on `bun install`).
 - **superjson everywhere** — any new tRPC link needs `transformer: superjson`; SSR state goes through `ssr-state.ts`, never raw `JSON.stringify`. Format Dates deterministically (UTC / fixed `timeZone`) or SSR/hydration markup diverges.
 - **Migrations, never `db push`** — and review generated SQL: Prisma can emit `DROP INDEX` for hand-made expression indexes.
-- **Port** — `PORT` env (default `project.json` apiPort, 4780); Metro = apiPort + 1; never 3000/3001/5173/5174/8000/8080/4200/5000.
+- **Port** — `PORT` env (default `project.json` apiPort, 4780); Metro = apiPort + 1, desktop renderer + 2, e2e + 3; never 3000/3001/5173/5174/8000/8080/4200/5000.
 - **Types** — `strict` + `noUncheckedIndexedAccess`; no `any`, no `as` casts to paper over mismatches, narrow instead (see `isSsrContext` in `routes.tsx`).
 - **Stylesheet is a `<link>` in `index.html`** — never `import` CSS from a component (Vite injects it after the module graph loads → unstyled flash in dev). `@import` new CSS from `app.css`.
 - **Theme script and `theme.ts` must stay in sync**; never branch on theme in render (use `dark:` classes) or hydration mismatches.
@@ -273,11 +279,14 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 - Use `log.*` from `server/logger.ts`, not raw `console.log`, in server code.
 - **Desktop IPC has no superjson** — never add a transformer other than `ipcTransformer` to the desktop router or `ipcLink`. Every procedure output must survive structured clone (no functions, no class instances you need back).
 - **Desktop preload must stay tiny and CJS** — import only `@app/trpc-ipc/preload`; anything else lands in the sandboxed preload bundle.
-- **Electron pins respect the 3-day `minimumReleaseAge`** in the global bunfig; a same-week Electron won't install.
+- **Every pin respects the 3-day `minimumReleaseAge`** in the repo `bunfig.toml`; a same-week release (Electron, Expo patches) won't install. Bump only to versions at least 3 days old.
+- **After `bunx expo install --fix`, run `bun run doctor`.** An incremental install can leave same-version duplicates nested under `node_modules/expo*/node_modules/`; delete those folders and `bun install`.
+- **Never `bunx prisma`** — outside the workspace it resolves npm `latest`, the Prisma 8 RC. Scripts and Drydock's predeploy use `bun run db:*`.
+- **SSR asset 404s go through `server/asset-path.ts`** — add an extension there, never a regex on "has a dot" (that 404'd `/u/ada.lovelace`).
 
 ## Status
 
 - **Done** — SSR + hydration (server and client-nav prefetch), auth (email/pw), tRPC posts demo, logging, /healthz, 404/error handling, favicon/robots, flash-free dark mode + toggle, scroll restoration, immutable asset caching, init script (rename + per-project port), Playwright e2e + screenshot baselines. Monorepo (`apps/web`, optional `apps/mobile`, optional `apps/desktop`), `project.json` identity + `surfaces`, `init --mobile|--desktop|--desktop-only` / `sync` / `add:mobile|add:desktop`, `@app/tokens`, Electron desktop surface with tRPC over IPC (`@app/trpc-ipc`) and unpacked releases, Drydock seed, Expo SDK 57 mobile app with auth + posts + two native example modules. Express 5 + Prisma 7. superjson (wire + SSR state), zod 4, `noUncheckedIndexedAccess`, `prisma migrate` workflow, `bun:test` unit tests.
 - **Not built** — email verification, OAuth providers, rate limiting, CI, per-route head/meta, Android.
-- **Unverified** — first dev-client build on the Mac/iPad (Gate 3), EAS builds, Drydock deploy of a workspace (needs Drydock's fix).
+- **Unverified** — first dev-client build with `enableSceneSupport` and `expo-application`, `ota:promote` end to end, fingerprint parity on a real EAS build since the bun pin moved to 1.4.3. Drydock deploys of the workspace shape are proven by 10 forks.
 - **Next:** whatever the cloned product needs — this is a base.

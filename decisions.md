@@ -2,6 +2,36 @@
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
 
+## 2026-10-24 — OTA promotion republishes one variant-agnostic bundle
+
+**Why:** `eas update` never reads eas.json's build `env`, so the old `ota:*` scripts bundled against the production config on every lane (mobile-game-2 6eeb16d, sal-excersize 47b3f37). Each script now sets `APP_VARIANT`, and the app reads its variant and scheme from the installed binary's bundle id (`expo-application`), never from the JS bundle. One bundle is then valid in preview and production, so `ota:promote` (`eas update:republish --channel preview --destination-channel production`) ships exactly what was tested.
+**Rejected:** re-publishing to production from the same commit (a second, untested bundle), branch promotion (Expo documents it only with a hand-set runtimeVersion, not the fingerprint policy).
+
+## 2026-10-24 — Keep the fingerprint runtimeVersion; make it machine-independent
+
+**Why:** all four forks that used EAS hit a local-vs-EAS fingerprint mismatch, from three causes: plugin JS that eas-cli preloads on the builder, local Gradle output, and Bun's `.bun-tag-*` names (eas.json pinned Bun 1.3.10 against a local 1.4). `apps/mobile/fingerprint.config.js` (sal-excersize's proven list plus the bun tags) and eas.json `bun` = the local Bun fix all three. Fingerprint stays because nobody has to remember to bump it; SDK 58's `balanced` preset covers most of this list.
+**Rejected:** `appVersion` policy (homebase 0576812: every native change needs a manual version bump, or updates crash old binaries).
+
+## 2026-10-24 — OTA keeps applying at once (re-affirms 2026-10-04)
+
+**Why:** Sal chose instant reload on launch and on every resume over "apply on the next cold launch". Fixes land within one open. Cost: a reload mid-session blanks what's on screen (mobile-game-2's Skia canvases, 73be1c8); a fork with that kind of screen can opt out locally.
+**Rejected:** splash-only apply with resume downloading for the next launch (recommended in plans/2026-10-24-starter-overhaul.md), next-launch only.
+
+## 2026-10-24 — Stay on Prisma 7.10; the CLI only through `bun run db:*`
+
+**Why:** Prisma 8 (8.0.0-rc.27, already npm `latest`) is a rewrite: no `PrismaClient`, chained queries, `DateTime` as `Temporal.Instant` (breaks the superjson `Date` contract), no `$extends`/TypedSQL, and no better-auth adapter. Prisma 7 gets fixes for 18 months after 8 goes GA. Because `latest` is the RC, anything that resolves the CLI outside the workspace (`bunx prisma`, a bare `bun add prisma`) can pull 8; scripts, e2e setup and Drydock's predeploy all use `bun run db:*`. Revisit after 8's GA plus a better-auth adapter.
+**Rejected:** moving to Prisma 8 now.
+
+## 2026-10-24 — `minimumReleaseAge` lives in the repo `bunfig.toml`
+
+**Why:** the 3-day release gate was only in Sal's Windows `~/.bunfig.toml`, so WSL sessions, EAS and Drydock installed same-day releases. In the repo it travels with every fork and every machine.
+**Rejected:** per-machine bunfig files (WSL had none).
+
+## 2026-10-24 — E2E port = apiPort + 3, test DB = `<db>_test`, both from `project.json`
+
+**Why:** a shared Playwright port 3100 with `reuseExistingServer` let one fork's suite test another fork's running server. `init` now reserves n … n + 3.
+**Rejected:** a separate `e2ePort` field in `project.json` (one more identity field for a derived value).
+
 ## 2026-10-07 — Optional Electron desktop surface (`apps/desktop`), first fork sal-git
 
 **Why:** desktop tools (sal-git first, later sal-agent's app) should start from the same template as everything else: same tokens, same tRPC, same scripts. Electron because its main process is Node, so the whole app stays TypeScript. electron-vite 5 (Vite 6, like web) builds main/preload/renderer; electron-builder `--dir` only (no installer, no auto-update). `project.json` `surfaces` now says what a fork has, instead of inferring it from the filesystem; `--desktop-only` forks drop web, mobile and Drydock.

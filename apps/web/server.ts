@@ -5,6 +5,7 @@ import * as fs from 'node:fs'
 import * as http from 'node:http'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isAssetPath } from './server/asset-path'
 import { auth } from './server/auth'
 import { env } from './server/env'
 import { formatError, log, requestLogger, startupBanner } from './server/logger'
@@ -18,11 +19,6 @@ const PORT = env.PORT
 
 const resolve = (p: string) => path.resolve(__dirname, p)
 
-// Requests with a file extension that reach the SSR catch-all are misses
-// (favicon.ico, source maps, stray .png). Render the SPA only for extension-less
-// paths so these 404 fast instead of returning a full HTML doc with status 200.
-const LOOKS_LIKE_FILE = /\.[a-zA-Z0-9]+$/
-
 async function createServer() {
   const app = express()
   // Vite's HMR websocket rides on this same server (see `hmr.server` below),
@@ -33,7 +29,7 @@ async function createServer() {
   // One tidy log line per request (status + timing), asset noise filtered out.
   app.use(requestLogger(isProd))
 
-  // Liveness/readiness probe — pings the DB. Used by Render's health check.
+  // Liveness/readiness probe — pings the DB. Drydock's health check hits it.
   app.get('/healthz', async (_req, res) => {
     try {
       await prisma.$queryRaw`SELECT 1`
@@ -98,10 +94,10 @@ async function createServer() {
       res.status(404).json({ error: 'Not found' })
       return
     }
-    // GET and HEAD on extension-less paths are SSR navigations; express strips
-    // the body from a HEAD response, and unfurlers/uptime checks use it.
+    // GET and HEAD on non-asset paths are SSR navigations; express strips the
+    // body from a HEAD response, and unfurlers/uptime checks use it.
     const navigational = req.method === 'GET' || req.method === 'HEAD'
-    if (!navigational || LOOKS_LIKE_FILE.test(req.path)) {
+    if (!navigational || isAssetPath(req.path)) {
       res.status(404).type('txt').end('Not found')
       return
     }

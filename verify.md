@@ -67,7 +67,7 @@ Needs a reachable Postgres and the credentials in the root `.env`.
 
 ```bash
 createdb sal_starter_test   # once
-bun run test:e2e            # Playwright on :3100 against sal_starter_test
+bun run test:e2e            # Playwright on :4783 (apiPort + 3) against sal_starter_test
 curl -s http://localhost:4780/healthz          # {"status":"ok",...} with bun run dev up
 ```
 
@@ -88,5 +88,6 @@ Needs the Mac, the iPad and an Apple Developer account. Windows runs `bun run de
 
 - `bun run build:preview` (in `apps/mobile`) installs on a registered iPad; `bun run ota:preview` reaches it.
 - Before any `eas update`: `eas fingerprint:compare --build-id <build>` says the local runtime matches the build's.
-- OTA: publish a visible JS change with `bun run ota:preview`, background and reopen the app → it reloads into the change.
-- Drydock: blocked until Drydock's workspace-aware Dockerfile fix. Then: deploy, `/healthz` 200, sign up on the deployed URL.
+- OTA: publish a visible JS change with `bun run ota:preview --message "…"`, background and reopen the app → it reloads into the change.
+- Promote: `bun run ota:promote` → the production build reloads into the same update (same update group id in `eas update:list`).
+- Drydock: push → deploy green, `/healthz` 200, sign up on the deployed URL, the host shows up under Crow's Nest → Sites → Waiting to be claimed.

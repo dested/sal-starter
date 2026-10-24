@@ -53,8 +53,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   runtimeVersion: { policy: 'fingerprint' },
   // Read at runtime by src/lib/app-config.ts. apiPort lets LAN dev find the API
   // next to Metro without a mobile .env (identity stays in project.json).
+  // apiUrl is the deployed server (Drydock's default <name>.dested.com), so a
+  // preview or production bundle always has one; EXPO_PUBLIC_API_URL overrides.
+  // scheme is the base scheme: the variant suffix is read from the installed
+  // binary at runtime, so one update bundle serves preview and production.
   extra: {
     apiPort: project.apiPort,
+    apiUrl: `https://${project.name}.dested.com`,
+    scheme: project.scheme,
     ...(project.easProjectId === null ? {} : { eas: { projectId: project.easProjectId } }),
   },
   // EAS Update. `eas init` / `eas update:configure` can't write a dynamic config:
@@ -89,7 +95,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     'expo-secure-store',
-    'expo-build-properties',
+    // Xcode 27 / iOS 27 needs the UIKit scene lifecycle (expo >= 57.0.23).
+    // Drop this on SDK 58: its template has scenes built in.
+    ['expo-build-properties', { ios: { enableSceneSupport: true } }],
     [
       'expo-splash-screen',
       {

@@ -26,9 +26,9 @@
 //   --mobile        keep the Expo app (apps/mobile)
 //   --desktop       keep the Electron app (apps/desktop) next to web
 //   --desktop-only  keep only the Electron app: no web server, database or auth
-//   --port <n>      base port (default: derived from the name, 4100–7997). Never
+//   --port <n>      base port (default: derived from the name, 4100–7996). Never
 //                   3000/3001/5173/5174/8000/8080/4200/5000. API n, Metro n + 1,
-//                   desktop renderer n + 2.
+//                   desktop renderer n + 2, Playwright e2e n + 3.
 //   --fresh-git     wipe git history and start a new repo. This severs the link
 //                   to sal-starter: no `bun run sync`, no `add:*`.
 
@@ -84,25 +84,26 @@ const surfaces: Surface[] = desktopOnly
       (s) => s === 'web' || (s === 'mobile' && mobile) || (s === 'desktop' && desktop)
     )
 
-// The base port and the two above it (Metro, desktop renderer) must all be usable.
-const portIsUsable = (p: number) => [p, p + 1, p + 2].every((q) => !BANNED_PORTS.has(q))
-const templatePorts = new Set([TEMPLATE_PORT, TEMPLATE_PORT + 1, TEMPLATE_PORT + 2])
-const clashesWithTemplate = (p: number) => [p, p + 1, p + 2].some((q) => templatePorts.has(q))
+// The base port and the three above it (Metro, desktop renderer, e2e) must all be usable.
+const portBlock = (p: number) => [p, p + 1, p + 2, p + 3]
+const portIsUsable = (p: number) => portBlock(p).every((q) => !BANNED_PORTS.has(q))
+const templatePorts = new Set(portBlock(TEMPLATE_PORT))
+const clashesWithTemplate = (p: number) => portBlock(p).some((q) => templatePorts.has(q))
 
 // Deterministic per-name default so two clones never share a port by accident.
 function portFromName(n: string): number {
   let hash = 0
   for (const ch of n) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
-  let port = 4100 + (hash % 3898)
+  let port = 4100 + (hash % 3897)
   while (!portIsUsable(port) || clashesWithTemplate(port)) port++
   return port
 }
 
 const apiPort = rawPort === undefined ? portFromName(name) : Number(rawPort)
-if (!Number.isInteger(apiPort) || apiPort < 1024 || apiPort > 65533 || !portIsUsable(apiPort)) {
+if (!Number.isInteger(apiPort) || apiPort < 1024 || apiPort > 65532 || !portIsUsable(apiPort)) {
   fail(
     `Invalid --port "${rawPort ?? ''}".`,
-    `Use an uncommon port 1024–65533 (n + 1 and n + 2 are taken too); never ${[...BANNED_PORTS].join('/')}.`
+    `Use an uncommon port 1024–65532 (n + 1 to n + 3 are taken too); never ${[...BANNED_PORTS].join('/')}.`
   )
 }
 
@@ -174,6 +175,7 @@ const replacements: Array<[RegExp, string]> = [
   [/sal_starter/g, snake],
   [/Sal Starter/g, title],
   [/\bsalstarter\b/g, scheme],
+  [new RegExp(`\\b${TEMPLATE_PORT + 3}\\b`, 'g'), String(apiPort + 3)],
   [new RegExp(`\\b${TEMPLATE_PORT + 2}\\b`, 'g'), String(apiPort + 2)],
   [new RegExp(`\\b${TEMPLATE_PORT + 1}\\b`, 'g'), String(apiPort + 1)],
   [new RegExp(`\\b${TEMPLATE_PORT}\\b`, 'g'), String(apiPort)],
