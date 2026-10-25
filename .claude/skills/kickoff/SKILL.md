@@ -86,11 +86,11 @@ Work through every item; each is a place the placeholder survives otherwise.
   `apps/web/src/styles/app.css`, then point `--font-body` / `--font-heading` in
   `tokens.css` at `'<Family> Variable', <fallback stack>`. Headings use
   `font-display`. Desktop: the same in `apps/desktop/src/renderer/src/styles/app.css`.
-- Mobile: `bunx expo install expo-font @expo-google-fonts/<family>` in
-  `apps/mobile`, load them with `useFonts` in `src/app/_layout.tsx` while the
-  splash is held, and map `--font-sans` / `--font-display` in
-  `apps/mobile/global.css` (`@theme`) to the loaded family names (native needs
-  one family name per weight).
+- Mobile: `bunx expo install @expo-google-fonts/<family>` in `apps/mobile`,
+  add the weights to `FONTS` in `src/lib/fonts.ts` (loaded behind the splash),
+  and map `--font-sans` / `--font-display` in `apps/mobile/global.css`
+  (`@theme`) to the loaded family names (native needs one family name per
+  weight).
 
 **Primitives**
 
@@ -105,11 +105,11 @@ Work through every item; each is a place the placeholder survives otherwise.
 - The nav and shell in `apps/web/src/app/layout.tsx`: the wordmark in the
   display face, links that fit the product.
 - Mobile: the first screen in `apps/mobile/src/screens/`.
-- The Post demo (Post model, `posts` router, `/dashboard`, mobile home) is a
-  reference for the SSR + prefetch pattern. Replace it with the first real
-  feature, dropping the table in a migration (`bun run db:migrate --name
-drop_post_demo`) and updating `apps/web/e2e/global-setup.ts` (TRUNCATE list)
-  and `apps/web/e2e/smoke.spec.ts`.
+- Drop the Post demo: `bun run demo:drop` deletes its files and marked lines
+  on web and mobile, writes the `drop_post_demo` migration and regenerates the
+  client; then `bun run db:deploy`. Until it runs, a fork's `bun run build` and
+  `bun run test` fail. Keep its pattern (`me` prefetched in `dashboardLoader`)
+  for the first real feature.
 
 **Brand assets**
 
@@ -141,11 +141,13 @@ drop_post_demo`) and updating `apps/web/e2e/global-setup.ts` (TRUNCATE list)
 
 ## 4. Check it
 
-- `bun run tokens && bun run brand && bun run typecheck && bun run test` green.
+- `bun run tokens && bun run brand && bun run typecheck && bun run test` green
+  (the tests stay red while the demo is present: `bun run demo:drop`).
 - `bx`: screenshot `/`, sign-in and the signed-in page at desktop width and at
   390px. No ribbon. Nothing still neutral grey that should carry the look.
 - Mobile: run it on Limrun (`limrun` skill) and screenshot the first screen. If
   that isn't possible this session, say mobile is unverified.
+- `bun run build` green (it fails while the demo is present).
 - `bun run test:e2e:update` once the pages are final, and review the new
   baselines before committing them.
 - Show Sal the screenshots (full paths) and ask whether it's right before

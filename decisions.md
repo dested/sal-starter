@@ -2,6 +2,66 @@
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
 
+## 2026-10-25 — The Post demo is template-only, gated in forks by `project.json` `template: true`
+
+**Why:** Sal: "I've seen this screen in like 9 projects that never deleted it." The demo is kept as a reference in the template, but in its own files (`apps/web/server/demo.ts` is the marker) and marked lines (`// demo`, `demo:start` … `demo:end`), so `bun run demo:drop` (`scripts/demo.ts`) can remove it mechanically and write a `DROP TABLE IF EXISTS "post"` migration. In a fork, `noTemplateDemo` in `vite.config.ts` fails the production build (Drydock can't ship it) and `server/demo.test.ts` fails `bun run test`; a dashed bar on web and mobile says so. "Is this the template" is `project.json` `template: true` (schema `z.literal(true).optional()`), which `init` drops, because `init` renames every `sal-starter` string and a name check would pass in every fork. JSX uses block markers only: a same-line `{/* demo */}` leaves a stray text node on React Native. `eas-setup` refuses on the same flag (the template has no EAS project). This replaces the plan's "init strips the demo" and phase B's "the kickoff replaces it".
+**Rejected:** init stripping the demo (forks lose the reference before their first feature), a name comparison (renamed by init), a warning only (nine forks ignored the demo), deleting the demo from the template.
+
+## 2026-10-25 — Brand assets are generated from one mark
+
+**Why:** every fork shipped Expo's template icon and a grey-grid splash, and the splash put an icon tile on a different-colored background (a box in a box). `packages/brand` renders `mark.svg` + token roles (`brand.json`) into every surface with @resvg/resvg-js. `brand.gen.json` records input and output hashes (the input hash includes the generator source, so outputs can't drift from it), and `brand.test.ts` fails on stale or hand-dropped files. The splash is the brand color full-bleed with the bare mark, and `BrandSplash` takes over from it pixel-identically. The source and outputs are `merge=ours`. resvg writes RGBA only, so `png.ts` encodes the opaque iOS icon as RGB (Apple rejects alpha).
+**Rejected:** sharp (a libvips native dependency; resvg is a prebuilt napi binary with deterministic pixels), hand-made PNGs per surface, a tiled splash image, an explicit generator version constant instead of hashing the source.
+
+## 2026-10-25 — shadcn on Base UI (`base-nova`)
+
+**Why:** it's shadcn 4.22's default style, so `shadcn add` output and the docs agents read match the repo. Primitives use Base UI's `render` prop instead of Radix Slot / `asChild`. Classes kept the token look, so every e2e baseline passed unchanged. Base UI's Button defaults to `type="button"`; forms pass `type="submit"`.
+**Rejected:** staying on new-york + Radix (diverges from every new `shadcn add`), Radix Slot for `asChild`.
+
+## 2026-10-25 — shadcn's `cn` replaces clsx + tailwind-merge on web and desktop
+
+**Why:** `base-nova` components import `cn` from the `cn` package, so `shadcn add` output compiles without edits; `~/lib/utils` re-exports it. On 14 of our token class combinations it gave the same result as `twMerge(clsx())`. **Risk:** `cn` is 0.x (0.5.0, about two months old) from the shadcn-ui org. **Fallback (B):** restore clsx + tailwind-merge 3 in `utils.ts` and rewrite `from "cn"` to `from '~/lib/utils'` after each `shadcn add`. Mobile stays on tailwind-merge 3 + clsx.
+**Rejected:** B now (an edit after every `shadcn add`).
+
+## 2026-10-25 — Loaders read React Router 8's typed context (supersedes the 2026-09-29 `isSsrContext` narrowing and parts of 2026-09-11 browser singletons)
+
+**Why:** RR8's `createContext` keys (`src/lib/router-context.ts`) give loaders one typed API on both sides: `entry-server.tsx` fills a `RouterContextProvider` per request, `createBrowserRouter`'s `getContext: browserContext` per navigation. The session is a lazy getter, memoized per request or navigation. It replaces `isSsrContext` narrowing and every `typeof window` branch. `getBrowserClients()` stays; it is what `browserContext` puts in `clientsContext`. Cost: `getContext` makes navigations start async, so `await navigate()` before `revalidate()`.
+**Rejected:** middleware-built context (the static handler runs route middleware only with `generateMiddlewareResponse`), keeping the RR7 `requestContext` object (an `any` narrowed by hand).
+
+## 2026-10-25 — React Compiler on web and desktop goes through Babel
+
+**Why:** `@rolldown/plugin-babel` + `reactCompilerPreset()` from @vitejs/plugin-react 6 is the stable Babel compiler, the same one mobile runs through babel-preset-expo. The preset applies only to the client build (`consumer === 'client'`), so SSR output is uncompiled by design.
+**Rejected:** plugin-react's Rust `compiler` option (documented as experimental), compiling the SSR bundle too.
+
+## 2026-10-25 — Sign-up allowlist and admins are env lists, enforced in better-auth's create hook
+
+**Why:** 5 and 4 forks rebuilt these. `SIGNUP_ALLOWLIST` (emails and `@domain` entries, blank = open; a domain matches itself, not subdomains) is checked in `databaseHooks.user.create.before`, so no client or plugin path can skip it; it answers 403 `SIGNUP_CLOSED` with a message the forms show. `ADMIN_EMAILS` is exact addresses only (an `@domain` entry never makes anyone admin) and admins may always sign up. `isAdmin` is computed once into the tRPC context by `contextFor(session)`, the only context builder (HTTP, the SSR proxy, WebSockets), and `adminProcedure` reads it.
+**Rejected:** a `role` column (a migration and an admin UI for what is a deploy setting), checking in the sign-up form or a tRPC wrapper (bypassable through `/api/auth`), `@domain` admins.
+
+## 2026-10-25 — Server slots: defaults vs `add:*` recipes (Q4)
+
+**Why:** what every fork with accounts needs ships by default: the `?next=` return + loader helpers (`requireSession`, `redirectIfSignedIn`, `safeNext`), the allowlist + admin, and the optional-key env helper (`optionalSecret` / `requireEnv`, so a deploy never fails before a key is set). What only some forks need is a copy-in recipe: `bun run add:ai`, `add:ws`, `add:jobs` (`recipes/`). A recipe copies files, installs deps, makes anchored edits (or prints the change to make by hand), formats and typechecks, is a no-op the second time and never commits, so the fork owns the code. `init --no-auth` is a checked edit script (`scripts/no-auth.ts`) for forks with no accounts. The Anthropic SDK is ^1.1.0 because 1.2.0+ was still inside the release age.
+**Rejected:** shipping AI / WebSocket / jobs in every fork (dead code and deps in most), npm packages for them (forks edit this code), a generator that rewrites files wholesale.
+
+## 2026-10-25 — `sync` detects a no-auth fork from disk
+
+**Why:** a fork made with `init --no-auth` deleted `NO_AUTH_PATHS`; without help every template edit to one is a modify/delete conflict. `sync` treats a fork with web but no `apps/web/server/auth.ts` as no-auth and keeps the `NO_AUTH_PATHS` that are gone at HEAD deleted, the way it treats `OPTIONAL_PATHS`. A path the fork has again (an e2e baseline `test:e2e:update` rewrote) merges normally.
+**Rejected:** a `project.json` `auth: false` field (one more identity field that can disagree with the files; older no-auth forks wouldn't have it).
+
+## 2026-10-25 — EAS setup runs eas-cli from a throwaway static `app.json`
+
+**Why:** against our dynamic `app.config.ts`, `eas init` creates the project and then exits 1 without saving the id (eas-cli 25.3.0 `saveProjectIdToAppConfigAsync` → `modifyConfigAsync` returns `warn` for a dynamic config with no static app.json). `scripts/eas-setup.ts` runs it in a temp folder holding `{ name, slug, owner }`, writes the id into `project.json` itself, then sets `APP_VARIANT` per EAS environment and protects the production channel. `init --mobile` calls it and never fails on it (no eas-cli or no login → a printed command for later). The owner is `project.json` `easOwner` (default quickgame). The fingerprint that counts is per platform and variant (`expo-updates fingerprint:generate`, what EAS uses), not `@expo/fingerprint .` (one hash over both platforms that matches no build); `bun run fingerprint` and Home's row read that one.
+**Rejected:** a committed static `app.json` (two config sources), running `eas init` in `apps/mobile` and patching `project.json` by hand, `appVersion` runtime policy.
+
+## 2026-10-25 — `upgrade:expo` upgrades only inside the release age
+
+**Why:** `bunx expo install --fix` asks Expo's API for the newest patch, which the 3-day `minimumReleaseAge` then blocks halfway. `scripts/upgrade-expo.ts` reads the window from `bunfig.toml` and picks the newest stable expo of the SDK whose bundled companions are all old enough, lists what's blocked and when it clears, aligns the catalog React, runs `EXPO_OFFLINE=1 bunx expo install --fix`, checks the Uniwind floor for the RN version, and diffs ios + android fingerprints to say whether the dev client needs a rebuild. Downgrades are refused. Majors go through the `upgrade-expo` skill.
+**Rejected:** overriding the release age for Expo (it's policy), a manual checklist.
+
+## 2026-10-25 — `init --mobile` drops `packages/native-example` by default
+
+**Why:** no real fork used it at runtime; `modules/app-native` (kept or grown by 6 of 7) proves the local-module path. The template keeps it as the shared-package + config-plugin reference; `init --native-example` keeps it in a fork, and `sync` keeps it deleted otherwise (`OPTIONAL_PATHS`). init checks each edit it makes for the drop before deleting anything.
+**Rejected:** deleting it from the template, keeping it in every fork.
+
 ## 2026-10-24 — SDK 58: `balanced` fingerprint preset replaces the hand list; `lru-cache` pin dropped (supersedes parts of 2026-10-24 fingerprint and 2026-10-07 lru-cache)
 
 **Why:** SDK 58's `@expo/fingerprint` hashes autolinked native modules and node_modules config plugins by `name@version` (`balanced`, the default, named in `fingerprint.config.js`), which removes all three local-vs-EAS causes the hand-written `ignorePaths` list covered (preloaded plugin JS, Gradle output, `.bun-tag-*`). Diffing the sources with and without the list, the only difference was `expo-build-properties` hashed by version. The `lru-cache` 5.1.1 devDependency is gone: a fresh lockfile-only resolve of the SDK 58 tree without it still hoists 5.1.1 (v11 stays nested under `path-scurry`), and Metro bundles. If `_lruCache is not a constructor` ever returns, re-add the pin. The launch status bar comes from the `expo-status-bar` config plugin (style from `look.scheme`), so it's right before JS runs. React Compiler is on as in SDK 58's template.
