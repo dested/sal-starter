@@ -38,8 +38,10 @@ export default defineConfig({
     // Probe over IPv6 loopback: under WSL's mirrored networking a connect to a
     // closed 127.0.0.1 port is dropped, not refused, so the "already running?"
     // check hung for ~2 min (the TCP SYN timeout) before every run. The server
-    // listens on :: (both stacks); the browser still uses `baseURL`.
-    url: `http://[::1]:${PORT}/healthz`,
+    // listens on :: (both stacks); the browser still uses `baseURL`. A static
+    // file, not /healthz: Playwright starts the server before global-setup
+    // creates a new fork's test database, so a DB ping would never pass.
+    url: `http://[::1]:${PORT}/robots.txt`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     stdout: 'pipe',
