@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
-import viteReact from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
+import viteReact, { reactCompilerPreset } from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 // Node loads the config's workspace imports unbundled, so JSON needs the attribute.
 import colors from '@app/tokens/colors.json' with { type: 'json' }
@@ -38,5 +39,7 @@ export default defineConfig({
       '~': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  plugins: [tailwindcss(), viteReact(), themeMeta()],
+  // React Compiler through Babel (the stable compiler, same as mobile's
+  // babel-preset-expo); plugin-react's Rust `compiler` option is experimental.
+  plugins: [tailwindcss(), viteReact(), babel({ presets: [reactCompilerPreset()] }), themeMeta()],
 })

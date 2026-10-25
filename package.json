@@ -28,11 +28,16 @@
       "typescript": "7.0.2",
       "prettier": "^3.9.10",
       "electron": "44.9.3",
-      "electron-vite": "5.0.0",
+      "electron-vite": "6.0.0",
       "electron-builder": "26.18.0",
       "@types/bun": "1.4.3",
       "tailwind-merge": "^3.7.0",
-      "lucide-react": "^1.61.0"
+      "lucide-react": "^1.61.0",
+      "vite": "^8.3.5",
+      "@vitejs/plugin-react": "^6.1.2",
+      "@rolldown/plugin-babel": "^0.2.4",
+      "@babel/core": "^7.29.0",
+      "babel-plugin-react-compiler": "^1.0.0"
     }
   },
   "trustedDependencies": [
@@ -60,6 +65,7 @@
     "db:deploy": "bun run --cwd apps/web db:deploy",
     "db:studio": "bun run --cwd apps/web db:studio",
     "tokens": "bun run --cwd packages/tokens emit",
+    "brand": "bun run --cwd packages/brand emit",
     "prettier": "prettier ."
   },
   "devDependencies": {

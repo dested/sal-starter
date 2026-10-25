@@ -7,8 +7,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
 import { z } from 'zod'
@@ -53,12 +54,13 @@ export default defineConfig({
     // Sandboxed preloads must be CommonJS.
     build: {
       externalizeDeps: false,
-      rollupOptions: { output: { format: 'cjs', entryFileNames: '[name].cjs' } },
+      rolldownOptions: { output: { format: 'cjs', entryFileNames: '[name].cjs' } },
     },
   },
   renderer: {
     resolve: { alias: { '~': fileURLToPath(new URL('./src/renderer/src', import.meta.url)) } },
     server: { port: project.desktopPort, strictPort: true },
-    plugins: [csp(), tailwindcss(), react()],
+    // React Compiler through Babel, as on web (vite.config.ts there).
+    plugins: [csp(), tailwindcss(), react(), babel({ presets: [reactCompilerPreset()] })],
   },
 })
