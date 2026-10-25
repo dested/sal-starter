@@ -1,17 +1,14 @@
 import { env } from '~/env'
 import { appConfig } from '~/lib/app-config'
+import { resolveApiUrl } from '~/lib/resolve-api-url'
 
-// EXPO_PUBLIC_API_URL wins everywhere it's set (tunnel, custom domain, Metro on
-// a different box than the API). LAN dev: Metro's hostUri is
-// "<lan-ip>:<metro-port>", and the same machine runs the API on project.json's
-// apiPort. Everything else (preview, production, an OTA) talks to the deployed
-// server, so a bundle built without the env var still starts instead of
-// crash-looping into an expo-updates rollback.
+/** The API base URL: EXPO_PUBLIC_API_URL, else the dev machine on the LAN, else the deployed server. */
 export function apiUrl(): string {
-  if (env.EXPO_PUBLIC_API_URL !== undefined) return env.EXPO_PUBLIC_API_URL.replace(/\/$/, '')
-  const host = appConfig.hostUri?.split(':')[0]
-  if (__DEV__ && host !== undefined && host !== '') {
-    return `http://${host}:${appConfig.extra.apiPort}`
-  }
-  return appConfig.extra.apiUrl
+  return resolveApiUrl({
+    envUrl: env.EXPO_PUBLIC_API_URL,
+    hostUri: appConfig.hostUri,
+    dev: __DEV__,
+    apiPort: appConfig.extra.apiPort,
+    deployedUrl: appConfig.extra.apiUrl,
+  })
 }

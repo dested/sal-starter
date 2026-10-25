@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import * as Updates from 'expo-updates'
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { nativeHello } from '../../modules/app-native'
 import { NativeExampleRow } from '~/components/native-example-row'
-import { SafeAreaView } from '~/components/safe-area-view'
+import { Screen } from '~/components/screen'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { authClient } from '~/lib/auth-client'
+import { buildFingerprint } from '~/lib/build-fingerprint'
 import { trpc, useTRPC } from '~/lib/trpc'
 
 // Mirrors web's /dashboard: posts list + create form, plus sign-out and the
@@ -40,89 +40,87 @@ export function HomeScreen() {
   if (!session) return null
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerClassName="gap-8 p-6" keyboardShouldPersistTaps="handled">
-        <View className="flex-row items-center justify-between gap-4">
-          <Text className="flex-1 font-display text-3xl font-bold tracking-tight text-foreground">
-            Home
-          </Text>
+    <Screen edges={['top', 'left', 'right']} className="gap-8">
+      <View className="flex-row items-center justify-between gap-4">
+        <Text className="flex-1 font-display text-3xl font-bold tracking-tight text-foreground">
+          Home
+        </Text>
+        <Button
+          variant="outline"
+          size="sm"
+          label="Sign out"
+          onPress={() => void authClient.signOut()}
+        />
+      </View>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>New post</CardTitle>
+        </CardHeader>
+        <CardContent className="gap-4">
+          <View className="gap-2">
+            <Label>Title</Label>
+            <Input value={title} onChangeText={setTitle} />
+          </View>
+          <View className="gap-2">
+            <Label>Content</Label>
+            <Input value={content} onChangeText={setContent} />
+          </View>
+          {createPost.isError && (
+            <Text className="text-sm text-destructive">{createPost.error.message}</Text>
+          )}
           <Button
-            variant="outline"
-            size="sm"
-            label="Sign out"
-            onPress={() => void authClient.signOut()}
+            label={createPost.isPending ? 'Posting…' : 'Post'}
+            disabled={createPost.isPending || title === '' || content === ''}
+            onPress={() =>
+              createPost.mutate(
+                { title, content },
+                {
+                  onSuccess: () => {
+                    setTitle('')
+                    setContent('')
+                  },
+                }
+              )
+            }
           />
-        </View>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>New post</CardTitle>
-          </CardHeader>
-          <CardContent className="gap-4">
-            <View className="gap-2">
-              <Label>Title</Label>
-              <Input value={title} onChangeText={setTitle} />
-            </View>
-            <View className="gap-2">
-              <Label>Content</Label>
-              <Input value={content} onChangeText={setContent} />
-            </View>
-            {createPost.isError && (
-              <Text className="text-sm text-destructive">{createPost.error.message}</Text>
-            )}
-            <Button
-              label={createPost.isPending ? 'Posting…' : 'Post'}
-              disabled={createPost.isPending || title === '' || content === ''}
-              onPress={() =>
-                createPost.mutate(
-                  { title, content },
-                  {
-                    onSuccess: () => {
-                      setTitle('')
-                      setContent('')
-                    },
-                  }
-                )
-              }
-            />
-          </CardContent>
-        </Card>
+      <View className="gap-3">
+        <Text className="text-xl font-semibold text-foreground">Recent posts</Text>
+        {postsQuery.isLoading && <Text className="text-sm text-muted-foreground">Loading…</Text>}
+        {postsQuery.isError && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Can’t reach the server</CardTitle>
+              <CardDescription>{postsQuery.error.message}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" label="Retry" onPress={() => void postsQuery.refetch()} />
+            </CardContent>
+          </Card>
+        )}
+        {postsQuery.data?.length === 0 && (
+          <Text className="text-sm text-muted-foreground">No posts yet — be the first.</Text>
+        )}
+        {postsQuery.data?.map((p) => (
+          <Card key={p.id}>
+            <CardHeader>
+              <CardTitle>{p.title}</CardTitle>
+              <CardDescription>
+                by {p.authorName ?? 'unknown'} · {p.createdAt.toISOString().slice(0, 10)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Text className="text-sm text-card-foreground">{p.content}</Text>
+            </CardContent>
+          </Card>
+        ))}
+      </View>
 
-        <View className="gap-3">
-          <Text className="text-xl font-semibold text-foreground">Recent posts</Text>
-          {postsQuery.isLoading && <Text className="text-sm text-muted-foreground">Loading…</Text>}
-          {postsQuery.isError && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Can’t reach the server</CardTitle>
-                <CardDescription>{postsQuery.error.message}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" label="Retry" onPress={() => void postsQuery.refetch()} />
-              </CardContent>
-            </Card>
-          )}
-          {postsQuery.data?.length === 0 && (
-            <Text className="text-sm text-muted-foreground">No posts yet — be the first.</Text>
-          )}
-          {postsQuery.data?.map((p) => (
-            <Card key={p.id}>
-              <CardHeader>
-                <CardTitle>{p.title}</CardTitle>
-                <CardDescription>
-                  by {p.authorName ?? 'unknown'} · {p.createdAt.toISOString().slice(0, 10)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Text className="text-sm text-card-foreground">{p.content}</Text>
-              </CardContent>
-            </Card>
-          ))}
-        </View>
-
-        <NativeExamples />
-      </ScrollView>
-    </SafeAreaView>
+      <NativeExamples />
+    </Screen>
   )
 }
 
@@ -139,7 +137,7 @@ function NativeExamples() {
       <NativeExampleRow />
       {__DEV__ && (
         <Text className="text-xs text-muted-foreground">
-          fingerprint: {Updates.runtimeVersion ?? 'unknown'}
+          fingerprint: {buildFingerprint() ?? 'unknown (not in this build)'}
         </Text>
       )}
     </View>
