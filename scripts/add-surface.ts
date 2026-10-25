@@ -67,7 +67,9 @@ console.log()
 console.log(c.bold(c.green(`✓ ${surface} added.`)))
 if (surface === 'mobile') {
   console.log(`  Metro runs on ${c.bold(String(project.metroPort))} with \`bun run dev\`.`)
-  console.log(c.dim('  Next: cd apps/mobile && eas init, then the Mac dev-client build (README).'))
+  console.log(
+    c.dim('  Next: bun run --cwd apps/mobile eas:setup (the EAS project), then a dev-client build.')
+  )
 }
 if (surface === 'desktop') {
   console.log(

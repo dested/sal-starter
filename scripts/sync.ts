@@ -11,6 +11,8 @@
 //   - surfaces this fork doesn't have (project.json `surfaces`): anything
 //     upstream changed or added under their paths is dropped again, and their
 //     root scripts stay out of package.json
+//   - optional pieces the fork dropped (packages/native-example, project.ts
+//     OPTIONAL_PATHS): kept deleted the same way
 //   - forks older than `surfaces` get it (plus desktopPort, appId) filled in
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
 
