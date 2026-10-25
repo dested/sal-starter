@@ -7,6 +7,8 @@ Some of these are **correctness bugs that break the app** (auth returns 404, the
 Prisma CLI can't read `.env`, `prettier` crashes) — apply the Critical/High
 sections to _every_ clone. The Recommended section is opt-in polish.
 
+**Already a workspace fork** (`apps/web/`, `project.json`, `bun run sync` works)? Sync instead, then read §22 for what the 2026-10-25 overhaul needs from the fork's own code.
+
 ## How to run this
 
 **Option A — hand it to Claude Code** (recommended). From the repo root:
@@ -429,6 +431,47 @@ clean tree reporting nothing to merge. `bun run add:mobile` then works as in a
 fresh fork.
 
 ---
+
+## 22. Syncing a workspace fork past the 2026-10-25 overhaul
+
+A fork already on the monorepo layout gets the overhaul (one theme, the kickoff, Expo SDK 58 + Uniwind, React Router 8, Vite 8, Base UI, the brand pipeline, the Post demo gate) through `bun run sync`. Do it on a branch. These are the places a fork's own code meets the new template; each was read off the template's code, not from a recorded sync of a real fork, so run every Verify.
+
+**The Post demo gate.** Upstream adds `apps/web/server/demo.ts` and its test. A fork's `project.json` has no `template: true`, so `bun run build` and `bun run test` fail while that file exists.
+
+- **Fix:** `bun run demo:drop`, then `bun run db:deploy`. A fork that already dropped its `post` table gets a harmless `DROP TABLE IF EXISTS`. A fork that built a real feature on the demo's `Post` runs `bun run demo:drop --dry-run` first and moves what it keeps out of the demo files and marked lines.
+
+**React Router 8.** `react-router-dom` is gone and loaders read a typed context.
+
+- **Detect:** `grep -rn "react-router-dom\|isSsrContext\|typeof window" apps/web/src`
+- **Fix:** import from `react-router` (`RouterProvider` from `react-router/dom`); a loader reads `context.get(clientsContext)` / `await context.get(sessionContext)()` or calls `requireSession(args)` (CLAUDE.md rule 4). Anywhere that calls `navigate()` and then `revalidate()`, await the navigation first.
+
+**Base UI primitives.** `Button` now renders Base UI's button, which defaults to `type="button"`.
+
+- **Detect:** every `<form>` in `apps/web/src` (and the desktop renderer) whose submit control is a `<Button>`.
+- **Fix:** pass `type="submit"` on it, or the form stops submitting. `asChild` is gone: use the `render` prop or `buttonVariants()`.
+
+**`cn` replaces clsx + tailwind-merge** on web and desktop (`~/lib/utils` still exports `cn`).
+
+- **Detect:** `grep -rn "from 'clsx'\|from 'tailwind-merge'" apps/web/src apps/desktop/src`
+- **Fix:** import `cn` from `~/lib/utils`, or add the package back to that app.
+
+**The brand.** Icons, splash, favicon and manifest are generated outputs now, and `merge=ours` keeps a fork's own copies of the ones it changed.
+
+- **Detect:** `bun run test` fails in `packages/brand` ("every output exists and is the one `bun run brand` wrote").
+- **Fix:** draw the fork's glyph into `packages/brand/mark.svg`, set `brand.json`, then `bun run brand` (it overwrites every output). Running `bun run brand` before redrawing the mark replaces the fork's icon with the template's.
+
+**Vite 8.** Rollup options are `rolldownOptions`; plugins the fork added must support Vite 8.
+
+- **Detect:** `grep -rn "rollupOptions" apps/*/vite.config.ts apps/desktop/electron.vite.config.ts`
+
+**Mobile.** `apps/mobile` moved to SDK 58, Uniwind (from NativeWind) and the `Screen` scaffold; the fork needs a new dev-client build. `project.json` gains `easOwner` (sync writes the default). A fork that never used `packages/native-example` can delete it; `sync` then keeps it deleted.
+
+**Verify**
+
+```bash
+bun install && bun run typecheck && bun run test && bun run build
+bun run test:e2e        # then review and commit any new baselines (test:e2e:update)
+```
 
 ## Final verification checklist
 

@@ -236,7 +236,7 @@ Each one is the same code written again by several forks:
 | Q1  | Mobile styling engine for SDK 58                                                         | **Decided:** Uniwind, after a spike                                                                                                                       |
 | Q2  | How hard the starter forces the kickoff                                                  | **Decided:** ribbon, plus `bun run test` failing until `look` is set. The kickoff shows 3 directions and Sal picks one (mock-first only for big products) |
 | Q3  | OTA apply policy                                                                         | **Decided:** keep the instant reload, on launch and on resume (my pick was splash-only)                                                                   |
-| Q4  | Which server slots ship by default                                                       | ?next/loader helpers, the allowlist + admin, and the optional env helper as defaults; AI, WebSocket and jobs as `add:*` recipes                           |
+| Q4  | Which server slots ship by default                                                       | **Decided:** ?next/loader helpers, the allowlist + admin, and the optional env helper as defaults; AI, WebSocket and jobs as `add:*` recipes              |
 | Q5  | Expo web preview for bx (3 of 5 mobile forks added it to check screens without a device) | Not in the baseline: Limrun is the source of truth. The kickoff can add it per project                                                                    |
 | Q6  | EAS Workflows: push to main publishes a preview OTA                                      | Off by default (builds are billed; Drydock already deploys web on push)                                                                                   |
 
@@ -251,10 +251,25 @@ Each one is the same code written again by several forks:
 2. **B, single theme plus kickoff:** remove dark mode, reshape the tokens (slots, typed export, one `:root`), the kickoff skill and forcing function, `init` changes (placeholder `/`, fresh `updates.md`), and the `ui.md` template.
    - Moved out of B while building it: stripping the Post demo is a kickoff step, not `init` (the first real feature replaces it, with its own drop migration and e2e update); `init` keeps `decisions.md` (its entries bind forks; it merges with `merge=union`); EAS project creation in `init --mobile` goes to C (it creates real EAS projects); `init --no-auth` goes to E with the other auth work. `tokens.css` split into `theme.css` (mapping, merges) and `tokens.css` (values, `merge=ours`) instead of putting `merge=ours` on `app.css`.
 3. **C, Expo 58:** the styling spike (Q1), SDK 58, the mobile baseline and scaffold, `init --mobile` creating the EAS project, the EAS promote lane, and the fingerprint **verify** (one EAS build).
-   - 2026-10-24: SDK 58 landed on expo 58.0.17. Bump after 2026-10-26 23:30Z: expo 58.0.19, expo-dev-client 58.0.15, expo-router 58.0.26 (blocked by the 3-day release age until then; `bun run doctor` fails its version check until they're in).
-   - Open from the first SDK 58 simulator run: the Home dev row shows `fingerprint: 1` (`Updates.runtimeVersion` in a debug build); rule 20's "compare with the dev client's fingerprint row" needs another source, or the dev menu's Runtime version.
+   - 2026-10-24: SDK 58 landed on expo 58.0.17 with Uniwind 1.13 and Tailwind 4.3.3.
+   - **Done 2026-10-25** (7abf924, f450c66, c7f8c00, 74243a9, b16cba9, d5b2c37, 1e5b136, f0e1c7e). Changed vs the plan:
+     - `init --mobile` runs `scripts/eas-setup.ts`, which drives eas-cli from a throwaway static `app.json` (`eas init` can't save the id into a dynamic config); `--no-eas`, `--dry-run-eas`; it never fails init and refuses in the template.
+     - The fingerprint row's `1` is fixed: it reads the hash the build wrote (`EXUpdates.bundle/fingerprint`), and `bun run fingerprint` hashes per platform + variant like EAS.
+     - `bun run upgrade:expo` (+ the `upgrade-expo` skill) replaces hand-run `expo install --fix` inside the release age.
+     - Baseline libraries as planned except expo-application (already in) and `@expo-google-fonts` (the kickoff adds the family; `FONTS` is wired empty). Plus `useOtaHold`, `Screen`, haptic `Button`, sonner-native `Toaster`, `fullScreenGestureEnabled: false`, Android profiles + package.
+     - Brand pipeline (not in the plan's list, asked for during C): `packages/brand` + `bun run brand` and `BrandSplash` (aa117d1, a7c7a82).
+   - **Open:** the Expo patch bump after 2026-10-26 ~23:30Z (expo 58.0.19, expo-dev-client 58.0.15, expo-router 58.0.26 and companions): `bun run upgrade:expo`, then `bun run doctor` green. A Limrun run of the new dev client (BrandSplash hand-off, the new native libraries, the fingerprint row). The fingerprint **verify** on a real EAS build and a real `eas-setup` run.
 4. **D:** React 19.3 → React Router 8; Vite 8, plugin-react 6 and electron-vite 6; Tailwind 4.3; React Compiler on web.
    - 2026-10-24: React 19.3 and Tailwind 4.3.3 (catalog, all three apps) landed with C.
+   - **Done 2026-10-25** (260e982, c32fc76, 4b40f9b, f5e27b9, 60c992a, e36b3be, ca1a8fe, 7b0dae0, 48c7e47, 39968eb). Changed vs the plan:
+     - The typed context is `createContext` keys filled by `entry-server.tsx` and `getContext: browserContext`, not middleware (the static handler runs middleware only with `generateMiddlewareResponse`). `getContext` made navigations async, which broke sign-out until it awaited `navigate`.
+     - React Compiler on desktop too, through `@rolldown/plugin-babel` (plugin-react's Rust option is experimental).
+     - shadcn moved to Base UI (`base-nova`) here, and `cn` (shadcn's package) replaced tailwind-merge 3 + clsx on web and desktop; mobile keeps tailwind-merge 3.
 5. **E:** the server slots from Q4, plus SIGNUP_ALLOWLIST, ADMIN_EMAILS + `adminProcedure`, the sign-in `?next=` return and `init --no-auth`.
+   - **Done 2026-10-25** (e67d630, 3e5b01c, a161fa4, 4ccc2bf, f237e71, 9e4c188, 6bc4ba4; sync for no-auth forks 653a79a). Changed vs the plan:
+     - The loader helper is `requireSession` / `redirectIfSignedIn` on the RR8 context; there is no `loaderClients(context)` (`context.get(clientsContext)` does that).
+     - Recipes are copy-in scripts (`recipes/`, `bun run add:ai|ws|jobs`) that never commit; the Anthropic SDK is ^1.1.0 (1.2.0+ was inside the release age).
+     - `init --no-auth` keeps posts as an anonymous demo on a public `/dashboard`; `sync` detects a no-auth fork from disk (no `apps/web/server/auth.ts`), not a project.json field.
+6. **The Post demo** (added 2026-10-25, Sal: nine forks shipped it): the plan's "init strips the demo" became a gate instead. The demo lives in its own files and marked lines; in a fork (`project.json` without `template: true`) `vite build` and `bun run test` fail until `bun run demo:drop`. Verified in scratch forks (`init demo-app --mobile --dry-run-eas`, `init noauth-app --no-auth`) through demo:drop, build and e2e (2d62573, 3f5ae7f, 757a90e).
 
 Every phase runs typecheck, test and build, plus an init → typecheck → build pass in a scratch clone. e2e needs your local Postgres credentials (**ask**). The first EAS build and the Limrun run need a go-ahead (billed).

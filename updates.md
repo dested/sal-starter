@@ -2,10 +2,45 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-25 — docs pass: the kit matches HEAD after phases C, D, E, brand and the demo gate
+
+Asked: fold the five agents' reports into the doc kit, verified against the code. Done: CLAUDE.md rewritten (stack rows, layout, rules 4/6/8/16/20/22/23 revised, new rules 24 demo, 25 allowlist/admin, 26 `?next=`, 27 brand; flows on the RR8 context; mobile and desktop sections; new tasks: start a fork, drop the demo, add:ai/ws/jobs, change the icon or splash, upgrade Expo); cliffnotes.md (map, routes, systems, gotchas, status), ui.md (Base UI, `cn`, icon and splash, Screen), decisions.md (12 entries), verify.md (fork recipes, upgrade:expo, no-auth check, brand), README.md, the plan, the kickoff skill (demo:drop step, FONTS). `sync` keeps a no-auth fork's `NO_AUTH_PATHS` deleted; root tsc covers `recipes/` (653a79a). Verified: typecheck, unit tests.
+Touched: CLAUDE.md, cliffnotes.md, ui.md, decisions.md, updates.md, verify.md, README.md, plans/2026-10-24-starter-overhaul.md, .claude/skills/kickoff/SKILL.md, scripts/sync.ts, tsconfig.json
+
+## 2026-10-25 — Post demo: template-only, gated in forks, `bun run demo:drop`
+
+Asked (Sal): nine forks shipped the Post demo; show it's a template and make it go before prod. Done: the demo moved into its own files (`server/demo.ts` marker, `demo.test.ts`, `components/demo/`, `e2e/demo.spec.ts`, mobile `components/demo/`) plus `// demo` / `demo:start…end` markers; a dashed warning bar on web and mobile; in a fork (`project.json` without `template: true`, which init drops) `vite build` and `bun run test` fail until `bun run demo:drop` (deletes it, writes the drop migration, regenerates the client; `--check`, `--dry-run`). The dashboard is the signed-in page (`me` prefetched; smoke e2e proves SSR Dates via `me.createdAt`). e2e global-setup truncates every table; the Playwright probe is `/robots.txt` (a new fork's test DB doesn't exist yet when the server starts). Banner says React Router 8; app.config `owner` = easOwner + the expo-image plugin; eas-setup refuses in the template. Verified in scratch forks: `init demo-app --mobile --dry-run-eas` (build and test fail until demo:drop, then typecheck/build/tests green apart from the kickoff test, e2e 7/7, expo export) and `init noauth-app --no-auth` (e2e 2/2 after demo:drop).
+Commits: 2d62573, 3f5ae7f, 757a90e, 39968eb, 1e5b136, f0e1c7e
+
+## 2026-10-25 — phase E: server slots, allowlist + admins, `?next=`, `init --no-auth`
+
+Done: `server/env.ts` `optionalSecret` / `optionalKeys` / `requireEnv` / `hasEnv` (+ test); `SIGNUP_ALLOWLIST` + `ADMIN_EMAILS` (`server/access.ts`, better-auth create hook → 403 `SIGNUP_CLOSED`), `Context { session, isAdmin }` via `contextFor`, `adminProcedure`, `me.isAdmin`; `src/lib/loader.ts` (`requireSession`, `redirectIfSignedIn`, `safeNext`, `nextFromSearch`) and `?next=` on sign-in/up (+ `auth-next.spec.ts`); `recipes/` with `add:ai` (Anthropic module, AI_FAKE, zod output, cost log), `add:ws` (upgrade registry + tRPC over WebSocket) and `add:jobs` (Postgres queue, SKIP LOCKED, graceful stop); `scripts/no-auth.ts` wired into `init --no-auth`. Verified: unit tests, e2e 7/7 (before the demo rework), bx allowlist pass, each recipe in a scratch clone and on a no-auth copy (typecheck, tests, ws and jobs live), no-auth prod server routes. Not verified: `add:ai` against the real API, `add:jobs` on Drydock.
+Commits: e67d630, 3e5b01c, a161fa4, 4ccc2bf, f237e71, 9e4c188, 6bc4ba4
+
+## 2026-10-25 — phase D: React Router 8, Vite 8, React Compiler, Base UI, `cn`
+
+Done: `react-router` 8.5 (no `react-router-dom`), typed loader context (`src/lib/router-context.ts`, `getContext: browserContext`, `RouterContextProvider` per SSR request) replacing `isSsrContext` and the `typeof window` branches; sign-out awaits the navigation before revalidating (a regression found with bx). Vite 8.3 + plugin-react 6 + electron-vite 6; React Compiler through `@rolldown/plugin-babel` + `reactCompilerPreset` on web and desktop. shadcn `base-nova` on `@base-ui/react` 1.9 (Button, Input; Card gains CardAction); `cn` 0.5 replaces clsx + tailwind-merge on web and desktop. Desktop window and electron-builder use the brand icons. Routes and the SSR proxy use phase E's helpers and `contextFor`. Verified: typecheck, tests, e2e with every baseline unchanged, bx dev and prod passes (no hydration warnings, HMR 101 on the Express port), compiler output in the client bundle, desktop dev over CDP and a packaged build.
+Commits: 260e982, c32fc76, 4b40f9b, f5e27b9, 60c992a, e36b3be, ca1a8fe, 7b0dae0, 48c7e47
+
+## 2026-10-25 — phase C: mobile baseline, EAS setup in init, upgrade:expo, Android
+
+Done: `init --mobile` creates the EAS project (`scripts/eas-setup.ts`, static app.json in a temp folder; `--no-eas`, `--dry-run-eas`) under `project.json` `easOwner` and drops `packages/native-example` unless `--native-example` (`sync` keeps it dropped: `OPTIONAL_PATHS`). Baseline libraries (haptics, image, font, symbols, svg + lucide, file-system, device, keep-awake, keyboard-controller, sonner-native, FlashList 2); `Screen` scaffold, haptic `Button`, `FONTS`, nav theme from tokens, `useOtaHold`, pure `resolve-api-url` (+ tests), the fingerprint row reads `EXUpdates.bundle/fingerprint` and `bun run fingerprint` = per platform + variant; `fullScreenGestureEnabled: false`; Android profiles and package; `bun run upgrade:expo` + the upgrade-expo skill; `expo-types.d.ts` committed so a fresh clone typechecks. Verified: typecheck, tests, `expo export` iOS + Android, doctor 19/20 (only the blocked 58.0.19 patch set), `eas-setup --dry-run`, `upgrade:expo --check`. Not verified: any device or Limrun run, a real EAS setup.
+Commits: 7abf924, f450c66, c7f8c00, 74243a9, b16cba9, d5b2c37, 45d0687
+
+## 2026-10-25 — brand: one mark → every icon and splash
+
+Done: `packages/brand` (`mark.svg`, `brand.json`, resvg generator, `brand.gen.json`, `brand.test.ts`) and `bun run brand` → iOS icon, splash mark, Android adaptive + monochrome, favicon, apple-touch + PWA icons, manifest, desktop png/ico; `BrandSplash` takes over from the native splash and animates out (`onGone`); app.config android block and splash from brand. Verified: two runs byte-identical, tests, typecheck, `expo config` both variants, every PNG looked at. Not verified: the splash hand-off on a device.
+Commits: aa117d1, a7c7a82
+
 ## 2026-10-24 — first SDK 58 run on Limrun
 
 Built the SDK 58 dev client in a Limrun Xcode sandbox (3m16s) and ran it on an iPhone simulator. Found and fixed: a signed-out launch landed on "Unmatched Route" (expo-router 58 falls back to the first open group's path, and `(auth)` has no index), so both `Stack.Protected` guards now set `redirectTo`; mobile auth buttons stay disabled until the fields are filled (the server's raw zod error showed on an empty submit), and the switch link is underlined like web. Verified on the simulator: sign-in → sign-up → Home (API through the tunnel, both native modules) → sign-out → sign-in, and OS dark mode leaves the app white. Open: the Home dev row shows `fingerprint: 1` on SDK 58 (the dev menu shows the real runtime version).
 Touched: apps/mobile/src/app/_layout.tsx, apps/mobile/src/screens/{sign-in,sign-up}.tsx
+
+## 2026-10-24 — phase C start: Uniwind, Expo SDK 58, Tailwind 4.3.3
+
+Done: Uniwind 1.13 replaces NativeWind 5 rc over unchanged tokens (the lightningcss override is gone); Expo 57.0.31 → 58.0.17 with RN 0.88, React 19.3 in the catalog for every app, React Compiler on mobile, the `balanced` fingerprint preset, no lru-cache pin; Tailwind 4.3.3 in the catalog (Uniwind's version). Verified: e2e 4/4 with baselines unchanged, mobile token hex and shadow-card compile.
+Commits: c5e8e5f, e165063, c14c8b1
 
 ## 2026-10-24 — auth pages, e2e that runs itself
 
