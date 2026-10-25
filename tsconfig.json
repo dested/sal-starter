@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["scripts/**/*.ts", "prettier.config.js"],
+  "include": ["scripts/**/*.ts", "recipes/*.ts", "recipes/*/recipe.ts", "prettier.config.js"],
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",

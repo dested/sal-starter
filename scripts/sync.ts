@@ -13,11 +13,21 @@
 //     root scripts stay out of package.json
 //   - optional pieces the fork dropped (packages/native-example, project.ts
 //     OPTIONAL_PATHS): kept deleted the same way
+//   - a no-auth fork (`init --no-auth`: web without apps/web/server/auth.ts):
+//     the auth-only files (no-auth.ts NO_AUTH_PATHS) stay deleted the same way
 //   - forks older than `surfaces` get it (plus desktopPort, appId) filled in
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
 
-import { readFileSync, writeFileSync } from 'node:fs'
-import { excludedPaths, projectSchema, readProject, syncRootScripts, writeProject } from './project'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { NO_AUTH_PATHS } from './no-auth'
+import {
+  excludedPaths,
+  projectSchema,
+  readProject,
+  syncRootScripts,
+  writeProject,
+  type Project,
+} from './project'
 import { c, fail, git, gitStatus, hasRemote, run, workingTreeClean } from './shell'
 
 const args = process.argv.slice(2)
@@ -34,8 +44,19 @@ if (!hasRemote(remote)) {
 }
 if (!workingTreeClean()) fail('Working tree is not clean.', 'Commit your changes first.')
 
+// A no-auth fork has web but no server/auth.ts. Its auth-only paths that are
+// gone at HEAD stay gone, or every template edit to one is a modify/delete
+// conflict. Paths under an excluded surface are already covered.
+function noAuthPaths(project: Project, surfacePaths: string[]): string[] {
+  if (!project.surfaces.includes('web') || existsSync('apps/web/server/auth.ts')) return []
+  return NO_AUTH_PATHS.filter(
+    (p) => !existsSync(p) && !surfacePaths.some((s) => p === s || p.startsWith(`${s}/`))
+  )
+}
+
 const project = readProject()
-const excluded = excludedPaths(project)
+const surfaceExcluded = excludedPaths(project)
+const excluded = [...surfaceExcluded, ...noAuthPaths(project, surfaceExcluded)]
 const projectBefore = readFileSync('project.json', 'utf8')
 
 git('config', 'merge.ours.driver', 'true')
