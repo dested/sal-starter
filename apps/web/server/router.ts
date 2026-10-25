@@ -3,7 +3,7 @@ import { router, publicProcedure, protectedProcedure } from './trpc'
 import { prisma } from './prisma'
 
 export const appRouter = router({
-  me: protectedProcedure.query(({ ctx }) => ctx.session.user),
+  me: protectedProcedure.query(({ ctx }) => ({ ...ctx.session.user, isAdmin: ctx.isAdmin })),
   posts: router({
     list: publicProcedure.query(async () => {
       const rows = await prisma.post.findMany({

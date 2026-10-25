@@ -21,12 +21,13 @@ test('signed-out /dashboard → sign up → back to /dashboard', async ({ page }
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 })
 
-test('sign-in returns to the page and query it was asked for', async ({ page }) => {
+test('sign-in returns to the page and query it was asked for', async ({ page, request }) => {
+  // The account comes from the API (`request` has its own cookie jar), so the page is signed out.
   const user = email('linus')
-  await page.request.post('/api/auth/sign-up/email', {
+  const res = await request.post('/api/auth/sign-up/email', {
     data: { name: 'Linus', email: user, password: PASSWORD },
   })
-  await page.request.post('/api/auth/sign-out')
+  expect(res.ok()).toBe(true)
 
   await page.goto('/dashboard?tab=posts')
   await page.waitForURL('**/sign-in?next=%2Fdashboard%3Ftab%3Dposts')
