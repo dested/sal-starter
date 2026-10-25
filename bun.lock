@@ -51,6 +51,7 @@
       "name": "@app/mobile",
       "version": "1.0.0",
       "dependencies": {
+        "@app/brand": "workspace:*",
         "@app/native-example": "workspace:*",
         "@app/tokens": "workspace:*",
         "@better-auth/expo": "catalog:",

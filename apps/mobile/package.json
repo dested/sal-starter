@@ -28,6 +28,7 @@
     "ota:prod": "cross-env APP_VARIANT=production eas update --channel production --environment production"
   },
   "dependencies": {
+    "@app/brand": "workspace:*",
     "@app/native-example": "workspace:*",
     "@app/tokens": "workspace:*",
     "@better-auth/expo": "catalog:",
