@@ -1,9 +1,8 @@
 import { Link } from 'expo-router'
 import { useState } from 'react'
-import { KeyboardAvoidingView, Text, View } from 'react-native'
+import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { authClient } from '~/lib/auth-client'
@@ -26,13 +25,14 @@ export function SignUpScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView behavior="padding" className="flex-1 justify-center p-6">
-        <Card className="mx-auto w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl">Create an account</CardTitle>
-            <CardDescription>It takes ten seconds.</CardDescription>
-          </CardHeader>
-          <CardContent className="gap-4">
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
+        <ScrollView
+          contentContainerClassName="mx-auto w-full max-w-md grow justify-center gap-8 p-6"
+          keyboardShouldPersistTaps="handled">
+          <Text className="font-display text-4xl font-bold tracking-tight text-foreground">
+            Create account
+          </Text>
+          <View className="gap-5">
             <View className="gap-2">
               <Label>Name</Label>
               <Input value={name} onChangeText={setName} textContentType="name" />
@@ -59,18 +59,17 @@ export function SignUpScreen() {
             </View>
             {error !== null && <Text className="text-sm text-destructive">{error}</Text>}
             <Button
+              size="lg"
+              className="mt-1"
               label={pending ? 'Creating account…' : 'Sign up'}
               disabled={pending}
               onPress={submit}
             />
-            <Text className="text-center text-sm text-muted-foreground">
-              Have an account?{' '}
-              <Link href="/sign-in" className="text-foreground underline">
-                Sign in
-              </Link>
-            </Text>
-          </CardContent>
-        </Card>
+          </View>
+          <Link href="/sign-in" className="text-base font-medium text-foreground">
+            I already have an account
+          </Link>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   )

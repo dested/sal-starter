@@ -21,8 +21,11 @@ export default defineConfig({
   // are committed. They are OS/font specific — regenerate on the same platform
   // your CI uses (`bun run test:e2e:update`).
   snapshotPathTemplate: 'e2e/__screenshots__/{testFileName}/{arg}{ext}',
+  // A mostly white page differs from a different page by under 2% of pixels,
+  // so the tolerance only absorbs anti-aliasing noise (0.2% here); 2% passed
+  // the October landing page's baseline against a rewritten home.
   expect: {
-    toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
+    toHaveScreenshot: { maxDiffPixelRatio: 0.002 },
   },
   use: {
     baseURL,
@@ -32,7 +35,11 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'bun server.ts',
-    url: `${baseURL}/healthz`,
+    // Probe over IPv6 loopback: under WSL's mirrored networking a connect to a
+    // closed 127.0.0.1 port is dropped, not refused, so the "already running?"
+    // check hung for ~2 min (the TCP SYN timeout) before every run. The server
+    // listens on :: (both stacks); the browser still uses `baseURL`.
+    url: `http://[::1]:${PORT}/healthz`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     stdout: 'pipe',

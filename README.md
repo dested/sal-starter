@@ -130,10 +130,9 @@ When do you need a new build? When the native fingerprint changes: run `bun run 
 
 ## Testing
 
-Playwright e2e lives in `apps/web/e2e/`. `bun run test:e2e` boots the app on port 4783 (`project.json` apiPort + 3) against an **isolated test database** (`sal_starter_test`, from `project.json` db), applies the committed migrations and truncates it, and runs the smoke suite (home, sign-up → dashboard → create post → sign-out, the 404 page). Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
+Playwright e2e lives in `apps/web/e2e/`. `bun run test:e2e` boots the app on port 4783 (`project.json` apiPort + 3) against an **isolated test database** (`sal_starter_test`, from `project.json` db, on the server and credentials of your `.env` `DATABASE_URL`), creates it if missing, applies the committed migrations and truncates it, and runs the smoke suite (home, sign-up → dashboard → create post → sign-out, the 404 page). Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
 
 ```bash
-createdb sal_starter_test                       # once; global-setup migrates it
 bun run test:e2e                                 # or E2E_DATABASE_URL=postgres://…/x_test bun run test:e2e
 ```
 

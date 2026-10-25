@@ -1,17 +1,22 @@
 import { execFileSync } from 'node:child_process'
 import { Client } from 'pg'
-import { E2E_DATABASE_URL } from './db'
+import { E2E_DATABASE_URL, withDatabase } from './db'
 
-// Bring the isolated test database up to the committed migrations (the same
-// `migrate deploy` production runs), then wipe it so sign-up uses a fresh fixed
-// user and screenshots are byte-for-byte reproducible. Runs once per
-// `playwright test`. The database itself must exist (`createdb sal_starter_test`).
+// Create the isolated test database if it's missing, bring it up to the
+// committed migrations (the same `migrate deploy` production runs), then wipe
+// it so sign-up uses a fresh fixed user and screenshots are byte-for-byte
+// reproducible. Runs once per `playwright test`.
 export default async function globalSetup() {
   // TRUNCATE below is destructive — refuse anything that isn't a *_test database.
   const dbName = new URL(E2E_DATABASE_URL).pathname.slice(1)
-  if (!dbName.endsWith('_test')) {
+  if (!/^\w+_test$/.test(dbName)) {
     throw new Error(`E2E_DATABASE_URL must point at a *_test database, got "${dbName}"`)
   }
+  const admin = new Client({ connectionString: withDatabase(E2E_DATABASE_URL, 'postgres') })
+  await admin.connect()
+  const { rowCount } = await admin.query('SELECT 1 FROM pg_database WHERE datname = $1', [dbName])
+  if (rowCount === 0) await admin.query(`CREATE DATABASE "${dbName}"`)
+  await admin.end()
   // The workspace's pinned Prisma CLI, never `bunx prisma` (npm latest is Prisma 8).
   execFileSync('bun', ['run', 'db:deploy'], {
     env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL },

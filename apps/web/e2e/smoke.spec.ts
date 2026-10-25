@@ -15,8 +15,7 @@ test('home page renders for a signed-out visitor', async ({ page }) => {
 
 test('sign-up page renders', async ({ page }) => {
   await page.goto('/sign-up')
-  // CardTitle renders a <div>, not a heading role.
-  await expect(page.getByText('Create account', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible()
   await expect(page).toHaveScreenshot('sign-up.png', { fullPage: true })
 })
 

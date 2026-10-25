@@ -2,6 +2,12 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-24 — auth pages, e2e that runs itself
+
+Asked: no EAS build; set up e2e; cut the helper text on sign-in/sign-up and make those pages look better.
+Done: sign-in/sign-up on web and mobile drop the card and its description: a display-face h1, 44px fields and button, one underlined switch link ("Create an account" / "I already have an account"); the dashboard and mobile home lose their caption and "Welcome back" subtitle. e2e needs no setup: the test DB URL comes from `DATABASE_URL` with the database swapped for `<db>_test`, and global-setup creates it. Screenshot tolerance 2% → 0.2% (the October tan-starter landing baseline still passed against the new home); every baseline regenerated. Playwright probes `[::1]` (WSL dropped the closed-port `127.0.0.1` probe for ~2 min): a run went from 2.4 min to 6 s. Verified: typecheck, unit tests, e2e 4/4, 390px screenshots.
+Touched: apps/web/src/app/{sign-in,sign-up,dashboard}.tsx, apps/mobile/src/screens/{sign-in,sign-up,home}.tsx, apps/web/e2e/*, apps/web/playwright.config.ts, CLAUDE.md, cliffnotes.md, README.md, verify.md
+
 ## 2026-10-24 — overhaul phase B: one theme, generated token hex, kickoff
 
 Ask: no dark mode ever, no more neutral shadcn / stack-showcase home, force a look per fork (plans/2026-10-24-starter-overhaul.md, phase B).

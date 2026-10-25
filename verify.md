@@ -64,12 +64,11 @@ Never run these in the template itself. Clone into a temp dir, `git remote renam
 - `bun run init demo-app --mobile` → `git diff --stat` shows only identity strings; `expo export` works.
 - `bun run sync` against an upstream commit that touches `project.json`, `apps/mobile` and a shared file → the fork's `project.json` kept, mobile changes dropped in a web-only fork, shared file merged, nothing committed.
 
-## E2E `[heavy — ask first]`
+## E2E `[medium]`
 
-Needs a reachable Postgres and the credentials in the root `.env`.
+Needs the root `.env` `DATABASE_URL` to reach Postgres; the suite uses the same server with the database `sal_starter_test`, creating it on first run. A run takes seconds.
 
 ```bash
-createdb sal_starter_test   # once
 bun run test:e2e            # Playwright on :4783 (apiPort + 3) against sal_starter_test
 curl -s http://localhost:4780/healthz          # {"status":"ok",...} with bun run dev up
 ```

@@ -21,7 +21,7 @@ An SSR React starter template, now a Bun workspace with an optional Expo iOS app
 - **Type-check:** `bun run typecheck` (`tsc --noEmit`, TypeScript 7, root + every workspace; `strict` + `noUncheckedIndexedAccess`)
 - **Unit tests:** `bun run test` (`bun:test` in every workspace that has a `test` script)
 - **Build:** `bun run build` → `apps/web/dist/client` + `dist/server`
-- **E2E:** `bun run test:e2e` (Playwright; isolated DB `sal_starter_test` on :4783, both from `project.json`; migrated by global-setup, committed screenshots)
+- **E2E:** `bun run test:e2e` (Playwright; isolated DB `sal_starter_test` on the `.env` `DATABASE_URL` server, created + migrated by global-setup; :4783; committed screenshots)
 - **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:migrate:sql -o <file>` (agent shells, where `migrate dev` refuses; CLAUDE.md → Add a DB table) · `bun run db:deploy` (prod/CI). Never `bunx prisma` (npm latest is the Prisma 8 RC)
 - **Ship a mobile fix (OTA):** in `apps/mobile`: `bun run ota:preview --message "…"` → test on a preview build → `bun run ota:promote` (republishes that exact update to production). Hotfix straight to prod: `bun run ota:prod --message "…"`. Check `eas fingerprint:compare --build-id <id>` before the first update to a build. Run `eas` only in `apps/mobile`, never at the root
 - **Mobile checks:** `bun run --cwd apps/mobile doctor` · `bunx expo export --platform ios` (in `apps/mobile`) · `bun run --cwd apps/mobile fingerprint`
@@ -265,6 +265,7 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 
 - **Path alias `~/*` → `src/*`** (client only, in web and in mobile); server uses relative imports.
 - **Mobile ↔ web contract is `import type` only** (CLAUDE.md rule #17); tokens come from `@app/tokens`. Identity only in `project.json` (#22). No hand edits to `ios/`/`android/` (#18), no custom Metro config (#21).
+- **WSL mirrored networking drops connects to a closed `127.0.0.1` port** instead of refusing them, so a "is it up?" probe on `localhost` hangs ~2 min (the TCP SYN timeout). Playwright's `webServer.url` probes `[::1]` for that reason; do the same in any readiness check.
 - **Root scripts proxy with `bun run --cwd apps/web <script>`** — `bun --cwd X run` silently prints the script list instead.
 - **`./server/*` is server-only** — import into `src/*` only as `import type`.
 - **Express 5 required** — `*splat` wildcards break on Express 4 (symptom: `/api/auth/*` 404s, auth dead).

@@ -42,13 +42,10 @@ export function HomeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
       <ScrollView contentContainerClassName="gap-8 p-6" keyboardShouldPersistTaps="handled">
-        <View className="flex-row items-start justify-between gap-4">
-          <View className="flex-1 gap-1">
-            <Text className="text-3xl font-bold tracking-tight text-foreground">Home</Text>
-            <Text className="text-muted-foreground">
-              Welcome back, {session.user.name || session.user.email}.
-            </Text>
-          </View>
+        <View className="flex-row items-center justify-between gap-4">
+          <Text className="flex-1 font-display text-3xl font-bold tracking-tight text-foreground">
+            Home
+          </Text>
           <Button
             variant="outline"
             size="sm"
@@ -60,9 +57,6 @@ export function HomeScreen() {
         <Card>
           <CardHeader>
             <CardTitle>New post</CardTitle>
-            <CardDescription>
-              Posts are stored in Postgres via Prisma, fetched over tRPC.
-            </CardDescription>
           </CardHeader>
           <CardContent className="gap-4">
             <View className="gap-2">

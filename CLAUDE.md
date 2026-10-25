@@ -273,7 +273,7 @@ Edit values in `packages/tokens/tokens.css` (the one `:root`), then `bun run tok
 
 ### Add an e2e test
 
-Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB (`<project.json db>_test`, here `sal_starter_test`; URL in `e2e/db.ts`, override with `E2E_DATABASE_URL` — the name must end in `_test`) on apiPort + 3 (4783 here); `e2e/global-setup.ts` runs `prisma migrate deploy` on it and then truncates it so screenshots are deterministic. Create it once with `createdb sal_starter_test`. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
+Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB on apiPort + 3 (4783 here): `e2e/db.ts` takes the dev `DATABASE_URL`'s server and credentials and swaps the database for `<project.json db>_test` (`sal_starter_test`); override with `E2E_DATABASE_URL` (the name must end in `_test`). `e2e/global-setup.ts` creates it if missing, runs `prisma migrate deploy` on it and truncates it so screenshots are deterministic. The screenshot tolerance is 0.2% of pixels: a mostly white page differs from a different page by under 2%. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
 
 ## Build / verify
 

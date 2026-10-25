@@ -27,19 +27,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, <strong>{session.user.name || session.user.email}</strong>.
-        </p>
-      </section>
+      <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
 
       <Card>
         <CardHeader>
           <CardTitle>New post</CardTitle>
-          <CardDescription>
-            Posts are stored in Postgres via Prisma, fetched over tRPC.
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form
