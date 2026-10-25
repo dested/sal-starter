@@ -47,6 +47,7 @@
   "scripts": {
     "init": "bun scripts/init.ts",
     "sync": "bun scripts/sync.ts",
+    "upgrade:expo": "bun scripts/upgrade-expo.ts",
     "add:mobile": "bun scripts/add-surface.ts mobile",
     "add:desktop": "bun scripts/add-surface.ts desktop",
     "add:ai": "bun recipes/add.ts ai",
