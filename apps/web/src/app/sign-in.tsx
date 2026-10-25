@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useRevalidator } from 'react-router-dom'
+import { Link, useNavigate, useRevalidator } from 'react-router'
 import { authClient } from '~/lib/auth-client'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
