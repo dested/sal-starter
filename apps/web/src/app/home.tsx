@@ -1,4 +1,4 @@
-import { Link, useRouteLoaderData } from 'react-router-dom'
+import { Link, useRouteLoaderData } from 'react-router'
 import { buttonVariants } from '~/components/ui/button'
 import type { RootLoaderData } from './routes'
 

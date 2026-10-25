@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLoaderData } from 'react-router-dom'
+import { useLoaderData } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTRPC } from '~/lib/trpc'
 import { Button } from '~/components/ui/button'

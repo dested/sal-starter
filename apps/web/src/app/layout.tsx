@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRevalidator,
   useRouteLoaderData,
-} from 'react-router-dom'
+} from 'react-router'
 import { authClient } from '~/lib/auth-client'
 import { KickoffRibbon } from '~/components/kickoff-ribbon'
 import type { RootLoaderData } from './routes'

@@ -4,13 +4,19 @@ import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import ReactDomServer from 'react-dom/server'
 import superjson from 'superjson'
-import { StaticRouterProvider, createStaticHandler, createStaticRouter } from 'react-router-dom'
+import {
+  RouterContextProvider,
+  StaticRouterProvider,
+  createStaticHandler,
+  createStaticRouter,
+} from 'react-router'
 import { auth, type Session } from '../server/auth'
 import { env } from '../server/env'
 import { appRouter } from '../server/router'
 import App from './App'
 import { serializeSsrState } from './lib/ssr-state'
-import { routes, type SsrLoaderContext } from './app/routes'
+import { routes } from './app/routes'
+import { clientsContext, sessionContext } from './lib/router-context'
 
 export async function render(req: express.Request): Promise<{
   html: string
@@ -33,9 +39,12 @@ export async function render(req: express.Request): Promise<{
     queryClient,
   })
 
+  const requestContext = new RouterContextProvider()
+  requestContext.set(clientsContext, { queryClient, trpc: trpcServer })
+  requestContext.set(sessionContext, () => Promise.resolve(session))
+
   const { query, dataRoutes } = createStaticHandler(routes)
-  const ssrContext: SsrLoaderContext = { session, queryClient, trpc: trpcServer }
-  const routerContext = await query(fetchRequest, { requestContext: ssrContext })
+  const routerContext = await query(fetchRequest, { requestContext })
 
   if (routerContext instanceof Response) throw routerContext
 

@@ -1,4 +1,4 @@
-import { Link, isRouteErrorResponse, useRouteError } from 'react-router-dom'
+import { Link, isRouteErrorResponse, useRouteError } from 'react-router'
 import { buttonVariants } from '~/components/ui/button'
 
 // Root route ErrorBoundary. React Router renders this in place of the layout
