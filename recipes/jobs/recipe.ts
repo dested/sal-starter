@@ -23,15 +23,6 @@ const appendModel: EditStep = {
   manual: `Append recipes/jobs/schema.prisma to ${SCHEMA}`,
 }
 
-const truncateJobs: EditStep = {
-  file: 'apps/web/e2e/global-setup.ts',
-  what: 'e2e truncates the job table',
-  done: (s) => s.includes('"job"'),
-  apply: (s) =>
-    s.includes('TRUNCATE TABLE ') ? s.replace('TRUNCATE TABLE ', 'TRUNCATE TABLE "job", ') : null,
-  manual: 'In apps/web/e2e/global-setup.ts, add "job" to the TRUNCATE TABLE list.',
-}
-
 export default function jobs(root: string): Recipe {
   return {
     name: 'jobs',
@@ -70,7 +61,6 @@ export default function jobs(root: string): Recipe {
         '    onShutdown(startJobs().stop)\n',
         'startJobs()'
       ),
-      truncateJobs,
     ],
     after: [['bun', 'run', '--cwd', 'apps/web', 'db:generate']],
     next: [

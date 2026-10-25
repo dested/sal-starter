@@ -28,8 +28,11 @@ export function SignUpPage() {
       setError(err.message ?? 'Sign up failed')
       return
     }
-    revalidator.revalidate()
-    navigate(next, { replace: true })
+    // Navigate first, then revalidate so the root loader picks up the new
+    // session (same order as sign-out in layout.tsx: getContext starts the
+    // navigation async, and a revalidate fired first can race it).
+    await navigate(next, { replace: true })
+    await revalidator.revalidate()
   }
 
   return (
