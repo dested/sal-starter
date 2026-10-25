@@ -65,5 +65,6 @@ test('sign up → dashboard → create post → sign out', async ({ page }) => {
 
   // Sign out returns to the signed-out home.
   await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page).toHaveURL('/')
   await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible()
 })

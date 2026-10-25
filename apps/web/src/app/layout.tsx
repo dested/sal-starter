@@ -20,9 +20,12 @@ export function Layout() {
   async function signOut() {
     await authClient.signOut()
     // Land on home first, then re-run loaders so the cleared session is
-    // reflected (mirrors the revalidate in the sign-in/up flows).
-    navigate('/', { replace: true })
-    revalidator.revalidate()
+    // reflected (mirrors the revalidate in the sign-in/up flows). Await the
+    // navigation: getContext makes it start async, and a revalidate fired
+    // before it starts re-runs the current page's loaders (the dashboard's
+    // redirects to /sign-in).
+    await navigate('/', { replace: true })
+    await revalidator.revalidate()
   }
 
   return (
