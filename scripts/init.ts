@@ -163,6 +163,8 @@ const next: Project = {
   easProjectId: null,
   // The template's own look is a placeholder; a fork has none until its kickoff.
   look: null,
+  // A fork is not the template: template-only exemptions (the Post demo gate) end here.
+  template: undefined,
 }
 
 // A desktop-only project has no server: no database or auth variables.
@@ -378,9 +380,11 @@ steps.push([
 ])
 if (noAuth) steps.push(['bun run test:e2e:update', '# e2e baselines without the sign-in nav'])
 steps.push(['/kickoff in Claude Code', '# the look, `/`, icon: before any feature work'])
+if (surfaces.includes('web'))
+  steps.push(['bun run demo:drop', "# the Post demo: a fork can't build or test until it's gone"])
 if (easPending) steps.push([EAS_LATER, '# the EAS project: easProjectId, APP_VARIANT, channels'])
 if (surfaces.includes('desktop')) steps.push(['bun run release', '# unpacked build in release/'])
 steps.forEach(([cmd, note], i) =>
-  console.log(`  ${c.dim(`${i + 1}.`)} ${cmd.padEnd(30)}${c.dim(note)}`)
+  console.log(`  ${c.dim(`${i + 1}.`)} ${cmd.padEnd(30)} ${c.dim(note)}`)
 )
 console.log()

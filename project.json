@@ -12,6 +12,7 @@
   "easProjectId": null,
   "easOwner": "quickgame",
   "appleTeamId": null,
+  "template": true,
   "look": {
     "scheme": "light",
     "direction": "template placeholder: init resets this to null, the kickoff sets the real look"

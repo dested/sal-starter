@@ -45,6 +45,9 @@ export const projectSchema = z.object({
   easOwner: z.string().min(1),
   appleTeamId: z.string().nullable(),
   look: lookSchema.nullable(),
+  // Only the template itself carries `template: true`; `init` drops it. Gates
+  // that exist to stop a fork shipping template code (the Post demo) key off it.
+  template: z.literal(true).optional(),
 })
 
 export type Project = z.infer<typeof projectSchema>

@@ -5,6 +5,7 @@ import project from '../../../project.json'
 
 describe('template demo', () => {
   test('the Post demo is removed before shipping (run `bun run demo:drop`)', () => {
-    expect(project.name).toBe('sal-starter')
+    // Only the template's project.json carries `template: true` (init drops it).
+    expect('template' in project && project.template).toBe(true)
   })
 })

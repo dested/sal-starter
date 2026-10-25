@@ -1,8 +1,8 @@
 // The Post demo: the template's working example of a table, a tRPC router, an
 // SSR-prefetched page and an e2e flow. It exists to be read, then deleted; nine
-// forks shipped it to production. So in a fork (any project not named
-// sal-starter) the build and `bun run test` fail while it's present, and one
-// command removes it.
+// forks shipped it to production. So in a fork (project.json without
+// `template: true`, which init drops) the build and `bun run test` fail while
+// it's present, and one command removes it.
 //
 //   bun run demo:drop           delete the demo everywhere, write the drop migration
 //   bun run demo:drop --check   exit 1 if the demo is still here (what the gates call)
@@ -110,7 +110,7 @@ function drop(dryRun: boolean): void {
 
 function check(): void {
   if (!demoPresent()) return
-  if (readProject().name === 'sal-starter') return
+  if (readProject().template === true) return
   fail(
     'The template Post demo is still here: it must not ship.',
     'Run `bun run demo:drop` (deletes it and writes the drop migration), or build your first feature over it and then drop it.'

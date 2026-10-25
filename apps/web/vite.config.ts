@@ -13,7 +13,7 @@ import { z } from 'zod'
 // into index.html in dev (server.ts runs transformIndexHtml) and in the build.
 const project = z
   .object({
-    name: z.string(),
+    template: z.literal(true).optional(),
     look: z.object({ scheme: z.enum(['light', 'dark']) }).nullable(),
   })
   .parse(JSON.parse(readFileSync(new URL('../../project.json', import.meta.url), 'utf8')))
@@ -26,7 +26,7 @@ function noTemplateDemo(): Plugin {
     name: 'no-template-demo',
     apply: 'build',
     buildStart() {
-      if (project.name === 'sal-starter') return
+      if (project.template === true) return
       if (!existsSync(new URL('./server/demo.ts', import.meta.url))) return
       this.error(
         'The template Post demo is still here and must not ship. Run `bun run demo:drop` (deletes it and writes the drop migration).'
