@@ -1,0 +1,401 @@
+<title>Sal Starter</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a printed spec sheet. Ink band up top carrying the split-disc mark,
+     then a two-column grid of fact panels, a numbered fork lifecycle, a stack
+     ledger and a command card. One deliberate light theme (the project bans
+     dark mode), every colour set explicitly. */
+  :root {
+    --paper: #f6f6f4;
+    --sheet: #ffffff;
+    --ink: #171717;
+    --ink-soft: #4a4a48;
+    --rule: #e2e2de;
+    --mark: #fafafa;
+    --signal: #e5a50a;
+    --signal-wash: #fdf4dc;
+    --good: #2f7d4f;
+    --font-display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+    --font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --step-0: 1rem;
+    --step-1: 1.25rem;
+    --step-2: 1.625rem;
+    --step-3: 2.25rem;
+    --step-4: clamp(2.75rem, 7vw, 4.75rem);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 var(--step-0)/1.6 var(--font-body);
+  }
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: var(--step-2); font-weight: 700; }
+  h3 { font-size: var(--step-1); font-weight: 700; }
+  p { margin: 0; }
+  code, kbd, .mono { font-family: var(--font-mono); font-size: 0.875em; }
+  code { background: #f0f0ec; padding: 0.1em 0.35em; border-radius: 4px; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  /* Ink band */
+  .band { background: var(--ink); color: var(--mark); }
+  .band .wrap { padding-block: clamp(40px, 7vw, 80px); display: grid; grid-template-columns: auto 1fr; gap: clamp(24px, 5vw, 56px); align-items: center; }
+  .band svg { width: clamp(72px, 13vw, 140px); height: auto; color: var(--mark); }
+  .band h1 { font-size: var(--step-4); font-weight: 800; line-height: 0.95; }
+  .band .lede { margin-top: 18px; font-size: var(--step-1); color: #d9d9d4; max-width: 46ch; }
+  .band .init {
+    margin-top: 26px;
+    display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: #262626; border: 1px solid #3a3a38; border-radius: 8px;
+    padding: 10px 14px; font-family: var(--font-mono); font-size: 0.95rem; color: var(--mark);
+    max-width: 100%;
+  }
+  .band .init span { color: var(--signal); }
+  .copy { font: 500 0.8rem var(--font-body); background: var(--mark); color: var(--ink); border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+
+  /* Surfaces strip */
+  .surfaces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; margin-top: -28px; position: relative; }
+  .surface { background: var(--sheet); padding: 22px 22px 24px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .surface .tag { font: 500 0.75rem var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .surface h3 { font-size: var(--step-1); }
+  .surface p { color: var(--ink-soft); font-size: 0.95rem; }
+
+  main { display: grid; gap: clamp(48px, 7vw, 80px); padding-block: clamp(48px, 7vw, 80px); }
+
+  .section-head { display: grid; gap: 8px; margin-bottom: 24px; max-width: 62ch; }
+  .section-head p { color: var(--ink-soft); }
+
+  /* Why: fork evidence */
+  .evidence { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .fact { border-top: 3px solid var(--ink); padding-top: 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .fact b { font: 800 var(--step-3)/1 var(--font-display); font-variant-numeric: tabular-nums; }
+  .fact span { color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* Lifecycle */
+  .life { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; counter-reset: step; }
+  .life li { counter-increment: step; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .life li::before { content: counter(step); font: 800 var(--step-2)/1 var(--font-display); color: var(--signal); }
+  .life h3 { font-size: 1.1rem; }
+  .life p { color: var(--ink-soft); font-size: 0.92rem; }
+  .life code { font-size: 0.8rem; word-break: break-word; }
+
+  /* Feature grid */
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 24px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .panel ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; color: var(--ink-soft); }
+  .panel ul b { color: var(--ink); font-weight: 600; }
+
+  /* Guardrails */
+  .rails { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .rail { background: var(--signal-wash); border: 1px solid #f1dc9f; border-radius: 10px; padding: 20px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .rail h3 { font-size: 1.05rem; }
+  .rail p { font-size: 0.93rem; color: #4d4330; }
+
+  /* Demo bar replica */
+  .demo-bar { border: 2px dashed var(--signal); background: var(--signal-wash); border-radius: 8px; padding: 12px 16px; font-weight: 500; font-size: 0.95rem; }
+
+  /* Stack ledger */
+  .ledger-wrap { overflow-x: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font: 500 0.75rem var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); background: #fbfbf9; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  td:nth-child(2) { white-space: nowrap; }
+  td:last-child { color: var(--ink-soft); }
+
+  /* Commands */
+  .cmds { background: var(--ink); color: var(--mark); border-radius: 12px; padding: clamp(20px, 4vw, 32px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 32px; }
+  .cmd { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 14px; padding: 9px 0; border-bottom: 1px solid #2f2f2d; min-width: 0; }
+  .cmd code { background: none; padding: 0; color: var(--signal); font-size: 0.86rem; overflow-wrap: anywhere; }
+  .cmd span { color: #cfcfca; font-size: 0.92rem; }
+
+  /* Status */
+  .status { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .status .panel h3 { display: flex; align-items: center; gap: 10px; }
+  .pill { font: 500 0.72rem var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 999px; }
+  .pill.ok { background: #e3f1e8; color: var(--good); }
+  .pill.wait { background: var(--signal-wash); color: #8a6100; }
+
+  footer { border-top: 1px solid var(--rule); }
+  footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; color: var(--ink-soft); font-size: 0.9rem; }
+
+  @media (max-width: 960px) {
+    .life { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .evidence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rails { grid-template-columns: 1fr 1fr; }
+    .cmds { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 680px) {
+    .band .wrap { grid-template-columns: 1fr; }
+    .surfaces, .grid, .rails, .status, .life { grid-template-columns: 1fr; }
+    .surfaces { margin-top: 24px; }
+    .cmd { grid-template-columns: 1fr; gap: 2px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .band svg path { transform-origin: 50% 50%; animation: settle 900ms cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes settle { from { transform: scale(0.86); opacity: 0.4; } to { transform: none; opacity: 1; } }
+  }
+</style>
+
+<header class="band">
+  <div class="wrap">
+    <svg viewBox="0 0 114 118" fill="currentColor" role="img" aria-label="Sal Starter mark">
+      <path d="M50 18A50 50 0 0 0 50 118ZM64 0A50 50 0 0 1 64 100Z" />
+    </svg>
+    <div>
+      <h1>Sal Starter</h1>
+      <p class="lede">The base every new product starts from. One command turns it into a real app with a web server, an iPhone and Android app, and a desktop app, all sharing one API, one database and one look.</p>
+      <div class="init"><span>$</span> <code id="init-cmd" style="background:none;padding:0;color:inherit">bun run init my-app --mobile</code> <button class="copy" id="copy-init" type="button">Copy</button></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="surfaces" aria-label="Surfaces">
+    <div class="surface">
+      <span class="tag">apps/web · always</span>
+      <h3>Web app and API</h3>
+      <p>Server-rendered React with the data already on the page, sign-in, Postgres, and the tRPC API the other apps call. Deploys to Drydock on push.</p>
+    </div>
+    <div class="surface">
+      <span class="tag">apps/mobile · --mobile</span>
+      <h3>iPhone and Android</h3>
+      <p>Expo SDK 58 dev client on the same API and the same design tokens. Over-the-air updates through preview and production lanes.</p>
+    </div>
+    <div class="surface">
+      <span class="tag">apps/desktop · --desktop</span>
+      <h3>Desktop</h3>
+      <p>Electron 44 with its own typed API over IPC, the same React and Tailwind, and a portable build with no installer.</p>
+    </div>
+  </section>
+</div>
+
+<main class="wrap">
+
+  <section aria-labelledby="why">
+    <div class="section-head">
+      <h2 id="why">Built from what 16 real apps did</h2>
+      <p>Every fork made from the starter was audited. Whatever several of them rebuilt by hand is now in the base, and whatever they kept forgetting to remove now blocks the deploy.</p>
+    </div>
+    <div class="evidence">
+      <div class="fact"><b>16</b><span>forks audited before the overhaul: web-only, web with mobile, and desktop-only</span></div>
+      <div class="fact"><b>13</b><span>replaced the starter's home page, most within the first hour and a half</span></div>
+      <div class="fact"><b>7</b><span>still carried the template's Post demo. Now a fork can't deploy until it's gone</span></div>
+      <div class="fact"><b>0</b><span>had analytics. Every fork now gets Crow's Nest from its first deploy</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="life">
+    <div class="section-head">
+      <h2 id="life">From zero to shipped</h2>
+      <p>The order a new app goes through. The starter enforces the middle steps, so nobody skips them.</p>
+    </div>
+    <ol class="life">
+      <li>
+        <h3>Init</h3>
+        <p><code>bun run init &lt;name&gt;</code> renames everything, picks unique ports, and with <code>--mobile</code> creates the EAS project.</p>
+      </li>
+      <li>
+        <h3>Kickoff</h3>
+        <p>Pick the look: one colour scheme, fonts, the real home page, the logo. Tests fail until it's done.</p>
+      </li>
+      <li>
+        <h3>Brand</h3>
+        <p>Draw one mark. <code>bun run brand</code> makes every icon, splash screen and favicon from it.</p>
+      </li>
+      <li>
+        <h3>Drop the demo</h3>
+        <p><code>bun run demo:drop</code> removes the template's example feature and writes its migration.</p>
+      </li>
+      <li>
+        <h3>Ship</h3>
+        <p>Push to main and Drydock deploys the web app. Mobile ships through EAS builds and over-the-air updates.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="dayone">
+    <div class="section-head">
+      <h2 id="dayone">What a new app has on day one</h2>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        <h3>Accounts and access</h3>
+        <ul>
+          <li><b>Email and password sign-in</b> on web and mobile, with the session on the first paint and no flicker</li>
+          <li><b>Sign-up allowlist</b>: set <code>SIGNUP_ALLOWLIST</code> to emails or <code>@domain</code> entries, enforced by the server</li>
+          <li><b>Admins</b> from <code>ADMIN_EMAILS</code>, with an <code>adminProcedure</code> for admin-only API calls</li>
+          <li><b>Back where you were</b>: sign-in returns to the page you asked for, and off-site links are refused</li>
+          <li><b>No accounts at all</b> with <code>init --no-auth</code></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Data and API</h3>
+        <ul>
+          <li><b>Postgres with Prisma 7</b>, schema changes shipped as committed migrations</li>
+          <li><b>tRPC end to end</b>: types flow from server to web, mobile and desktop with no codegen</li>
+          <li><b>Dates stay dates</b> across the wire and through server rendering</li>
+          <li><b>Pages render with their data</b>, prefetched on the server and on client navigation</li>
+          <li><b>Missing keys never break a deploy</b>; the error names the Drydock setting to fill in</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Mobile, pretty by default</h3>
+        <ul>
+          <li><b>A full-bleed splash</b> in the brand colour that hands off to the app and fades out</li>
+          <li><b>Screen layout</b> that handles safe areas, scrolling and the keyboard</li>
+          <li><b>Buttons with haptics</b> and a press animation</li>
+          <li><b>Baseline libraries</b>: images, fonts, SF Symbols, Lucide icons, toasts, fast lists, keyboard handling</li>
+          <li><b>Over-the-air updates</b> that install on launch and resume, and a hold for screens mid-flow</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Add-ons, one command each</h3>
+        <ul>
+          <li><b><code>bun run add:ai</code></b>: Claude client with structured output, prompt caching, cost logging and a fake mode for tests</li>
+          <li><b><code>bun run add:ws</code></b>: WebSockets and live tRPC subscriptions on the same server</li>
+          <li><b><code>bun run add:jobs</code></b>: a Postgres job queue with retries and backoff</li>
+          <li><b><code>bun run upgrade:expo</code></b>: Expo patch or SDK upgrades, with a report of what needs a new build</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="rails">
+    <div class="section-head">
+      <h2 id="rails">Guardrails that stop the usual mistakes</h2>
+    </div>
+    <div class="rails">
+      <div class="rail">
+        <h3>The demo can't ship</h3>
+        <p>In any fork, the build and the tests fail while the example feature is present. The app shows it too:</p>
+        <div class="demo-bar">Template demo · delete before shipping: <span class="mono">bun run demo:drop</span></div>
+      </div>
+      <div class="rail">
+        <h3>No look, no done</h3>
+        <p>Until the kickoff sets the look, dev shows a "Kickoff pending" ribbon and <code>bun run test</code> fails.</p>
+      </div>
+      <div class="rail">
+        <h3>One theme, ever</h3>
+        <p>No dark mode and no toggle on any platform. The OS can't flip the app, and <code>dark:</code> classes never match.</p>
+      </div>
+      <div class="rail">
+        <h3>Types are the gate</h3>
+        <p>Strict TypeScript everywhere, no <code>any</code>, and zod at every boundary. A change isn't done while typecheck is red.</p>
+      </div>
+      <div class="rail">
+        <h3>No brand-new packages</h3>
+        <p>Every install waits 3 days after a release, on every machine and in every fork.</p>
+      </div>
+      <div class="rail">
+        <h3>Tests that set themselves up</h3>
+        <p>End-to-end tests create their own database, apply migrations and compare screenshots, in about 10 seconds.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="stack">
+    <div class="section-head">
+      <h2 id="stack">The stack</h2>
+    </div>
+    <div class="ledger-wrap">
+      <table>
+        <thead><tr><th>Layer</th><th>Choice</th><th>Why it's set up this way</th></tr></thead>
+        <tbody>
+          <tr><td>Runtime</td><td>Bun 1.4 workspaces</td><td>One lockfile and one catalog of shared versions</td></tr>
+          <tr><td>Server</td><td>Express 5 + Vite 8</td><td>Dev and production run the same server file; hot reload on one port</td></tr>
+          <tr><td>Routing</td><td>React Router 8</td><td>Typed loader context, the same on server and browser</td></tr>
+          <tr><td>API</td><td>tRPC 11 + superjson</td><td>One typed API for web, mobile and desktop</td></tr>
+          <tr><td>Database</td><td>Postgres + Prisma 7</td><td>Committed migrations; Prisma 8 skipped until it's stable</td></tr>
+          <tr><td>Auth</td><td>better-auth 1.7</td><td>Email and password, cookie sessions, the Expo plugin for mobile</td></tr>
+          <tr><td>UI</td><td>Tailwind 4 + shadcn on Base UI</td><td>One token file restyles every app; components added verbatim</td></tr>
+          <tr><td>Compiler</td><td>React Compiler 1.0</td><td>On for web, desktop and mobile</td></tr>
+          <tr><td>Mobile</td><td>Expo SDK 58, React Native 0.88</td><td>Dev client, Uniwind styling, iOS and Android</td></tr>
+          <tr><td>Desktop</td><td>Electron 44 + electron-vite 6</td><td>Sandboxed, typed IPC, state kept in the repo</td></tr>
+          <tr><td>Deploy</td><td>Drydock</td><td>Push to main deploys web, with migrations run first</td></tr>
+          <tr><td>Analytics</td><td>Crow's Nest</td><td>On from the first deploy, silent on localhost</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="cmds">
+    <div class="section-head">
+      <h2 id="cmds">Commands to know</h2>
+    </div>
+    <div class="cmds">
+      <div class="cmd"><code>bun run init &lt;name&gt;</code><span>New app; add <span class="mono">--mobile</span>, <span class="mono">--desktop</span>, <span class="mono">--no-auth</span></span></div>
+      <div class="cmd"><code>bun run dev</code><span>Web, API and Metro on the project's own ports</span></div>
+      <div class="cmd"><code>bun run typecheck</code><span>Strict TypeScript across every workspace</span></div>
+      <div class="cmd"><code>bun run test</code><span>Unit tests, plus the kickoff and demo gates</span></div>
+      <div class="cmd"><code>bun run test:e2e</code><span>Browser tests on an isolated database</span></div>
+      <div class="cmd"><code>bun run brand</code><span>Regenerate every icon and splash from the mark</span></div>
+      <div class="cmd"><code>bun run demo:drop</code><span>Remove the template demo and write its migration</span></div>
+      <div class="cmd"><code>bun run db:migrate</code><span>Create and apply a schema migration</span></div>
+      <div class="cmd"><code>bun run sync</code><span>Pull template improvements into a fork</span></div>
+      <div class="cmd"><code>bun run upgrade:expo</code><span>Upgrade Expo inside the 3-day release rule</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="state">
+    <div class="section-head">
+      <h2 id="state">Where it stands</h2>
+    </div>
+    <div class="status">
+      <div class="panel">
+        <h3>Verified <span class="pill ok">green</span></h3>
+        <ul>
+          <li>Typecheck in all 7 workspaces and unit tests in all 6 suites</li>
+          <li>Browser tests 8 of 8; web and desktop builds; iOS and Android bundles</li>
+          <li>New apps made with <code>init</code>, with mobile and with <code>--no-auth</code>: blocked while the demo is present, green after <code>demo:drop</code></li>
+          <li>Sign-in, sign-up and sign-out on an iPhone simulator, before the latest native changes</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Next <span class="pill wait">open</span></h3>
+        <ul>
+          <li>A simulator run of the new build: splash hand-off, app icon, new native libraries</li>
+          <li>Six Expo patches clear the 3-day rule on 26 October, then one <code>bun run upgrade:expo</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>github.com/dested/sal-starter · main</span>
+    <span>TypeScript · React · tRPC · Postgres · Expo · Electron</span>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('copy-init').addEventListener('click', function () {
+    var btn = this;
+    var text = document.getElementById('init-cmd').textContent;
+    var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+    try {
+      navigator.clipboard.writeText(text).then(done, function () { selectText(); });
+    } catch (e) { selectText(); }
+    function selectText() {
+      var r = document.createRange(); r.selectNodeContents(document.getElementById('init-cmd'));
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+  });
+</script>
