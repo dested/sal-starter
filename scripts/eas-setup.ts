@@ -22,7 +22,7 @@
 // missing or not logged in; the command to run later is printed) · 1 an eas
 // command failed.
 //
-// The template (project.json name sal-starter) never gets an EAS project: it
+// The template (project.json `template: true`, which init drops) never gets an EAS project: it
 // refuses there, dry run included, with no override.
 
 import { spawnSync } from 'node:child_process'
@@ -138,9 +138,9 @@ function plan(cwd: string, probe: boolean) {
   return { initArgs, envArgs, protect }
 }
 
-if (project.name === 'sal-starter') {
+if (project.template === true) {
   result.notes.push('the template has no EAS project')
-  log(c.yellow('  skipped EAS setup: this is the sal-starter template, which has no EAS project.'))
+  log(c.yellow('  skipped EAS setup: this is the template, which has no EAS project.'))
   log(c.dim(`  In a fork (bun run init <name> --mobile), run ${RERUN}`))
   finish('skipped', 2)
 }
