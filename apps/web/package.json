@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@app/tokens": "workspace:*",
+    "@base-ui/react": "catalog:",
     "@better-auth/expo": "catalog:",
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",

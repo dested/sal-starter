@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { Button as ButtonPrimitive } from '@base-ui/react/button'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '~/lib/utils'
 
@@ -29,14 +29,16 @@ const buttonVariants = cva(
   }
 )
 
+// Base UI's Button: a real <button> by default; `render` swaps the element
+// (`<Button nativeButton={false} render={<Link to="/x" />}>`).
 function Button({
   className,
-  variant,
-  size,
+  variant = 'default',
+  size = 'default',
   ...props
-}: React.ComponentProps<'button'> & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
-    <button
+    <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}

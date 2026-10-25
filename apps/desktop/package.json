@@ -18,6 +18,7 @@
     "@app/tokens": "workspace:*",
     "@app/trpc-ipc": "workspace:*",
     "@babel/core": "catalog:",
+    "@base-ui/react": "catalog:",
     "@rolldown/plugin-babel": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query": "catalog:",
