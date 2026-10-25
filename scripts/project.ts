@@ -41,13 +41,15 @@ export const projectSchema = z.object({
   desktopPort: z.number().int().min(1026).max(65535),
   db: z.string().regex(/^[a-z][a-z0-9_]*$/),
   easProjectId: z.string().nullable(),
+  // The Expo account that owns the EAS project (`init --mobile` creates it there).
+  easOwner: z.string().min(1),
   appleTeamId: z.string().nullable(),
   look: lookSchema.nullable(),
 })
 
 export type Project = z.infer<typeof projectSchema>
 
-// Forks made before `surfaces`/`desktopPort`/`appId`/`look` existed: fill them
+// Forks made before `surfaces`/`desktopPort`/`appId`/`look`/`easOwner` existed: fill them
 // in from what's on disk, once. `sync` writes the result back. A fork older than
 // the kickoff already has its own look, so it gets a light placeholder to edit,
 // not a failing kickoff check.
@@ -56,7 +58,11 @@ const legacySchema = projectSchema.extend({
   surfaces: projectSchema.shape.surfaces.optional(),
   desktopPort: projectSchema.shape.desktopPort.optional(),
   look: projectSchema.shape.look.optional(),
+  easOwner: projectSchema.shape.easOwner.optional(),
 })
+
+/** Every fork's EAS projects live under this Expo account unless project.json says otherwise. */
+export const DEFAULT_EAS_OWNER = 'quickgame'
 
 export function readProject(): Project {
   const raw: unknown = JSON.parse(readFileSync(PROJECT_FILE, 'utf8'))
@@ -66,6 +72,7 @@ export function readProject(): Project {
     appId: legacy.appId ?? legacy.bundleId,
     surfaces: legacy.surfaces ?? SURFACES.filter((s) => existsSync(`apps/${s}`)),
     desktopPort: legacy.desktopPort ?? legacy.apiPort + 2,
+    easOwner: legacy.easOwner ?? DEFAULT_EAS_OWNER,
     look:
       legacy.look === undefined ? { scheme: 'light', direction: 'pre-kickoff fork' } : legacy.look,
   })
@@ -75,9 +82,20 @@ export function writeProject(project: Project): void {
   writeFileSync(PROJECT_FILE, JSON.stringify(projectSchema.parse(project), null, 2) + '\n')
 }
 
-/** Paths of every surface this fork doesn't have (what `sync` keeps deleted). */
+/**
+ * Pieces of a surface a fork may drop on its own: `init --mobile` drops the
+ * native-example package unless `--native-example`. Absent at HEAD means the
+ * fork dropped it, and `sync` keeps it deleted.
+ */
+export const OPTIONAL_PATHS = ['packages/native-example']
+
+/** Paths of every surface this fork doesn't have, plus dropped optional pieces (what `sync` keeps deleted). */
 export function excludedPaths(project: Project): string[] {
-  return SURFACES.filter((s) => !project.surfaces.includes(s)).flatMap((s) => SURFACE_PATHS[s])
+  const surfaces = SURFACES.filter((s) => !project.surfaces.includes(s)).flatMap(
+    (s) => SURFACE_PATHS[s]
+  )
+  const optional = OPTIONAL_PATHS.filter((p) => !surfaces.includes(p) && !existsSync(p))
+  return [...surfaces, ...optional]
 }
 
 /** Root package.json scripts that only make sense with a surface present. */

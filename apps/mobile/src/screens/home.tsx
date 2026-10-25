@@ -1,10 +1,10 @@
-import { pluginValue } from '@app/native-example'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Updates from 'expo-updates'
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native'
 import { nativeHello } from '../../modules/app-native'
+import { NativeExampleRow } from '~/components/native-example-row'
 import { SafeAreaView } from '~/components/safe-area-view'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
@@ -131,15 +131,12 @@ export function HomeScreen() {
 // rebuild the dev client (CLAUDE.md rule #20).
 function NativeExamples() {
   const hello = nativeHello()
-  const plist = pluginValue()
   return (
     <View className="gap-1 pb-6">
       <Text className="text-xs text-muted-foreground">
         modules/app-native: {hello ?? 'not in this build (rebuild the dev client)'}
       </Text>
-      <Text className="text-xs text-muted-foreground">
-        @app/native-example: {plist ?? 'not in this build (rebuild the dev client)'}
-      </Text>
+      <NativeExampleRow />
       {__DEV__ && (
         <Text className="text-xs text-muted-foreground">
           fingerprint: {Updates.runtimeVersion ?? 'unknown'}

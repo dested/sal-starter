@@ -10,6 +10,7 @@
   "desktopPort": 4782,
   "db": "sal_starter",
   "easProjectId": null,
+  "easOwner": "quickgame",
   "appleTeamId": null,
   "look": {
     "scheme": "light",
