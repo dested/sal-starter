@@ -1,0 +1,28 @@
+
+// Background jobs (server/jobs.ts, bun run add:jobs). Claimed with FOR UPDATE
+// SKIP LOCKED; `key` dedupes waiting/running jobs of a kind.
+enum JobState {
+  waiting
+  running
+  done
+  failed
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  kind        String
+  key         String?
+  payload     Json
+  state       JobState  @default(waiting)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5) @map("max_attempts")
+  runAfter    DateTime  @default(now()) @map("run_after")
+  lockedAt    DateTime? @map("locked_at")
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([state, runAfter])
+  @@index([kind, key])
+  @@map("job")
+}
