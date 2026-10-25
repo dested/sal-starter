@@ -113,6 +113,7 @@ export const SURFACE_SCRIPTS: Record<Surface, Record<string, string>> = {
     'db:migrate:sql': 'bun run --cwd apps/web db:migrate:sql',
     'db:deploy': 'bun run --cwd apps/web db:deploy',
     'db:studio': 'bun run --cwd apps/web db:studio',
+    'demo:drop': 'bun scripts/demo.ts',
   },
   mobile: {
     'upgrade:expo': 'bun scripts/upgrade-expo.ts',

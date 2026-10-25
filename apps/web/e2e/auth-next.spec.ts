@@ -18,7 +18,7 @@ test('signed-out /dashboard → sign up → back to /dashboard', async ({ page }
   await page.getByRole('button', { name: 'Sign up' }).click()
 
   await page.waitForURL((url) => url.pathname === '/dashboard')
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Grace Hopper' })).toBeVisible()
 })
 
 test('sign-in returns to the page and query it was asked for', async ({ page, request }) => {
@@ -36,7 +36,7 @@ test('sign-in returns to the page and query it was asked for', async ({ page, re
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await page.waitForURL((url) => url.pathname === '/dashboard' && url.search === '?tab=posts')
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Linus' })).toBeVisible()
 })
 
 test('an off-site ?next= is ignored', async ({ page, baseURL }) => {
@@ -48,5 +48,5 @@ test('an off-site ?next= is ignored', async ({ page, baseURL }) => {
 
   await page.waitForURL((url) => url.pathname === '/dashboard')
   expect(page.url()).toBe(`${baseURL}/dashboard`)
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mallory' })).toBeVisible()
 })

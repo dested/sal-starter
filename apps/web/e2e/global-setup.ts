@@ -24,8 +24,14 @@ export default async function globalSetup() {
   })
   const client = new Client({ connectionString: E2E_DATABASE_URL })
   await client.connect()
-  await client.query(
-    'TRUNCATE TABLE "post", "session", "account", "verification", "user" RESTART IDENTITY CASCADE'
+  // Every app table, so a new model never leaks rows between runs.
+  const { rows } = await client.query<{ name: string }>(
+    "SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'"
   )
+  if (rows.length > 0) {
+    await client.query(
+      `TRUNCATE TABLE ${rows.map((r) => r.name).join(', ')} RESTART IDENTITY CASCADE`
+    )
+  }
   await client.end()
 }

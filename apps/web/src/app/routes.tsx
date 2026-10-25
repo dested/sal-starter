@@ -21,12 +21,13 @@ async function rootLoader({ context }: LoaderFunctionArgs): Promise<RootLoaderDa
 
 async function dashboardLoader(args: LoaderFunctionArgs): Promise<RootLoaderData> {
   const { queryClient, trpc } = args.context.get(clientsContext)
-  // Check the session and warm the posts cache in parallel so the dashboard
+  // Check the session and warm the page's queries in parallel so the dashboard
   // renders with data. Signed out, requireSession's redirect (to
   // /sign-in?next=/dashboard) wins; prefetchQuery swallows the UNAUTHORIZED.
   const [session] = await Promise.all([
     requireSession(args),
-    queryClient.prefetchQuery(trpc.posts.list.queryOptions()),
+    queryClient.prefetchQuery(trpc.me.queryOptions()),
+    queryClient.prefetchQuery(trpc.posts.list.queryOptions()), // demo
   ])
   return { session }
 }

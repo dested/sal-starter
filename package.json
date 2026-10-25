@@ -70,6 +70,7 @@
     "db:migrate:sql": "bun run --cwd apps/web db:migrate:sql",
     "db:deploy": "bun run --cwd apps/web db:deploy",
     "db:studio": "bun run --cwd apps/web db:studio",
+    "demo:drop": "bun scripts/demo.ts",
     "tokens": "bun run --cwd packages/tokens emit",
     "brand": "bun run --cwd packages/brand emit",
     "prettier": "prettier ."

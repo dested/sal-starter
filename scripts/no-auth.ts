@@ -101,23 +101,28 @@ const WEB_EDITS: Edit[] = [
     replace: '\n',
   },
 
-  // router.ts: no `me`; posts are anonymous.
+  // router.ts: no `me`; the demo's posts are anonymous.
   {
     file: 'apps/web/server/router.ts',
+    find: "import { router, protectedProcedure } from './trpc'",
+    replace: "import { router } from './trpc'",
+  },
+  { file: 'apps/web/server/router.ts', find: /^ {2}me: protectedProcedure\.[^\n]*\n/m },
+  {
+    file: 'apps/web/server/demo.ts',
     find: "import { router, publicProcedure, protectedProcedure } from './trpc'",
     replace: "import { router, publicProcedure } from './trpc'",
   },
-  { file: 'apps/web/server/router.ts', find: /^ {2}me: protectedProcedure\.[^\n]*\n/m },
-  { file: 'apps/web/server/router.ts', find: /^ {8}include: \{ author: [^\n]*\n/m },
-  { file: 'apps/web/server/router.ts', find: /^ {8}authorName: [^\n]*\n/m },
+  { file: 'apps/web/server/demo.ts', find: /^ {6}include: \{ author: [^\n]*\n/m },
+  { file: 'apps/web/server/demo.ts', find: /^ {6}authorName: [^\n]*\n/m },
   {
-    file: 'apps/web/server/router.ts',
-    find: '    create: protectedProcedure',
-    replace: '    create: publicProcedure',
+    file: 'apps/web/server/demo.ts',
+    find: '  create: protectedProcedure',
+    replace: '  create: publicProcedure',
   },
   {
-    file: 'apps/web/server/router.ts',
-    find: /\.mutation\(async \(\{ ctx, input \}\) => \{\n[\s\S]*?\n {6}\}\),\n/,
+    file: 'apps/web/server/demo.ts',
+    find: /\.mutation\(async \(\{ ctx, input \}\) => \{\n[\s\S]*?\n {4}\}\),\n/,
     replace: '.mutation(({ input }) => prisma.post.create({ data: input })),\n',
   },
 
@@ -296,11 +301,6 @@ const WEB_EDITS: Edit[] = [
   // e2e: no auth tables, secrets or sign-up flow.
   {
     file: 'apps/web/e2e/global-setup.ts',
-    find: '"post", "session", "account", "verification", "user"',
-    replace: '"post"',
-  },
-  {
-    file: 'apps/web/e2e/global-setup.ts',
     find: 'so sign-up uses a fresh fixed user and screenshots',
     replace: 'so screenshots',
   },
@@ -322,13 +322,16 @@ const WEB_EDITS: Edit[] = [
   { file: 'apps/web/e2e/smoke.spec.ts', find: /^test\('sign-up page renders'[\s\S]*?\n\}\)\n\n/m },
   {
     file: 'apps/web/e2e/smoke.spec.ts',
-    find: /^test\('sign up → dashboard → create post → sign out'[\s\S]*?await page\.waitForURL\('\*\*\/dashboard'\)\n/m,
-    replace:
-      "test('dashboard → create post', async ({ page }) => {\n  await page.goto('/dashboard')\n",
+    find: "import { deserializeSsrState, isSuperJSONResult } from '../src/lib/ssr-state'\n",
   },
   {
     file: 'apps/web/e2e/smoke.spec.ts',
-    find: /\n {2}\/\/ Sign out returns to the signed-out home\.[\s\S]*?(?=\n\}\)\n)/,
+    find: /\ntest\('sign up → dashboard → sign out'[\s\S]*?\n\}\)\n/,
+  },
+  {
+    file: 'apps/web/e2e/demo.spec.ts',
+    find: /^ {2}await page\.goto\('\/sign-up'\)[\s\S]*?await page\.waitForURL\('\*\*\/dashboard'\)\n/m,
+    replace: "  await page.goto('/dashboard')\n",
   },
 
   { file: '.env.example', find: /^BETTER_AUTH_SECRET=[^\n]*\nBETTER_AUTH_URL=[^\n]*\n/m },

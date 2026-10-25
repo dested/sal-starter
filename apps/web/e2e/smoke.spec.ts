@@ -26,7 +26,7 @@ test('unknown route returns a 404 with the not-found page', async ({ page }) => 
   await expect(page).toHaveScreenshot('not-found.png', { fullPage: true })
 })
 
-test('sign up → dashboard → create post → sign out', async ({ page }) => {
+test('sign up → dashboard → sign out', async ({ page }) => {
   await page.goto('/sign-up')
   await page.getByLabel('Name').fill(USER.name)
   await page.getByLabel('Email').fill(USER.email)
@@ -34,34 +34,22 @@ test('sign up → dashboard → create post → sign out', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign up' }).click()
 
   await page.waitForURL('**/dashboard')
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-  await expect(page.getByText('No posts yet — be the first.')).toBeVisible()
-  await expect(page).toHaveScreenshot('dashboard-empty.png', { fullPage: true })
-
-  // Create a post and confirm it shows up (functional, not screenshotted —
-  // the post date is dynamic).
-  await page.getByLabel('Title').fill('Hello world')
-  await page.getByLabel('Content').fill('My first post on the new stack.')
-  await page.getByRole('button', { name: 'Post' }).click()
-  await expect(page.getByText('Hello world')).toBeVisible()
-  await expect(page.getByText('My first post on the new stack.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: USER.name })).toBeVisible()
 
   // SSR hydration keeps Dates: a hard reload server-renders the dashboard with
-  // posts.list prefetched; the inline state, deserialized exactly as index.tsx
-  // does it, must hand React Query a real Date (not an ISO string).
+  // `me` prefetched; the inline state, deserialized exactly as index.tsx does
+  // it, must hand React Query a real Date (not an ISO string).
   await page.reload()
-  await expect(page.getByText('Hello world')).toBeVisible()
+  await expect(page.getByRole('heading', { name: USER.name })).toBeVisible()
   const payload: unknown = await page.evaluate(() => window.__SSR_STATE__)
   expect(isSuperJSONResult(payload)).toBe(true)
   const state = deserializeSsrState(isSuperJSONResult(payload) ? payload : undefined)
-  const posts = state?.queries
+  const me = state?.queries
     .map((q) => q.state.data)
-    .find((d): d is unknown[] => Array.isArray(d))
-  const [first]: unknown[] = posts ?? []
-  expect(first).toMatchObject({ title: 'Hello world' })
-  expect(
-    typeof first === 'object' && first !== null && 'createdAt' in first && first.createdAt
-  ).toBeInstanceOf(Date)
+    .find((d) => typeof d === 'object' && d !== null && 'email' in d && d.email === USER.email)
+  expect(typeof me === 'object' && me !== null && 'createdAt' in me && me.createdAt).toBeInstanceOf(
+    Date
+  )
 
   // Sign out returns to the signed-out home.
   await page.getByRole('button', { name: 'Sign out' }).click()
