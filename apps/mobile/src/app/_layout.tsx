@@ -49,10 +49,13 @@ export default function RootLayout() {
             headerShown: false,
             contentStyle: { backgroundColor: colors.background },
           }}>
-          <Stack.Protected guard={session !== null}>
+          {/* Explicit redirects: SDK 58's default falls back to the first open
+              group's path, and `(auth)` has no index, so a signed-out launch
+              at `/` landed on "Unmatched Route". */}
+          <Stack.Protected guard={session !== null} redirectTo="/sign-in">
             <Stack.Screen name="(app)" />
           </Stack.Protected>
-          <Stack.Protected guard={session === null}>
+          <Stack.Protected guard={session === null} redirectTo="/">
             <Stack.Screen name="(auth)" />
           </Stack.Protected>
         </Stack>

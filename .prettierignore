@@ -9,5 +9,6 @@ apps/mobile/.cache
 apps/mobile/ios
 apps/mobile/android
 apps/mobile/uniwind-types.d.ts
+apps/mobile/expo-env.d.ts
 packages/*/plugin/build
 apps/web/server/generated

@@ -58,11 +58,13 @@ export function SignInScreen() {
               size="lg"
               className="mt-1"
               label={pending ? 'Signing in…' : 'Sign in'}
-              disabled={pending}
+              disabled={pending || email === '' || password === ''}
               onPress={submit}
             />
           </View>
-          <Link href="/sign-up" className="text-base font-medium text-foreground">
+          <Link
+            href="/sign-up"
+            className="self-start text-base font-medium text-foreground underline">
             Create an account
           </Link>
         </ScrollView>

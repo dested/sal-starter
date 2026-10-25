@@ -2,6 +2,11 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-24 — first SDK 58 run on Limrun
+
+Built the SDK 58 dev client in a Limrun Xcode sandbox (3m16s) and ran it on an iPhone simulator. Found and fixed: a signed-out launch landed on "Unmatched Route" (expo-router 58 falls back to the first open group's path, and `(auth)` has no index), so both `Stack.Protected` guards now set `redirectTo`; mobile auth buttons stay disabled until the fields are filled (the server's raw zod error showed on an empty submit), and the switch link is underlined like web. Verified on the simulator: sign-in → sign-up → Home (API through the tunnel, both native modules) → sign-out → sign-in, and OS dark mode leaves the app white. Open: the Home dev row shows `fingerprint: 1` on SDK 58 (the dev menu shows the real runtime version).
+Touched: apps/mobile/src/app/_layout.tsx, apps/mobile/src/screens/{sign-in,sign-up}.tsx
+
 ## 2026-10-24 — auth pages, e2e that runs itself
 
 Asked: no EAS build; set up e2e; cut the helper text on sign-in/sign-up and make those pages look better.
