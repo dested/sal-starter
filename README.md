@@ -14,7 +14,7 @@ An SSR React starter wired with a current, type-safe stack, plus an optional Exp
 | db                 | **Postgres** + **Prisma 7** (pg driver adapter, `prisma-client` generator, `migrate`) |
 | auth               | **better-auth** (email + password, autoSignIn; Expo plugin for the app)               |
 | styles             | **Tailwind v4** + **shadcn/ui** (new-york, oklch tokens shared with mobile)           |
-| mobile (optional)  | **Expo SDK 57** dev client + **Expo Router** + **NativeWind 5**, iOS/iPad             |
+| mobile (optional)  | **Expo SDK 57** dev client + **Expo Router** + **Uniwind**, iOS/iPad                  |
 | desktop (optional) | **Electron 44** + **electron-vite 5**, tRPC over IPC, unpacked Windows builds         |
 | types              | **TypeScript 7** `tsc`, `strict` + `noUncheckedIndexedAccess` in every workspace      |
 | tests              | **Playwright** e2e with committed screenshot baselines + **bun:test** units           |
@@ -83,7 +83,7 @@ Mobile-only scripts live in `apps/mobile/package.json`: `doctor`, `fingerprint`,
 
 ```
 project.json             identity: name, scheme, bundleId, appId, surfaces, apiPort, metroPort, desktopPort, db, easProjectId, appleTeamId
-package.json             workspace root: catalog, overrides, proxy scripts
+package.json             workspace root: catalog, proxy scripts
 drydock.yaml             deploy seed (web only)
 scripts/                 init, sync, add-surface, dev
 apps/web/                the SSR app and the API server
@@ -110,7 +110,7 @@ packages/native-example/ shared Expo module + config plugin (the template's nati
 
 **Migrations.** Schema changes are committed `prisma migrate` migrations, never `db push`. Postgres features Prisma can't model are hand-written SQL in a migration. See `CLAUDE.md` → "Raw SQL in a migration".
 
-**Styling.** One theme, no dark mode: oklch tokens in `packages/tokens/tokens.css` (`@app/tokens`), mapped to Tailwind by `theme.css`. Web and desktop import both from `app.css`; mobile imports them through NativeWind, which compiles the colors for native. `bun run tokens` writes the hex copies (`colors.json`, exported as `colors`) that the splash, browser chrome, Electron window and SVG props use.
+**Styling.** One theme, no dark mode: oklch tokens in `packages/tokens/tokens.css` (`@app/tokens`), mapped to Tailwind by `theme.css`. Web and desktop import both from `app.css`; mobile imports them through Uniwind, which compiles them to native styles at bundle time. `bun run tokens` writes the hex copies (`colors.json`, exported as `colors`) that the splash, browser chrome, Electron window and SVG props use.
 
 ## Mobile: Windows + Mac + iPad
 

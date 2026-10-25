@@ -95,12 +95,12 @@ Add more with `bunx --bun shadcn@latest add <name>` (writes to `src/components/u
 
 ## Mobile (apps/mobile)
 
-Same tokens and class names through NativeWind 5 (`global.css` imports `theme.css` then `tokens.css`).
+Same tokens and class names through Uniwind (`global.css` imports `tailwindcss`, `uniwind`, then `theme.css` and `tokens.css`).
 
-- **One scheme:** `userInterfaceStyle` comes from `look.scheme`, so keyboards, alerts and pickers match. The splash, the root view and the stack's `contentStyle` paint `colors.background`; the status bar contrasts with it.
-- **Fonts:** `useFonts` in `src/app/_layout.tsx` while the splash is held; `--font-sans` / `--font-display` mapped in `global.css` (`@theme`) to the loaded names, one per weight.
+- **One scheme:** `userInterfaceStyle` comes from `look.scheme`, so keyboards, alerts and pickers match, and `_layout.tsx` pins `Uniwind.setTheme` to it so the OS never flips the app. `dark:` and `light:` never match. The splash, the root view and the stack's `contentStyle` paint `colors.background`; the status bar contrasts with it.
+- **Fonts:** `useFonts` in `src/app/_layout.tsx` while the splash is held; `--font-sans` / `--font-display` mapped in `global.css` (`@theme`) to the loaded names, one per weight. Never point them at the web stacks in `tokens.css`: native takes a single family name.
 - **Primitives** in `src/components/ui/` mirror web's names and cva variants. Placeholder text uses `colors.mutedForeground` (`placeholderTextColor` can't take a class).
-- **Screen anatomy:** `SafeAreaView` (`bg-background flex-1`) → `ScrollView` with `contentContainerClassName="gap-8 p-6"`.
+- **Screen anatomy:** `SafeAreaView` (`bg-background flex-1`, imported from `~/components/safe-area-view`) → `ScrollView` with `contentContainerClassName="gap-8 p-6"`. Any other third-party view that takes `className` goes through `withUniwind` the same way.
 - No web-only utilities on native (`hover:`, `focus-visible:`); they compile to nothing.
 
 ## Desktop (apps/desktop)

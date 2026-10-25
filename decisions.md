@@ -2,6 +2,11 @@
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
 
+## 2026-10-24 — Uniwind over NativeWind 5 rc (supersedes 2026-10-02 NativeWind 5 rc)
+
+**Why:** NativeWind 5 never left rc. Its `react-native-css` compiler held Tailwind at 4.1.12 and forced a root `lightningcss` 1.30.1 override, which also blocked Vite 8 and Tailwind 4.3 on web and kept the app off Expo SDK 58. Uniwind (1.13.0, pinned exactly) is stable, takes the same Tailwind classes and ships its own compiler (`@tailwindcss/node` 4.3.3 + lightningcss nested), so the override is gone. The spike showed `packages/tokens` working unchanged: the plain `:root` and the `theme.css` `var()` chain compile to the same hex as `colors.json` for all 23 roles, `shadow-card` becomes a native `boxShadow`, and `dark:` (`&:not(*)` in theme.css) compiles to nothing. Its OS-following theme is pinned with `Uniwind.setTheme(look.scheme)`, and `light:` is disabled in `global.css`. It binds `className` on react-native's own components only, so a third-party view goes through `withUniwind` (SafeAreaView in `src/components/safe-area-view.tsx`), and 1.13.0 is the first release that forwards every react-native export RN 0.88 needs.
+**Rejected:** staying on NativeWind 5 rc until GA (pins SDK 57, Vite 6 and Tailwind 4.1.12 indefinitely), NativeWind 4 (Tailwind v3), Unistyles / Tamagui / plain `StyleSheet` (a second styling language, no shared tokens), Uniwind Pro (paid, and its open RN 0.88 and `setTheme` issues are in the Pro native module).
+
 ## 2026-10-24 — One theme per project, no dark mode anywhere (supersedes 2026-09-11 dark mode, 2026-10-02 native dark mode)
 
 **Why:** Sal: "I actually don't want a toggleable dark mode in any of my projects ever. Whatever color we pick, that's the color." Two themes kept breaking on web and especially in the app (OS flips, splash and navigator in the wrong color, a second palette nobody designed). `tokens.css` is one `:root`; `color-scheme` there equals `project.json` `look.scheme`; `theme.css` redefines `dark:` as `&:not(*)` so copy-pasted shadcn `dark:` classes never switch on (Tailwind v4's default `dark:` follows the OS, which is how it kept sneaking back). The pre-paint script, `theme.ts`, `ThemeToggle`, mobile `useColorScheme`, desktop `nativeTheme` and the native dark block are gone.

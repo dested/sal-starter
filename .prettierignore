@@ -8,5 +8,6 @@ apps/mobile/.expo
 apps/mobile/.cache
 apps/mobile/ios
 apps/mobile/android
+apps/mobile/uniwind-types.d.ts
 packages/*/plugin/build
 apps/web/server/generated

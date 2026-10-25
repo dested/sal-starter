@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect } from 'react'
+import { Uniwind } from 'uniwind'
 import { KickoffRibbon } from '~/components/kickoff-ribbon'
 import { appConfig } from '~/lib/app-config'
 import { authClient } from '~/lib/auth-client'
@@ -18,7 +19,10 @@ void SplashScreen.preventAutoHideAsync()
 wireReactQueryToNative()
 
 // One theme (project.json look): the root view behind every screen is the
-// token background, and the status bar contrasts with it.
+// token background, and the status bar contrasts with it. Uniwind follows the
+// OS scheme until a theme is set; pinning it to the look's scheme stops the OS
+// from ever flipping the app (`dark:` never matches anyway, theme.css).
+Uniwind.setTheme(appConfig.extra.colorScheme)
 void SystemUI.setBackgroundColorAsync(colors.background)
 const STATUS_BAR = appConfig.extra.colorScheme === 'dark' ? 'light' : 'dark'
 
