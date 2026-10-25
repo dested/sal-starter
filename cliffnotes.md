@@ -282,7 +282,7 @@ Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:e2e:update` to 
 - **New data routes prefetch in both loader branches** — SSR via `ctx.trpc`, client via `getBrowserClients()` — or the page flickers on client nav.
 - **HMR has no fixed port** — it shares the Express server; giving it one collides with other clones running locally.
 - **shadcn has no `asChild`** (no `@radix-ui/react-slot`) — style a `Link` with `buttonVariants()`.
-- **No `tailwind.config`** — Tailwind v4, tokens in `packages/tokens`. Tailwind pinned 4.1.12 for web/desktop; Uniwind compiles mobile with its own nested Tailwind. No lightningcss override.
+- **No `tailwind.config`** — Tailwind v4, tokens in `packages/tokens`. Tailwind 4.3.3 everywhere (catalog = the version Uniwind depends on, so mobile compiles with the same Tailwind). No lightningcss override.
 - **Third-party native views need `withUniwind`** — Uniwind binds `className` on react-native's components only; elsewhere it typechecks and is silently dropped. SafeAreaView comes from `apps/mobile/src/components/safe-area-view.tsx`, never from `react-native-safe-area-context`.
 - **EAS runs from `apps/mobile` only.** At the root it creates a stray EAS project + root `app.json`/`eas.json`. `EAS_NO_VCS=1` uploads only the cwd: add `EAS_PROJECT_ROOT=../..` or Metro dies with ENOENT on workspace paths.
 - Use `log.*` from `server/logger.ts`, not raw `console.log`, in server code.
