@@ -8,7 +8,8 @@ import { join } from 'node:path'
 import { build, Platform } from 'electron-builder'
 import { z } from 'zod'
 
-const repoRoot = join(import.meta.dirname, '..', '..', '..')
+const desktopDir = join(import.meta.dirname, '..')
+const repoRoot = join(desktopDir, '..', '..')
 const project = z
   .object({ name: z.string(), displayName: z.string(), appId: z.string() })
   .parse(JSON.parse(readFileSync(join(repoRoot, 'project.json'), 'utf8')))
@@ -26,11 +27,13 @@ await build({
     electronVersion,
     productName: project.displayName,
     executableName: project.name,
-    directories: { output: join(repoRoot, 'release') },
     // Everything is bundled into out/ by electron-vite; ship nothing else.
     files: ['out/**', 'package.json'],
     npmRebuild: false,
     asar: true,
-    // Icon: drop build/icon.png (512x512) here and electron-builder picks it up.
+    // build/icon.png + icon.ico come from packages/brand (`bun run brand`).
+    directories: { output: join(repoRoot, 'release'), buildResources: join(desktopDir, 'build') },
+    win: { icon: join(desktopDir, 'build', 'icon.ico') },
+    linux: { icon: join(desktopDir, 'build', 'icon.png') },
   },
 })

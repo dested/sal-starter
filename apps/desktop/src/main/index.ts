@@ -11,6 +11,7 @@ import { createIpcHandler } from '@app/trpc-ipc/main'
 import { app, BrowserWindow, ipcMain, screen, shell } from 'electron'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import icon from '../../build/icon.png?asset'
 import { emitLaunch } from './launches'
 import { appRouter } from './router'
 import { rememberBounds, savedBounds } from './window-state'
@@ -51,6 +52,9 @@ function createWindow(): BrowserWindow {
     // One theme: the window paints the token background before the renderer loads.
     backgroundColor: colors.background,
     autoHideMenuBar: true,
+    // Windows and Linux show it in the title bar and taskbar (also in dev, where
+    // the binary is electron's own); macOS uses the app bundle's icon.
+    ...(process.platform === 'darwin' ? {} : { icon }),
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.cjs'),
       contextIsolation: true,
