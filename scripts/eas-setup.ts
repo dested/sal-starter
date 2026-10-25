@@ -18,8 +18,12 @@
 //
 // --dry-run prints the commands and touches nothing (no eas call, no write).
 // --json    prints one JSON result on stdout (logs go to stderr).
-// Exit codes: 0 done or dry run · 2 skipped (eas-cli missing or not logged in;
-// the command to run later is printed) · 1 an eas command failed.
+// Exit codes: 0 done or dry run · 2 skipped (the template itself, or eas-cli
+// missing or not logged in; the command to run later is printed) · 1 an eas
+// command failed.
+//
+// The template (project.json name sal-starter) never gets an EAS project: it
+// refuses there, dry run included, with no override.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -38,7 +42,7 @@ if (args.includes('--help') || args.includes('-h')) {
     'Usage: bun scripts/eas-setup.ts [--dry-run] [--json]\n' +
       '  Creates or links the EAS project for apps/mobile under project.json easOwner,\n' +
       '  writes easProjectId, sets APP_VARIANT per EAS environment, protects the production channel.\n' +
-      '  Exit codes: 0 done or dry run, 2 skipped (eas-cli missing or not logged in), 1 failed.'
+      '  Exit codes: 0 done or dry run, 2 skipped (the template, or eas-cli missing or not logged in), 1 failed.'
   )
   process.exit(0)
 }
@@ -132,6 +136,13 @@ function plan(cwd: string, probe: boolean) {
   ])
   const protect = !probe || hasCommand(cwd, 'channel:protect')
   return { initArgs, envArgs, protect }
+}
+
+if (project.name === 'sal-starter') {
+  result.notes.push('the template has no EAS project')
+  log(c.yellow('  skipped EAS setup: this is the sal-starter template, which has no EAS project.'))
+  log(c.dim(`  In a fork (bun run init <name> --mobile), run ${RERUN}`))
+  finish('skipped', 2)
 }
 
 const show = (easArgs: string[]) => `eas ${easArgs.join(' ')}`
