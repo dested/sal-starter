@@ -332,7 +332,7 @@ Prisma can't express Postgres extensions, exclusion constraints, full-text searc
 
 ### Drop the demo
 
-`bun run demo:drop` (`--dry-run` lists the changes, `--check` exits 1 while the demo is present). It deletes the demo files, strips the markers, writes `prisma/migrations/<ts>_drop_post_demo/migration.sql` (`DROP TABLE IF EXISTS "post"`) and runs `db:generate`. Then `bun run db:deploy`, `bun run typecheck`, `bun run test:e2e:update`. Keep the pattern (`me` prefetched in `dashboardLoader`) for the first real feature.
+`bun run demo:drop` (`--dry-run` lists the changes, `--check` exits 1 while the demo is present; in the template itself it refuses with exit 2, since the template keeps the demo). It deletes the demo files, strips the markers, writes `prisma/migrations/<ts>_drop_post_demo/migration.sql` (`DROP TABLE IF EXISTS "post"`) and runs `db:generate`. Then `bun run db:deploy`, `bun run typecheck`, `bun run test:e2e:update`. Keep the pattern (`me` prefetched in `dashboardLoader`) for the first real feature.
 
 ### Add AI, WebSockets or a job queue
 

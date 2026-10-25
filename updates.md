@@ -2,6 +2,11 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-25 — lead follow-ups after the crew
+
+`demo:drop` refuses in the template; eas-setup and the demo gates key off `template: true` (init renames every `sal-starter` string, so name checks passed in every fork); sign-in/up navigate before revalidating; `add:*` are web scripts; sync drops better-auth from a no-auth fork's package.json after a merge; e2e probes `/robots.txt`. Verified: scratch forks (`--mobile --dry-run-eas`, `--no-auth`) fail build and test with the demo, pass after `demo:drop` (e2e 7/7 and 2/2 on fresh test DBs). Limrun check blocked: the org is out of credits.
+Touched: scripts/{demo,eas-setup,sync,no-auth,project,init}.ts, apps/web/src/app/sign-{in,up}.tsx, apps/web/playwright.config.ts, recipes/jobs/recipe.ts
+
 ## 2026-10-25 — docs pass: the kit matches HEAD after phases C, D, E, brand and the demo gate
 
 Asked: fold the five agents' reports into the doc kit, verified against the code. Done: CLAUDE.md rewritten (stack rows, layout, rules 4/6/8/16/20/22/23 revised, new rules 24 demo, 25 allowlist/admin, 26 `?next=`, 27 brand; flows on the RR8 context; mobile and desktop sections; new tasks: start a fork, drop the demo, add:ai/ws/jobs, change the icon or splash, upgrade Expo); cliffnotes.md (map, routes, systems, gotchas, status), ui.md (Base UI, `cn`, icon and splash, Screen), decisions.md (12 entries), verify.md (fork recipes, upgrade:expo, no-auth check, brand), README.md, the plan, the kickoff skill (demo:drop step, FONTS). `sync` keeps a no-auth fork's `NO_AUTH_PATHS` deleted; root tsc covers `recipes/` (653a79a). Verified: typecheck, unit tests.
