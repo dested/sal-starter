@@ -1,0 +1,24 @@
+{
+  "inputHash": "e213ed7127661a275e90a6c38d804006c61f978924c62012eb4edc4f7dd7ab44",
+  "icon": {
+    "background": "#171717",
+    "mark": "#fafafa"
+  },
+  "splash": {
+    "background": "#171717",
+    "mark": "#fafafa",
+    "markWidth": 120
+  },
+  "outputs": {
+    "apps/mobile/assets/icon.png": "7cb5b981b708ec788d7d8d9150ee309a6c2510bbc77d98ff02dc8b69917fd7fd",
+    "apps/mobile/assets/splash-icon.png": "b5bb3d902dae742589524d2580544bc1c73450edb791667a9f875c13b0e83be1",
+    "apps/mobile/assets/adaptive-icon.png": "07826f49bc9664907eee2bd667587fb969a789aa88d6aff1f699918a3afbfe8a",
+    "apps/mobile/assets/adaptive-icon-monochrome.png": "d7fabe1e71270ec5a0e7413c21025dcf398422d4776c9d6c9b684a0d24e2dac8",
+    "apps/web/public/favicon.svg": "cee3db5e43f09c7f64ccf2c3bd5e6af6f92a499b19a981420df7bbfc597f5567",
+    "apps/web/public/apple-touch-icon.png": "17d1cf2846db272954145dd05cc62dcb9a2abb695f686c61f33d3048f018cc6f",
+    "apps/web/public/icon-192.png": "ebc202ecc77c51a2ba11ec283e28682535f0edf101fc295d83e6b7d9108b700a",
+    "apps/web/public/icon-512.png": "0fb3174c56f6d53d51dcc8ec93c5e233839dcc8028df8cbed6fccf3daac36f70",
+    "apps/desktop/build/icon.png": "6717ad4527cef49f4dad9fa4f66be735db55a7780a539366a30f43bea32733be",
+    "apps/desktop/build/icon.ico": "0af34576b925e3bbfc110dd3001e274d7c180c8f43b4e68af73c39a1dd0026bf"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@app/brand",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./brand.gen.json": "./brand.gen.json"
+  },
+  "scripts": {
+    "emit": "bun emit.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@app/tokens": "workspace:*",
+    "zod": "catalog:"
+  }
+}

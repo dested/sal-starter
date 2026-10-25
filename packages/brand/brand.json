@@ -1,0 +1,4 @@
+{
+  "icon": { "background": "primary", "mark": "primary-foreground", "markSize": 0.54 },
+  "splash": { "background": "primary", "mark": "primary-foreground", "markWidth": 120 }
+}

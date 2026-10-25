@@ -7,7 +7,10 @@
          Silent on localhost; the deployed host shows up as a pending site. -->
     <script defer src="https://cn.dested.com/cn.js"></script>
     <!-- color-scheme + theme-color are injected from the look (vite.config.ts). -->
+    <!-- Generated from packages/brand/mark.svg by `bun run brand`. -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Stylesheet is linked here (not imported from JS) so it is render-blocking
          in dev too — importing it from App.tsx made Vite inject it after the
          module graph loaded, painting unstyled SSR HTML first. -->

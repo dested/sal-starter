@@ -39,6 +39,19 @@ const { background: BACKGROUND } = z
     )
   )
 
+// Icon and splash colors, resolved from packages/brand/brand.json by
+// `bun run brand` (which also renders ./assets from packages/brand/mark.svg).
+const brand = z
+  .object({
+    icon: z.object({ background: z.string() }),
+    splash: z.object({ background: z.string(), markWidth: z.number() }),
+  })
+  .parse(
+    JSON.parse(
+      readFileSync(join(__dirname, '..', '..', 'packages', 'brand', 'brand.gen.json'), 'utf8')
+    )
+  )
+
 // APP_VARIANT picks the install: development (local/Mac dev client), preview
 // (ad hoc), production (store). Variants get their own bundle id + scheme so
 // all three sit side by side on one iPad.
@@ -106,6 +119,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         : {}),
     },
   },
+  android: {
+    package: `${project.bundleId}${suffix}`,
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      monochromeImage: './assets/adaptive-icon-monochrome.png',
+      backgroundColor: brand.icon.background,
+    },
+  },
   // React Compiler as SDK 58's template ships it (babel-preset-expo carries the plugin).
   experiments: { typedRoutes: true, reactCompiler: true },
   plugins: [
@@ -118,10 +139,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
+        // The bare mark on the brand color, no tile. BrandSplash
+        // (src/components/brand-splash.tsx) redraws it exactly, then animates out.
         image: './assets/splash-icon.png',
-        imageWidth: 160,
+        imageWidth: brand.splash.markWidth,
         resizeMode: 'contain',
-        backgroundColor: BACKGROUND,
+        backgroundColor: brand.splash.background,
       },
     ],
     '@app/native-example',

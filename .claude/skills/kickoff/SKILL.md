@@ -113,9 +113,23 @@ drop_post_demo`) and updating `apps/web/e2e/global-setup.ts` (TRUNCATE list)
 
 **Brand assets**
 
-- `apps/web/public/favicon.svg`; `apps/mobile/assets/icon.png` (1024×1024,
-  opaque) and `splash-icon.png`. Draw an SVG by hand, or use `openai-image`.
-  The splash and root background come from `colors.json` already.
+- One source, every surface: `packages/brand/mark.svg` is the product's glyph,
+  one color on transparent (`fill="currentColor"`, a `viewBox` drawn tight to
+  the glyph). Draw it by hand, or generate it with `openai-image` and then
+  trace and simplify it into a few clean paths. A confident shape that still
+  reads at 16 px, never a letter in a box or a stock sparkle.
+- `packages/brand/brand.json` picks the token roles: `icon` (background, mark,
+  `markSize`) and `splash` (background, mark, `markWidth` in points). The
+  splash defaults to the brand color full-bleed with the bare mark; never a
+  tile on a different color (a box in a box).
+- `bun run brand` renders the app icon, splash mark, Android adaptive and
+  monochrome icons, favicon, apple-touch and PWA icons, `manifest.webmanifest`
+  and the desktop `icon.png` / `icon.ico`, and records them in
+  `brand.gen.json`. Never hand-edit an output: `brand.test.ts` fails on it.
+  Rerun after any token change.
+- Look at the renders before moving on (Read the PNGs): `icon.png` in a
+  rounded mask, the favicon at 16 and 32 px, the splash as a phone-sized frame
+  (`markWidth` points on the splash color). Iterate until they look designed.
 - `apps/web/index.html`: the `description` and `og:description` say in one line
   what the product is (crawlers only; the page itself carries no tagline).
 
@@ -127,7 +141,7 @@ drop_post_demo`) and updating `apps/web/e2e/global-setup.ts` (TRUNCATE list)
 
 ## 4. Check it
 
-- `bun run tokens && bun run typecheck && bun run test` green.
+- `bun run tokens && bun run brand && bun run typecheck && bun run test` green.
 - `bx`: screenshot `/`, sign-in and the signed-in page at desktop width and at
   390px. No ribbon. Nothing still neutral grey that should carry the look.
 - Mobile: run it on Limrun (`limrun` skill) and screenshot the first screen. If

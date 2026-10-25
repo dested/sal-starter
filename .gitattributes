@@ -12,6 +12,23 @@ drydock.yaml merge=ours
 # a role it gains fails tokens.test.ts until tokens.css has it (`bun run tokens`).
 packages/tokens/tokens.css merge=ours
 packages/tokens/colors.json merge=ours
+# The brand (the kickoff draws the mark): the source and everything
+# `bun run brand` renders from it. brand.ts/emit.ts (the generator) merge; a
+# change there fails brand.test.ts until `bun run brand` re-renders.
+packages/brand/mark.svg merge=ours
+packages/brand/brand.json merge=ours
+packages/brand/brand.gen.json merge=ours
+apps/mobile/assets/icon.png merge=ours
+apps/mobile/assets/splash-icon.png merge=ours
+apps/mobile/assets/adaptive-icon.png merge=ours
+apps/mobile/assets/adaptive-icon-monochrome.png merge=ours
+apps/web/public/favicon.svg merge=ours
+apps/web/public/apple-touch-icon.png merge=ours
+apps/web/public/icon-192.png merge=ours
+apps/web/public/icon-512.png merge=ours
+apps/web/public/manifest.webmanifest merge=ours
+apps/desktop/build/icon.png merge=ours
+apps/desktop/build/icon.ico merge=ours
 ui.md merge=ours
 # The fork's task log. decisions.md keeps both sides: upstream's entries bind too.
 updates.md merge=ours
