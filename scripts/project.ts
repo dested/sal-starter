@@ -117,6 +117,9 @@ export const SURFACE_SCRIPTS: Record<Surface, Record<string, string>> = {
     'db:deploy': 'bun run --cwd apps/web db:deploy',
     'db:studio': 'bun run --cwd apps/web db:studio',
     'demo:drop': 'bun scripts/demo.ts',
+    'add:ai': 'bun recipes/add.ts ai',
+    'add:ws': 'bun recipes/add.ts ws',
+    'add:jobs': 'bun recipes/add.ts jobs',
   },
   mobile: {
     'upgrade:expo': 'bun scripts/upgrade-expo.ts',

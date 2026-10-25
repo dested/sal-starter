@@ -19,7 +19,7 @@
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { NO_AUTH_PATHS } from './no-auth'
+import { dropDependencies, NO_AUTH_PATHS } from './no-auth'
 import {
   excludedPaths,
   projectSchema,
@@ -47,8 +47,12 @@ if (!workingTreeClean()) fail('Working tree is not clean.', 'Commit your changes
 // A no-auth fork has web but no server/auth.ts. Its auth-only paths that are
 // gone at HEAD stay gone, or every template edit to one is a modify/delete
 // conflict. Paths under an excluded surface are already covered.
+function isNoAuth(project: Project): boolean {
+  return project.surfaces.includes('web') && !existsSync('apps/web/server/auth.ts')
+}
+
 function noAuthPaths(project: Project, surfacePaths: string[]): string[] {
-  if (!project.surfaces.includes('web') || existsSync('apps/web/server/auth.ts')) return []
+  if (!isNoAuth(project)) return []
   return NO_AUTH_PATHS.filter(
     (p) => !existsSync(p) && !surfacePaths.some((s) => p === s || p.startsWith(`${s}/`))
   )
@@ -86,6 +90,16 @@ if (
   syncRootScripts(project)
 ) {
   git('add', 'package.json')
+}
+
+// A no-auth fork: an upstream edit near the better-auth lines (catalog, app
+// deps) can merge them back in; take them out again so `bun install` doesn't.
+if (isNoAuth(project)) {
+  for (const file of ['package.json', 'apps/web/package.json', 'apps/mobile/package.json']) {
+    if (!existsSync(file)) continue
+    if (git('diff', '--name-only', '--diff-filter=U', '--', file) !== '') continue
+    if (dropDependencies(file)) git('add', file)
+  }
 }
 
 // Older forks: persist the surfaces/desktopPort/appId readProject inferred.

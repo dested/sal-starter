@@ -481,7 +481,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 
 // better-auth out of a package.json's dependencies, devDependencies and (root)
 // workspaces.catalog. Returns whether anything went.
-function dropDependencies(file: string): boolean {
+export function dropDependencies(file: string): boolean {
   const pkg: unknown = JSON.parse(readFileSync(file, 'utf8'))
   if (!isRecord(pkg)) return false
   const workspaces = pkg.workspaces

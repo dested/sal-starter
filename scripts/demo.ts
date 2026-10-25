@@ -68,6 +68,11 @@ function migrationStamp(now: Date): string {
 }
 
 function drop(dryRun: boolean): void {
+  // The template keeps its demo as reference; only forks drop it.
+  if (!dryRun && readProject().template === true) {
+    console.log(c.yellow('This is the template: it keeps the Post demo. Run demo:drop in a fork.'))
+    process.exit(2)
+  }
   if (!demoPresent()) {
     console.log(c.green('The Post demo is already gone.'))
     return

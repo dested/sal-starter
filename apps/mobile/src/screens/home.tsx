@@ -35,8 +35,8 @@ export function HomeScreen() {
 }
 
 // Proves both native hosting modes. In dev it also shows the binary's
-// fingerprint: compare it with `bun run fingerprint` to know when the Mac must
-// rebuild the dev client (CLAUDE.md rule #20).
+// fingerprint: compare it with `bun run fingerprint` to know when the dev client
+// needs a rebuild (Limrun or expo-wsl-ios) (CLAUDE.md rule #20).
 function NativeExamples() {
   const hello = nativeHello()
   return (
