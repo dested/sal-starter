@@ -214,9 +214,9 @@ const WEB_EDITS: Edit[] = [
     find: /^export type RootLoaderData = [\s\S]*?\nasync function dashboardLoader[\s\S]*?\n\}\n/m,
     replace:
       'async function dashboardLoader({ context }: LoaderFunctionArgs): Promise<null> {\n' +
-      '  // Warm the posts cache so the dashboard renders with data.\n' +
+      "  // Warm the page's queries so the dashboard renders with data.\n" +
       '  const { queryClient, trpc } = context.get(clientsContext)\n' +
-      '  await queryClient.prefetchQuery(trpc.posts.list.queryOptions())\n' +
+      '  await queryClient.prefetchQuery(trpc.posts.list.queryOptions()) // demo\n' +
       '  return null\n}\n',
   },
   { file: 'apps/web/src/app/routes.tsx', find: /^ {4}loader: rootLoader,\n/m },
@@ -270,7 +270,28 @@ const WEB_EDITS: Edit[] = [
     find: /^ {2}const \{ session \} = useLoaderData<RootLoaderData>\(\)\n/m,
   },
   { file: 'apps/web/src/app/dashboard.tsx', find: /^ {2}if \(!session\) return null\n\n/m },
-  { file: 'apps/web/src/app/dashboard.tsx', find: "by {p.authorName ?? 'unknown'} · " },
+  {
+    file: 'apps/web/src/app/dashboard.tsx',
+    find: "import { useQuery } from '@tanstack/react-query'\n",
+  },
+  { file: 'apps/web/src/app/dashboard.tsx', find: "import { useTRPC } from '~/lib/trpc'\n" },
+  {
+    file: 'apps/web/src/app/dashboard.tsx',
+    find: /^\/\/ The signed-in page\.[^\n]*\n\/\/[^\n]*\n/m,
+  },
+  {
+    file: 'apps/web/src/app/dashboard.tsx',
+    find: /^ {2}const trpc = useTRPC\(\)\n {2}const me = useQuery\(trpc\.me\.queryOptions\(\)\)\n/m,
+  },
+  {
+    file: 'apps/web/src/app/dashboard.tsx',
+    find: /\{me\.data\?\.name \?\? session\.user\.name\}/,
+    replace: 'Dashboard',
+  },
+  {
+    file: 'apps/web/src/components/demo/posts-demo.tsx',
+    find: "by {p.authorName ?? 'unknown'} · ",
+  },
 
   // e2e: no auth tables, secrets or sign-up flow.
   {
@@ -378,6 +399,10 @@ const MOBILE_EDITS: Edit[] = [
     find: /^ {8}<Button\n(?: {10}[^\n]*\n)*? {10}label="Sign out"\n[\s\S]*?\/>\n/m,
   },
   { file: 'apps/mobile/src/screens/home.tsx', find: "by {p.authorName ?? 'unknown'} · " },
+  {
+    file: 'apps/mobile/src/components/demo/posts-demo.tsx',
+    find: "by {p.authorName ?? 'unknown'} · ",
+  },
 ]
 
 function hasMobile(surfaces: Surface[]): boolean {
