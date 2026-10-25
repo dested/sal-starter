@@ -1,4 +1,5 @@
-import { redirect, type RouteObject, type LoaderFunctionArgs } from 'react-router'
+import type { LoaderFunctionArgs, RouteObject } from 'react-router'
+import { redirectIfSignedIn, requireSession } from '~/lib/loader'
 import { clientsContext, sessionContext } from '~/lib/router-context'
 import type { Session } from '../../server/auth'
 import { DashboardPage } from './dashboard'
@@ -18,22 +19,16 @@ async function rootLoader({ context }: LoaderFunctionArgs): Promise<RootLoaderDa
   return { session: await context.get(sessionContext)() }
 }
 
-async function dashboardLoader({ context }: LoaderFunctionArgs): Promise<RootLoaderData> {
-  const { queryClient, trpc } = context.get(clientsContext)
+async function dashboardLoader(args: LoaderFunctionArgs): Promise<RootLoaderData> {
+  const { queryClient, trpc } = args.context.get(clientsContext)
   // Check the session and warm the posts cache in parallel so the dashboard
-  // renders with data (a signed-out user's UNAUTHORIZED is swallowed by
-  // prefetchQuery, never dehydrated, and the redirect below wins).
+  // renders with data. Signed out, requireSession's redirect (to
+  // /sign-in?next=/dashboard) wins; prefetchQuery swallows the UNAUTHORIZED.
   const [session] = await Promise.all([
-    context.get(sessionContext)(),
+    requireSession(args),
     queryClient.prefetchQuery(trpc.posts.list.queryOptions()),
   ])
-  if (!session) throw redirect('/sign-in')
   return { session }
-}
-
-async function redirectIfSignedIn({ context }: LoaderFunctionArgs) {
-  if (await context.get(sessionContext)()) throw redirect('/dashboard')
-  return null
 }
 
 export const routes: RouteObject[] = [
