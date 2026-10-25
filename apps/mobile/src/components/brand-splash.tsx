@@ -1,6 +1,6 @@
 import { brand } from '@app/brand'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Image, type ImageRequireSource, StyleSheet } from 'react-native'
 import Animated, {
   Easing,
@@ -21,7 +21,9 @@ const EXIT = { duration: 350, easing: Easing.out(Easing.cubic) }
 // must never hang on it.
 const REVEAL_FALLBACK_MS = 1000
 
-export function BrandSplash({ ready }: { ready: boolean }) {
+// `onGone` fires once the exit has finished and the overlay is unmounting
+// (the root layout holds OTA reloads until then).
+export function BrandSplash({ ready, onGone }: { ready: boolean; onGone?: () => void }) {
   const reduceMotion = useReducedMotion()
   const [handedOff, setHandedOff] = useState(false)
   const [gone, setGone] = useState(false)
@@ -46,11 +48,17 @@ export function BrandSplash({ ready }: { ready: boolean }) {
     // Once, from mount: `reveal` only touches the ref and a state setter.
   }, [])
 
+  // An effect event, so a new `onGone` each render never restarts the exit.
+  const notifyGone = useEffectEvent(() => onGone?.())
+
   // The exit: the mark grows a little as the overlay fades (a plain fade with
   // reduced motion), then the overlay unmounts.
   useEffect(() => {
     if (!ready || !handedOff) return
-    const done = () => setGone(true)
+    const done = () => {
+      setGone(true)
+      notifyGone()
+    }
     if (!reduceMotion) scale.set(withTiming(1.12, EXIT))
     opacity.set(
       withTiming(0, EXIT, (finished) => {
