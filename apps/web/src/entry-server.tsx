@@ -13,6 +13,7 @@ import {
 import { auth, type Session } from '../server/auth'
 import { env } from '../server/env'
 import { appRouter } from '../server/router'
+import { contextFor } from '../server/trpc'
 import App from './App'
 import { serializeSsrState } from './lib/ssr-state'
 import { routes } from './app/routes'
@@ -35,7 +36,7 @@ export async function render(req: express.Request): Promise<{
 
   const trpcServer = createTRPCOptionsProxy({
     router: appRouter,
-    ctx: { session },
+    ctx: contextFor(session),
     queryClient,
   })
 
