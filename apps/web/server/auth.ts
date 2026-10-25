@@ -1,7 +1,9 @@
 import { expo } from '@better-auth/expo'
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
+import { APIError } from 'better-auth/api'
 import project from '../../../project.json'
+import { SIGNUP_CLOSED, SIGNUP_CLOSED_MESSAGE, signUpAllowed } from './access'
 import { prisma } from './prisma'
 import { env } from './env'
 
@@ -20,6 +22,19 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
+  },
+  // SIGNUP_ALLOWLIST is enforced here, on every user create, so no client
+  // (web, mobile, a raw POST) gets around it.
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          if (!signUpAllowed(user.email)) {
+            throw new APIError('FORBIDDEN', { code: SIGNUP_CLOSED, message: SIGNUP_CLOSED_MESSAGE })
+          }
+        },
+      },
+    },
   },
   plugins: [expo()],
   trustedOrigins: [...appOrigins, ...devOrigins],
