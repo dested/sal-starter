@@ -14,7 +14,7 @@ An SSR React starter wired with a current, type-safe stack, plus an optional Exp
 | db                 | **Postgres** + **Prisma 7** (pg driver adapter, `prisma-client` generator, `migrate`) |
 | auth               | **better-auth** (email + password, autoSignIn; Expo plugin for the app)               |
 | styles             | **Tailwind v4** + **shadcn/ui** (new-york, oklch tokens shared with mobile)           |
-| mobile (optional)  | **Expo SDK 57** dev client + **Expo Router** + **Uniwind**, iOS/iPad                  |
+| mobile (optional)  | **Expo SDK 58** dev client + **Expo Router** + **Uniwind**, iOS/iPad                  |
 | desktop (optional) | **Electron 44** + **electron-vite 5**, tRPC over IPC, unpacked Windows builds         |
 | types              | **TypeScript 7** `tsc`, `strict` + `noUncheckedIndexedAccess` in every workspace      |
 | tests              | **Playwright** e2e with committed screenshot baselines + **bun:test** units           |

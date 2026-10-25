@@ -156,8 +156,9 @@ if (present.length > 0) {
   // Dropping mobile: re-resolve from scratch, because Bun keeps optional peers
   // (@better-auth/expo's expo-* tree) in the lockfile once they're there, even
   // after the workspace that needed them is gone. Keeping mobile: never
-  // re-resolve, the template's lock is the proven Expo tree (a fresh resolve
-  // hoists lru-cache 11 over Babel's 5 and Metro dies); a plain install prunes.
+  // re-resolve, the template's lock is the proven Expo tree (on SDK 57 a fresh
+  // resolve hoisted lru-cache 11 over Babel's 5 and Metro died); a plain
+  // install prunes.
   if (dropped.includes('mobile')) rmSync('bun.lock')
   run('bun', 'install')
   git('add', 'bun.lock', 'package.json', '.env.example')

@@ -106,13 +106,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         : {}),
     },
   },
-  experiments: { typedRoutes: true },
+  // React Compiler as SDK 58's template ships it (babel-preset-expo carries the plugin).
+  experiments: { typedRoutes: true, reactCompiler: true },
   plugins: [
     'expo-router',
     'expo-secure-store',
-    // Xcode 27 / iOS 27 needs the UIKit scene lifecycle (expo >= 57.0.23).
-    // Drop this on SDK 58: its template has scenes built in.
-    ['expo-build-properties', { ios: { enableSceneSupport: true } }],
+    'expo-build-properties',
+    // The launch status bar (before JS runs) contrasts with the one scheme.
+    ['expo-status-bar', { style: colorScheme === 'dark' ? 'light' : 'dark' }],
+    'expo-web-browser',
     [
       'expo-splash-screen',
       {

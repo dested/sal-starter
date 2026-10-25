@@ -251,6 +251,7 @@ Each one is the same code written again by several forks:
 2. **B, single theme plus kickoff:** remove dark mode, reshape the tokens (slots, typed export, one `:root`), the kickoff skill and forcing function, `init` changes (placeholder `/`, fresh `updates.md`), and the `ui.md` template.
    - Moved out of B while building it: stripping the Post demo is a kickoff step, not `init` (the first real feature replaces it, with its own drop migration and e2e update); `init` keeps `decisions.md` (its entries bind forks; it merges with `merge=union`); EAS project creation in `init --mobile` goes to C (it creates real EAS projects); `init --no-auth` goes to E with the other auth work. `tokens.css` split into `theme.css` (mapping, merges) and `tokens.css` (values, `merge=ours`) instead of putting `merge=ours` on `app.css`.
 3. **C, Expo 58:** the styling spike (Q1), SDK 58, the mobile baseline and scaffold, `init --mobile` creating the EAS project, the EAS promote lane, and the fingerprint **verify** (one EAS build).
+   - 2026-10-24: SDK 58 landed on expo 58.0.17. Bump after 2026-10-26 23:30Z: expo 58.0.19, expo-dev-client 58.0.15, expo-router 58.0.26 (blocked by the 3-day release age until then; `bun run doctor` fails its version check until they're in).
 4. **D:** React 19.3 → React Router 8; Vite 8, plugin-react 6 and electron-vite 6; Tailwind 4.3; React Compiler on web.
 5. **E:** the server slots from Q4, plus SIGNUP_ALLOWLIST, ADMIN_EMAILS + `adminProcedure`, the sign-in `?next=` return and `init --no-auth`.
 
