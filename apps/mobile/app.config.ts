@@ -15,6 +15,7 @@ const projectSchema = z.object({
   metroPort: z.number().int(),
   db: z.string(),
   easProjectId: z.string().nullable(),
+  easOwner: z.string().min(1),
   appleTeamId: z.string().nullable(),
   // Set by the kickoff; a fork older than `look` has none (treated as light).
   look: z
@@ -70,6 +71,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: `${project.displayName}${nameSuffix}`,
   slug: project.name,
+  // The Expo account that owns the EAS project (scripts/eas-setup.ts creates it there).
+  owner: project.easOwner,
   scheme: `${project.scheme}${schemeSuffix}`,
   version: '1.0.0',
   orientation: 'default',
@@ -131,6 +134,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   experiments: { typedRoutes: true, reactCompiler: true },
   plugins: [
     'expo-router',
+    'expo-image',
     'expo-secure-store',
     'expo-build-properties',
     // The launch status bar (before JS runs) contrasts with the one scheme.
