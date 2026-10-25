@@ -386,19 +386,22 @@ const MOBILE_EDITS: Edit[] = [
   },
   {
     file: 'apps/mobile/src/screens/home.tsx',
-    find: 'plus sign-out and the\n// native examples',
-    replace: 'plus the native\n// examples',
+    find: "import { Button } from '~/components/ui/button'\n",
   },
   {
     file: 'apps/mobile/src/screens/home.tsx',
-    find: /^ {2}const \{ data: session \} = authClient\.useSession\(\)\n/m,
+    find: 'the signed-in page, sign-out and the native examples',
+    replace: 'the native examples',
   },
-  { file: 'apps/mobile/src/screens/home.tsx', find: /^ {2}if \(!session\) return null\n\n/m },
+  {
+    file: 'apps/mobile/src/screens/home.tsx',
+    find: /^ {2}const \{ data: session \} = authClient\.useSession\(\)\n\n {2}if \(!session\) return null\n\n/m,
+  },
+  { file: 'apps/mobile/src/screens/home.tsx', find: '{session.user.name}', replace: 'Home' },
   {
     file: 'apps/mobile/src/screens/home.tsx',
     find: /^ {8}<Button\n(?: {10}[^\n]*\n)*? {10}label="Sign out"\n[\s\S]*?\/>\n/m,
   },
-  { file: 'apps/mobile/src/screens/home.tsx', find: "by {p.authorName ?? 'unknown'} · " },
   {
     file: 'apps/mobile/src/components/demo/posts-demo.tsx',
     find: "by {p.authorName ?? 'unknown'} · ",
@@ -425,13 +428,17 @@ const describe = (find: string | RegExp) =>
 export function checkNoAuth(surfaces: Surface[]): string[] {
   const problems: string[] = []
   if (!surfaces.includes('web')) problems.push('--no-auth needs the web app (auth lives there).')
-  for (const { file, find } of editsFor(surfaces)) {
-    if (!existsSync(file)) {
+  // Edits run in order, so each is checked against the text the earlier ones leave.
+  const sources = new Map<string, string>()
+  for (const { file, find, replace = '' } of editsFor(surfaces)) {
+    const source = sources.get(file) ?? (existsSync(file) ? readFileSync(file, 'utf8') : null)
+    if (source === null) {
       problems.push(`${file} is missing`)
       continue
     }
-    const n = count(readFileSync(file, 'utf8'), find)
+    const n = count(source, find)
     if (n !== 1) problems.push(`${file}: ${describe(find)} matches ${n} times, not once`)
+    sources.set(file, source.replace(find, replace))
   }
   return problems
 }

@@ -20,7 +20,8 @@
 //      kept (same team and Expo account for every fork); easProjectId resets.
 //   4. Starts the fork's own updates.md (the template's task log is noise here;
 //      decisions.md stays, its entries bind the fork too).
-//   5. With web: writes a fresh root `.env` (new auth secret). Then sets the
+//   5. With web: writes a fresh root `.env` (new auth secret). With --no-auth,
+//      takes better-auth out (scripts/no-auth.ts). Then sets the
 //      `merge=ours` driver that keeps the fork's identity, look and logs on sync
 //      (.gitattributes), and runs `bun install` to refresh the lockfile.
 //   6. With mobile: creates the EAS project under project.json `easOwner`
@@ -38,6 +39,8 @@
 //   --dry-run-eas   with --mobile: print the EAS commands instead of running them
 //   --desktop       keep the Electron app (apps/desktop) next to web
 //   --desktop-only  keep only the Electron app: no web server, database or auth
+//   --no-auth       no accounts: drops better-auth, sign-in/up and the auth tables
+//                   from web (and mobile); posts stay, anonymous, on a public /dashboard
 //   --port <n>      base port (default: derived from the name, 4100–7996). Never
 //                   3000/3001/5173/5174/8000/8080/4200/5000. API n, Metro n + 1,
 //                   desktop renderer n + 2, Playwright e2e n + 3.
@@ -56,6 +59,7 @@ import {
   type Project,
   type Surface,
 } from './project'
+import { checkNoAuth, removeAuth } from './no-auth'
 import { c, fail, git, run } from './shell'
 
 const TEMPLATE_NAME = 'sal-starter'
@@ -70,6 +74,7 @@ const freshGit = args.includes('--fresh-git')
 const keepNativeExample = args.includes('--native-example')
 const noEas = args.includes('--no-eas')
 const dryRunEas = args.includes('--dry-run-eas')
+const noAuth = args.includes('--no-auth')
 const portFlagIndex = args.indexOf('--port')
 const rawPort = portFlagIndex === -1 ? undefined : args[portFlagIndex + 1]
 const rawName = args.find(
@@ -77,7 +82,7 @@ const rawName = args.find(
 )
 
 const usage =
-  'Usage: bun run init <project-name> [--mobile [--native-example] [--no-eas | --dry-run-eas]] [--desktop | --desktop-only] [--port <n>] [--fresh-git]'
+  'Usage: bun run init <project-name> [--mobile [--native-example] [--no-eas | --dry-run-eas]] [--desktop | --desktop-only] [--no-auth] [--port <n>] [--fresh-git]'
 if (!rawName) fail(usage, 'project-name must be lowercase letters, numbers, and dashes.')
 if (desktopOnly && (mobile || desktop)) {
   fail('--desktop-only keeps only the desktop app.', 'Drop --mobile/--desktop, or use --desktop.')
@@ -104,6 +109,14 @@ const surfaces: Surface[] = desktopOnly
   : SURFACES.filter(
       (s) => s === 'web' || (s === 'mobile' && mobile) || (s === 'desktop' && desktop)
     )
+
+// --no-auth runs late (after the rename); check its edits now, before anything changes.
+if (noAuth) {
+  const problems = checkNoAuth(surfaces)
+  if (problems.length > 0) {
+    fail(`--no-auth can't run here:\n  ${problems.join('\n  ')}`, 'bun scripts/no-auth.ts --check')
+  }
+}
 
 // The base port and the three above it (Metro, desktop renderer, e2e) must all be usable.
 const portBlock = (p: number) => [p, p + 1, p + 2, p + 3]
@@ -307,13 +320,15 @@ if (!surfaces.includes('web')) {
     [
       `PORT=${apiPort}`,
       `DATABASE_URL=postgres://postgres:postgres@localhost:5432/${snake}`,
-      `BETTER_AUTH_SECRET=${secret}`,
-      `BETTER_AUTH_URL=http://localhost:${apiPort}`,
+      ...(noAuth
+        ? []
+        : [`BETTER_AUTH_SECRET=${secret}`, `BETTER_AUTH_URL=http://localhost:${apiPort}`]),
       '',
     ].join('\n')
   )
-  console.log(`  ${c.green('wrote')}   .env ${c.dim('(fresh BETTER_AUTH_SECRET)')}`)
+  console.log(`  ${c.green('wrote')}   .env ${c.dim(noAuth ? '' : '(fresh BETTER_AUTH_SECRET)')}`)
 }
+if (noAuth) removeAuth(surfaces)
 
 if (freshGit) {
   rmSync('.git', { recursive: true, force: true })
@@ -361,6 +376,7 @@ steps.push([
   'bun run dev',
   surfaces.includes('web') ? `# → http://localhost:${apiPort}` : '# opens the desktop window',
 ])
+if (noAuth) steps.push(['bun run test:e2e:update', '# e2e baselines without the sign-in nav'])
 steps.push(['/kickoff in Claude Code', '# the look, `/`, icon: before any feature work'])
 if (easPending) steps.push([EAS_LATER, '# the EAS project: easProjectId, APP_VARIANT, channels'])
 if (surfaces.includes('desktop')) steps.push(['bun run release', '# unpacked build in release/'])
