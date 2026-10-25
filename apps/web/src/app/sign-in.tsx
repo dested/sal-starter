@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useNavigate, useRevalidator } from 'react-router'
+import { Link, useLocation, useNavigate, useRevalidator } from 'react-router'
 import { authClient } from '~/lib/auth-client'
+import { nextFromSearch } from '~/lib/loader'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -8,6 +9,9 @@ import { Label } from '~/components/ui/label'
 export function SignInPage() {
   const navigate = useNavigate()
   const revalidator = useRevalidator()
+  // `?next=` (same-site paths only, see safeNext) is where the visitor was headed.
+  const { search } = useLocation()
+  const next = nextFromSearch(search)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +28,7 @@ export function SignInPage() {
       return
     }
     revalidator.revalidate()
-    navigate('/dashboard')
+    navigate(next, { replace: true })
   }
 
   return (
@@ -60,7 +64,9 @@ export function SignInPage() {
           {loading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
-      <Link to="/sign-up" className="self-start text-sm font-medium underline underline-offset-4">
+      <Link
+        to={`/sign-up${search}`}
+        className="self-start text-sm font-medium underline underline-offset-4">
         Create an account
       </Link>
     </section>
