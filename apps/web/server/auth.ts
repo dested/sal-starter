@@ -36,6 +36,16 @@ export const auth = betterAuth({
       },
     },
   },
+  // better-auth's limiter (on in production) counts per IP and path. Stated so
+  // a fork that tightens `max` sees the exemption: /get-session is a cookie read
+  // with nothing to guess, and every navigation calls it, so limiting it signs
+  // busy people (or a whole office behind one NAT) out. Credential paths keep
+  // better-auth's own stricter rules (sign-in/up: 3 per 10 s).
+  rateLimit: {
+    window: 10,
+    max: 100,
+    customRules: { '/get-session': false },
+  },
   plugins: [expo()],
   trustedOrigins: [...appOrigins, ...devOrigins],
 })

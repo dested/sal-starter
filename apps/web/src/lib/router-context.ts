@@ -35,8 +35,17 @@ export function browserContext(): RouterContextProvider {
   return context
 }
 
+// Signed out is a 200 with no data. An error (a 429, a 5xx, the network) says
+// nothing about the session, so it never reads as signed out: that bounced
+// people to /sign-in mid-click (handback, 2026-11-03). One retry, then the
+// route error boundary.
 async function fetchClientSession(): Promise<Session | null> {
-  const { data, error } = await authClient.getSession()
-  if (error || !data) return null
-  return data
+  for (let attempt = 1; ; attempt++) {
+    const { data, error } = await authClient.getSession()
+    if (!error) return data ?? null
+    if (attempt === 2) {
+      throw new Error(`Couldn't check your session (${error.status || 'network'}). Reload to try again.`)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
 }
