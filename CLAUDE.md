@@ -411,7 +411,7 @@ Five checks, the same in every repo built from this one. `gate` runs the first f
 
 **Add a procedure.** Use `publicProcedure`, `protectedProcedure` or `adminProcedure` (each tags its procedures `public`, `user`, `admin`), write its API test, then `bun run access:table` and commit `server/router.access.md`. A new builder: a tag in `server/procedure-access.ts`, a row in `server/trpc.api.test.ts`'s matrix.
 
-**gate.json** (repo root) is the contract with `gate` (destedtui): `mode` `block` refuses a push to main without a passing receipt; `report` records and never blocks. A fork made by `init` keeps `block`; `bun run sync` brings it into an older fork as `report` and never changes a fork's mode after that. `demo:drop` and `init --no-auth` leave the four scripts passing (they regenerate the table).
+**gate.json** (repo root) is the contract with `gate` (destedtui): `mode` `block` refuses a push to main without a passing receipt; `report` records and never blocks. A fork made by `init` keeps `block`; `bun run sync` brings it into an older fork as `report` and never changes a fork's mode after that. `demo:drop` and `init --no-auth` leave the four scripts passing (they regenerate the table). Its `setup` runs `bun run db:generate` after `bun install`: gate reuses the last run's `node_modules`, the install is then a no-op that skips postinstall, and the Prisma client is gitignored.
 
 ## Build / verify
 

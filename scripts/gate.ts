@@ -62,8 +62,11 @@ export async function writeGate(raw: Record<string, unknown>): Promise<void> {
 export function gateForSurfaces(gate: GateFile, project: Project): Record<string, unknown> {
   if (project.surfaces.includes('web')) return gate.raw
   const { probe: _web, ...rest } = gate.raw
+  const setup = z.array(z.string()).optional().parse(gate.raw.setup)
   return {
     ...rest,
+    // The Prisma client is web's (`db:generate` doesn't exist without it).
+    ...(setup ? { setup: setup.filter((step) => !step.includes('db:generate')) } : {}),
     databases: [],
     checks: gate.checks.filter((c) => c.name !== 'flows'),
     ...(project.surfaces.includes('desktop')

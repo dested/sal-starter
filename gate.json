@@ -3,7 +3,7 @@
   "mode": "block",
   "branches": ["main", "master"],
   "copy": { "env": [".env"], "keep": ["node_modules"] },
-  "setup": ["bun install --frozen-lockfile"],
+  "setup": ["bun install --frozen-lockfile", "bun run db:generate"],
   "databases": [
     {
       "env": "DATABASE_URL",
