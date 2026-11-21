@@ -8,7 +8,7 @@ Briefing for an LLM extending this codebase. Read this before changing files.
 
 A starter template (cloned, then mutated into a real product). Every file is intentionally minimal — keep it that way. When asked to add a feature, add the feature; do not also "improve" surrounding files.
 
-It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Express + tRPC + better-auth + Prisma), the optional **`apps/mobile`** is an Expo dev-client app that talks to that same server, and the optional **`apps/desktop`** is an Electron app whose main process serves its own tRPC router over IPC. `project.json` `surfaces` says which a fork has: `bun run init <name>` keeps web only, `--mobile` / `--desktop` keep those too, `--desktop-only` keeps just the Electron app (no server, database or auth), `--no-auth` takes accounts out (Common tasks → Start a fork). `bun run add:mobile` / `add:desktop` bring a surface back; `bun run add:ai` / `add:ws` / `add:jobs` add an optional server slot. **Paths in hard rules 1–16, 24–29 and in the web sections below are relative to `apps/web/`.**
+It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Express + tRPC + better-auth + Prisma), the optional **`apps/mobile`** is an Expo dev-client app that talks to that same server, and the optional **`apps/desktop`** is an Electron app whose main process serves its own tRPC router over IPC. `project.json` `surfaces` says which a fork has: `bun run init <name>` keeps web only, `--mobile` / `--desktop` keep those too, `--desktop-only` keeps just the Electron app (no server, database or auth), `--no-auth` takes accounts out (Common tasks → Start a fork). `bun run add:mobile` / `add:desktop` bring a surface back; `bun run add:ai` / `add:ws` / `add:jobs` add an optional server slot. **Paths in hard rules 1–16, 24–29, 31 and in the web sections below are relative to `apps/web/`.**
 
 ## Stack
 
@@ -24,7 +24,7 @@ It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Ex
 | styles             | Tailwind v4 + shadcn (base-nova) | CSS-first config, oklch tokens in `packages/tokens`, ONE theme (no dark mode, no toggle); primitives wrap `@base-ui/react`; `cn` from shadcn's `cn` package; the kickoff sets the look                 |
 | brand              | `packages/brand` + resvg         | one `mark.svg` + `brand.json` → every icon, splash, favicon and manifest (`bun run brand`), committed and test-checked                                                                                 |
 | React Compiler     | babel-plugin-react-compiler 1.0  | web + desktop through `@rolldown/plugin-babel` + `reactCompilerPreset` (client build only); mobile through babel-preset-expo                                                                           |
-| tests              | Playwright + `bun:test` + `gate` | five checks, three file names (Testing below): `*.rule.test.ts`, `*.api.test.ts` on a cloned Postgres, `e2e/` flows; `gate.json` for `gate`                                                            |
+| tests              | Playwright + `bun:test` + `gate` | five checks, three file names (Testing below): `*.rule.test.ts`, `*.api.test.ts` on a cloned Postgres, `*.flow.spec.ts` at two widths; `gate.json` for `gate`                                          |
 | deploy             | Drydock (`drydock.yaml`)         | only `apps/web` deploys (`rootDir: apps/web`, `workspace: "@app/web"`); mobile ships via EAS Build + EAS Update                                                                                        |
 | analytics          | Crow's Nest                      | one `<script defer>` in `index.html` (silent on localhost); custom events via `cnEvent()` in `src/lib/crowsnest.ts`                                                                                    |
 | mobile (optional)  | Expo SDK 58 + Expo Router        | dev client (never Expo Go), Uniwind over `@app/tokens`, better-auth Expo plugin, tRPC + superjson via `import type` from `@app/web/router`; iOS + Android profiles                                     |
@@ -97,7 +97,7 @@ server/
 ├── router.ts        appRouter (exports AppRouter type for the client) (+ router.api.test.ts)
 ├── router.access.md generated: who may call each procedure (`bun run access:table`, rule 29)
 └── demo.ts          the Post demo router (+ demo.api.test.ts, demo.rule.test.ts the fork gate) (rule 24)
-test/                the test harness: db.ts (template + clones), env.ts, callers.ts (asAnon/asUser/asAdmin),
+test/                the test harness: db.ts (template + clones), env.ts, people.ts, callers.ts (asAnon/asUser/asAdmin),
                      preload.{rules,api}.ts, access-table.ts, procedures.api.test.ts (every procedure tested, table current)
 
 src/
@@ -128,7 +128,8 @@ src/
 
 public/                favicon.svg, apple-touch-icon.png, icon-192/512.png, manifest.webmanifest (all from
                        `bun run brand`), robots.txt
-e2e/                   smoke + auth-next + demo specs, committed __screenshots__; db.ts = port + the flows' DB (a clone)
+e2e/                   flows: flow.ts (the fixture: a prod server per worker, world, the automatic checks), server.ts,
+                       coverage.ts (the every-screen reporter) + screens.ts, *.flow.spec.ts, __screenshots__/<project>/
 index.html             Vite entry HTML: stylesheet <link>, icon + manifest links, Crow's Nest tag, placeholders
 vite.config.ts         `~` alias, React Compiler, themeMeta (color-scheme + theme-color), noTemplateDemo gate
 prisma/schema.prisma   DB schema (User/Session/Account/Verification + the demo's Post)
@@ -170,7 +171,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 
 12. **`.env` lives at the repo root and is loaded by `prisma.config.ts` itself.** `apps/web` scripts pass `--env-file=../../.env` (Bun only autoloads `.env` from the cwd). Bun loads `.env` into its own runtime but NOT into the Prisma CLI (a Node subprocess), and Prisma 7 dropped auto-loading — so the config reads `.env` manually with a safe fallback (`prisma generate` works before `.env` exists). Don't delete that block. Runtime `PrismaClient` gets the URL via the pg adapter in `server/prisma.ts`.
 
-13. **Dev port is `PORT` (default `project.json` `apiPort`, 4780 in the template), never 3000.** It's validated in `server/env.ts`; `BETTER_AUTH_URL` defaults to `http://localhost:$PORT`. Every project gets its own distinct, uncommon port — `bun run init` derives one from the name (or `--port <n>`) and rewrites `4780` everywhere. Never use 3000/3001/5173/5174/8000/8080/4200/5000. Record the port in `cliffnotes.md`. Playwright e2e runs on apiPort + 3 (`e2e/db.ts`); Drydock injects its own `PORT`. Metro (mobile) runs on `metroPort` = apiPort + 1, the desktop renderer dev server on `desktopPort` = apiPort + 2.
+13. **Dev port is `PORT` (default `project.json` `apiPort`, 4780 in the template), never 3000.** It's validated in `server/env.ts`; `BETTER_AUTH_URL` defaults to `http://localhost:$PORT`. Every project gets its own distinct, uncommon port — `bun run init` derives one from the name (or `--port <n>`) and rewrites `4780` everywhere. Never use 3000/3001/5173/5174/8000/8080/4200/5000. Record the port in `cliffnotes.md`. Flows pick a free port per Playwright worker (no fixed e2e port); Drydock injects its own `PORT`. Metro (mobile) runs on `metroPort` = apiPort + 1, the desktop renderer dev server on `desktopPort` = apiPort + 2.
 
 14. **superjson end to end.** `initTRPC` and every client link (`src/lib/trpc.tsx`, the SSR proxy in `entry-server.tsx`, the `add:ws` `wsLink`) use `transformer: superjson` — add it to any new link or the wire breaks. The dehydrated SSR cache goes through `src/lib/ssr-state.ts` (superjson), never raw `JSON.stringify`, so prefetched `Date`s are `Date`s on first client render. Return `Date`s from procedures; format them deterministically (e.g. `toISOString()`, or a fixed `timeZone` in `Intl`) so SSR and client markup match.
 
@@ -205,6 +206,8 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 29. **Every procedure gets a tag and an API test.** Build procedures only from the tagged builders in `server/trpc.ts` (a new builder gets a tag in `server/procedure-access.ts` and a row in the builders contract, `server/trpc.api.test.ts`). Every path in `appRouter` needs a `describe('<path>', …)` in some `*.api.test.ts` (`test/procedures.api.test.ts` names any that don't). `server/router.access.md` is generated by `bun run access:table`; a permission change shows up as a diff there, and the commit says what changed and why. It covers the builder only: a rule inside a resolver ("only the author may edit") needs its own API test.
 
 30. **Run `gate` before any push to main, and never pass `--no-verify`.** Every change: `gate --dirty` (or the four scripts: typecheck, `test:rules`, `test:api`, `test:flows`). Before a push: `gate`, which runs them on a clean copy of the commit and writes the receipt that `gate guard push` (in the agent guard) checks before an agent's `git push` to main. A check stays only once it has been seen red, and skipped counts as failed: no `test.skip`, `test.todo`, or a test that quietly passes when an env var is missing.
+
+31. **Every screen has a flow, and every flow runs at both widths.** A new route in `src/app/routes.tsx` (or a new state a person can reach, like an empty list or an error screen) ships with a `*.flow.spec.ts` that lands on it. Every flow runs in both Playwright projects, `desktop` (1280×800) and `phone` (390×844, touch); never pin one to a project. A full `test:flows` fails naming any route (or the 404) that no flow landed on in a project (`e2e/coverage.ts`), and fails any flow that logs a `console.error`, throws, gets a 5xx or overflows sideways (`e2e/flow.ts`).
 
 ## Architecture flows
 
@@ -347,7 +350,7 @@ Prisma can't express Postgres extensions, exclusion constraints, full-text searc
 
 ### Drop the demo
 
-`bun run demo:drop` (`--dry-run` lists the changes, `--check` exits 1 while the demo is present; in the template itself it refuses with exit 2, since the template keeps the demo). It deletes the demo files, strips the markers, writes `prisma/migrations/<ts>_drop_post_demo/migration.sql` (`DROP TABLE IF EXISTS "post"`) and runs `db:generate`. Then `bun run db:deploy`, `bun run typecheck`, `bun run test:e2e:update`. Keep the pattern (`me` prefetched in `dashboardLoader`) for the first real feature.
+`bun run demo:drop` (`--dry-run` lists the changes, `--check` exits 1 while the demo is present; in the template itself it refuses with exit 2, since the template keeps the demo). It deletes the demo files, strips the markers, writes `prisma/migrations/<ts>_drop_post_demo/migration.sql` (`DROP TABLE IF EXISTS "post"`) and runs `db:generate`. Then `bun run db:deploy`, `bun run typecheck`, `bun run test:flows:update`. Keep the pattern (`me` prefetched in `dashboardLoader`) for the first real feature.
 
 ### Add AI, WebSockets or a job queue
 
@@ -383,10 +386,6 @@ Edit values in `packages/tokens/tokens.css` (the one `:root`), then `bun run tok
 
 `server/env.ts` (zod schema; a third-party key goes in `optionalKeys` as `optionalSecret`, rule 6) → `.env.example` (placeholder) → Drydock portal (Project → Environment → Apply + redeploy). Drydock seeds `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` itself.
 
-### Add an e2e test
-
-Specs live in `e2e/*.spec.ts` (Playwright; they become `*.flow.ts` next). They run on apiPort + 3 (4783 here) against `<template>_e2e`, a fresh clone of the test template (`test/db.ts`) that `e2e/global-setup.ts` makes on every run. Playwright starts the server first (its readiness probe is `/robots.txt` over `[::1]`, a static file, so a fork whose test DB doesn't exist yet still boots). The screenshot tolerance is 0.2% of pixels: a mostly white page differs from a different page by under 2%. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:flows:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:flows`. Don't screenshot pages with per-run dynamic content unless you mask it.
-
 ## Testing
 
 Five checks, the same in every repo built from this one. `gate` runs the first four on a clean copy of the commit (`gate.json`); the fifth comes after a deploy.
@@ -399,15 +398,25 @@ Five checks, the same in every repo built from this one. `gate` runs the first f
 | Flows | a person's path through the real app in a real browser                                                     | `bun run test:flows` |
 | Live  | after a deploy: the live site reports the new commit and passes smoke flows                                | (later)              |
 
-`bun run test` = rules then API. Every test file has exactly one of three names, checked first by `test:rules` (`scripts/test-names.ts` says which to use): `*.rule.test.ts` (bun:test, pure code), `*.api.test.ts` (bun:test, the real router, handlers, Postgres or IPC), `*.flow.ts` (Playwright; `e2e/*.spec.ts` until the flows move).
+`bun run test` = rules then API. Every test file has exactly one of three names, checked first by `test:rules` (`scripts/test-names.ts` says which to use): `*.rule.test.ts` (bun:test, pure code), `*.api.test.ts` (bun:test, the real router, handlers, Postgres or IPC), `*.flow.spec.ts` (Playwright, in `apps/web/e2e/`). A top-level `flows/` folder is bx's replays, not tests, and is skipped.
 
-**The databases.** One migrated, empty template, cloned per test process with `CREATE DATABASE … TEMPLATE` (`test/db.ts`). Under gate (`GATE=1`) the template is the `DATABASE_URL` gate hands over. Otherwise it is `<project.json db>_test` (`sal_starter_test`) on the server of the shell's or the root `.env`'s `DATABASE_URL`, created, migrated (`bun run db:deploy`), rebuilt when its migration history isn't the committed one and emptied as needed. API tests get `<template>_p<pid>`, dropped at the end (stale ones swept at start); flows get `<template>_e2e`. One guard (`assertTestDatabase`) refuses to create, drop or truncate anything else.
+**The databases.** One migrated, empty template, cloned per test process with `CREATE DATABASE … TEMPLATE` (`test/db.ts`). Under gate (`GATE=1`) the template is the `DATABASE_URL` gate hands over. Otherwise it is `<project.json db>_test` (`sal_starter_test`) on the server of the shell's or the root `.env`'s `DATABASE_URL`, created, migrated (`bun run db:deploy`), rebuilt when its migration history isn't the committed one and emptied as needed. API tests get `<template>_p<pid>`, each flow worker's server `<template>_p<pid>` too (`_p<pid>_t<n>` for an `emptyDatabase` test), all dropped at the end; clones whose process is gone are swept at the start. One guard (`assertTestDatabase`) refuses to create, drop or truncate anything else.
 
 **The environment.** `test:api` never loads the root `.env`: `test/preload.api.ts` removes every key it defines and sets exactly what the server needs (the clone's `DATABASE_URL`, a fixed `BETTER_AUTH_SECRET`, `ADMIN_EMAILS` = `admin@test.local`, an open `SIGNUP_ALLOWLIST`), so no test can reach a paid service with a real key. `test:rules` runs with no environment at all.
 
 **Add a rule.** Pure function, many cases, silent when wrong: `foo.rule.test.ts` next to it. Import nothing that reads `process.env` (split a schema out the way `server/env-schema.ts` is).
 
 **Add an API test.** `foo.api.test.ts`, one `describe('<procedure path>', …)` per procedure: what it returns, what it writes (read the row back with `prisma`), what it rejects (bad input, the wrong caller). Callers come from `test/callers.ts`: `await asAnon()`, `await asUser(name?)`, `await asAdmin()` each give `{ api, context, user, cookie }` with `api` = `appRouter.createCaller(context)` for a real session made through better-auth. Each `asUser()` is a new person; the admin is one user per process (a new session each call). Rows are shared within a run, so assert on the ids you made, not on totals.
+
+**Add a flow.** `e2e/<feature>.flow.spec.ts`, importing `{ test, expect }` from `./flow` (never `@playwright/test`). Each title is `<feature>/<flow> · <what a person sees>` (`auth/sign-out · signing out lands home, and Back does not reopen the dashboard`), and the body starts with a `// Check:` line naming the one observable thing, then the steps. What the fixture gives you:
+
+- `page`, `request` and `baseURL` point at this worker's server: the **production build** (`test:flows` runs `bun run build` first) on a free port, against its own clone of the test template, with `test/env.ts`'s environment and nothing from `.env`.
+- `world.signIn('user' | 'admin', name?)` makes a fresh person and signs this test's browser in through `/api/auth` (not the form; the form has its own flows). `world.account(name?)` makes one and leaves the browser signed out. Each test sends its own `x-forwarded-for`, so better-auth's rate limiter sees separate people.
+- `test.use({ emptyDatabase: true })` in a `describe` gives those tests their own server and an empty database. Only for an empty state: it costs a server start. Otherwise rows are shared within a worker, so assert on what this test made.
+- The automatic checks fail the test on an uncaught page error, a `console.error`, a response ≥ 500, a failed same-origin request or horizontal overflow on the last page. A flow that provokes one on purpose allows exactly that: `problems.allow('response', /\/api\/auth\/get-session/)`.
+- Screenshots: `await expect(page).toHaveScreenshot('name.png', { fullPage: true })` on a stable view (no dates, ids or per-test text), then `bun run test:flows:update` and review the baselines in `e2e/__screenshots__/{desktop,phone}/`. The tolerance is 0.2% of pixels (a mostly white page differs from a different page by under 2%).
+
+Run one file or test with `bunx playwright test <file>[:line]` in `apps/web` (after `bun run build`): a partial run skips the every-screen check and says so. Server output is attached to a failing test (`playwright show-report`).
 
 **Add a procedure.** Use `publicProcedure`, `protectedProcedure` or `adminProcedure` (each tags its procedures `public`, `user`, `admin`), write its API test, then `bun run access:table` and commit `server/router.access.md`. A new builder: a tag in `server/procedure-access.ts`, a row in `server/trpc.api.test.ts`'s matrix.
 
@@ -420,7 +429,7 @@ bun run typecheck   # tsc --noEmit (TypeScript 7) in the root (scripts/, recipes
 bun run test        # test:rules then test:api in every workspace (a fork fails here until the kickoff and demo:drop)
 bun run test:rules  # names check, then *.rule.test.ts (pure, no env)
 bun run test:api    # *.api.test.ts on a fresh clone of the test template
-bun run test:flows  # Playwright on :4783 (apiPort + 3) against a clone of the test template (= test:e2e)
+bun run test:flows  # build, then Playwright: desktop + phone, a prod server per worker on a free port (= test:e2e)
 gate --dirty        # all four on a copy of the working tree; `gate` before a push (rule 30)
 bun run build       # vite build (client) + vite build --ssr (server) → dist/client + dist/server (a fork fails while the demo is present)
 bun run dev         # web: bun --watch server.ts → http://localhost:4780 (HMR on the same port) + Metro on 4781 if apps/mobile exists
@@ -479,7 +488,7 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 - Don't commit `.env`, `dist/`, `node_modules/`, or Playwright run artifacts (`test-results/`, `playwright-report/`). They're in `.gitignore`. DO commit `e2e/__screenshots__/` baselines.
 - Don't hand-edit anything under `apps/web/server/generated/`. Re-run `bun run db:generate` after schema changes.
 - Don't add ESLint, `expo lint` or any linter. `tsc` is a check, Prettier formats.
-- Don't name a test file anything but `*.rule.test.ts`, `*.api.test.ts` or `*.flow.ts`, don't `test.skip` / `test.todo`, and don't edit `server/router.access.md` by hand (rules 28–30).
+- Don't name a test file anything but `*.rule.test.ts`, `*.api.test.ts` or `*.flow.spec.ts`, don't `test.skip` / `test.todo`, and don't edit `server/router.access.md` by hand (rules 28–30).
 - Don't use Expo Go or write code that branches on it. The dev client is the only dev runtime.
 - Don't `prisma db push`, and don't edit a migration that has already been applied anywhere shared — add a new one.
 - Don't `bunx prisma`: outside the workspace it pulls npm `latest`, the Prisma 8 RC. Use the `bun run db:*` scripts.

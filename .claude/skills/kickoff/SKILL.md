@@ -148,7 +148,7 @@ Work through every item; each is a place the placeholder survives otherwise.
 - Mobile: run it on Limrun (`limrun` skill) and screenshot the first screen. If
   that isn't possible this session, say mobile is unverified.
 - `bun run build` green (it fails while the demo is present).
-- `bun run test:e2e:update` once the pages are final, and review the new
+- `bun run test:flows:update` once the pages are final, and review the new
   baselines before committing them.
 - Show Sal the screenshots (full paths) and ask whether it's right before
   calling it done.

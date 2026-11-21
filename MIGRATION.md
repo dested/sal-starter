@@ -473,6 +473,37 @@ bun install && bun run typecheck && bun run test && bun run build
 bun run test:e2e        # then review and commit any new baselines (test:e2e:update)
 ```
 
+## 23. Syncing a fork past the testing standard (2026-11-20)
+
+`bun run sync` brings the five checks, the three test names, the API harness, the access table and `gate.json` (as `"mode": "report"` in a fork that had none). Do it on a branch.
+
+**Test names.** `bun run test:rules` starts with the names check and fails on any other test file name.
+
+- **Detect:** `bun run test:rules` lists each file with the name to use.
+- **Fix:** pure logic → `*.rule.test.ts` (no `process.env`, no server import); the router, Postgres or IPC → `*.api.test.ts`; Playwright → `apps/web/e2e/<feature>.flow.spec.ts` importing `{ test, expect }` from `./flow`. Delete `apps/web/e2e/db.ts` if the merge kept it.
+
+**`access.ts` takes its lists.** `isAdminEmail(email, admins)` and `signUpAllowed(email, { allowlist, admins })` no longer read env.
+
+- **Detect:** `bun run typecheck` errors on a one-argument call.
+- **Fix:** pass `env.ADMIN_EMAILS`, or `{ allowlist: env.SIGNUP_ALLOWLIST, admins: env.ADMIN_EMAILS }`, as `server/trpc.ts` and `server/auth.ts` do.
+
+**Tagged procedures.** Every procedure comes from `publicProcedure`, `protectedProcedure` or `adminProcedure` (rule 29).
+
+- **Detect:** `bun run test:api` names any procedure without an API test, and fails while `server/router.access.md` is stale.
+- **Fix:** build a fork-made builder from one of the three (or tag it in `server/procedure-access.ts`), write a `describe('<path>', …)` per procedure with `test/callers.ts`, then `bun run access:table` and commit the table.
+
+**Flows.** Every route needs a flow that lands on it at both widths (rule 31).
+
+- **Detect:** `bun run test:flows` ends with `coverage: N screen(s) no flow landed on: /x in desktop …`, or a flow fails on a `console.error`, a 5xx or sideways overflow it never noticed before.
+- **Fix:** add the flow (CLAUDE.md → Testing → Add a flow), fix the page, or allow one provoked problem in that flow with `problems.allow(kind, /pattern/)`. Then `bun run test:flows:update` and review `apps/web/e2e/__screenshots__/{desktop,phone}/`.
+
+**Verify**
+
+```bash
+bun install && bun run typecheck && bun run test:rules && bun run test:api && bun run test:flows
+gate --dirty            # the same four on a copy; `gate` before a push (rule 30)
+```
+
 ## Final verification checklist
 
 ```bash

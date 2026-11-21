@@ -11,7 +11,7 @@ An SSR React starter template, a Bun workspace with an optional Expo app (iOS + 
 
 ## Quick Reference
 
-- **Ports:** API **4780** (web + `/api/*`), Metro **4781** (mobile only), desktop renderer **4782** (desktop dev only), Playwright e2e **4783** (apiPort + 3). All come from `project.json` (`apiPort`, `metroPort`, `desktopPort`); `init` picks a per-name base. Never 3000/3001/5173/5174/8000/8080/4200/5000
+- **Ports:** API **4780** (web + `/api/*`), Metro **4781** (mobile only), desktop renderer **4782** (desktop dev only). Flows take a free port per Playwright worker (no fixed e2e port). All come from `project.json` (`apiPort`, `metroPort`, `desktopPort`); `init` picks a per-name base. Never 3000/3001/5173/5174/8000/8080/4200/5000
 - **Dev:** `bun run dev` (root) → web on http://localhost:4780 (HMR shares the port) + Metro on 4781 if `apps/mobile` exists + the Electron window (renderer on 4782) if `apps/desktop` exists. `bun run dev web|mobile|desktop` for one
 - **New project:** `git clone … <name> && git remote rename origin upstream && bun install && bun run init <name> [flags]` (flags: CLAUDE.md → Start a fork), then (web) `createdb <name>` → `bun run db:migrate` → `bun run dev`, then **the kickoff** (`.claude/skills/kickoff`, `/kickoff`) and **`bun run demo:drop`** before any feature: until `look` is set and the demo is gone, dev shows a "Kickoff pending" ribbon, `bun run test` fails and `bun run build` fails
 - **Look:** ONE theme, no dark mode, no toggle. Values in `packages/tokens/tokens.css` → `bun run tokens` (regenerates `colors.json`) → `bun run brand` → `bun run test`
@@ -26,7 +26,7 @@ An SSR React starter template, a Bun workspace with an optional Expo app (iOS + 
 - **Tests (CLAUDE.md → Testing):** `bun run test:rules` (names check + pure `*.rule.test.ts`, no env) · `bun run test:api` (`*.api.test.ts`: web on a fresh clone of `sal_starter_test`, desktop router, trpc-ipc) · `bun run test:flows` (Playwright) · `bun run test` = rules then api · `gate --dirty` / `gate` runs all four on a clean copy (`gate.json`, mode `block`)
 - **Access table:** `bun run access:table` rewrites `apps/web/server/router.access.md` (who may call each procedure, from the builders' tags); `test:api` fails while it's stale
 - **Build:** `bun run build` → `apps/web/dist/client` + `dist/server`
-- **Flows:** `bun run test:flows` (= `test:e2e`; Playwright on :4783 against `sal_starter_test_e2e`, a fresh clone of the migrated template `sal_starter_test` on the `.env` `DATABASE_URL` server; committed screenshots)
+- **Flows:** `bun run test:flows` (= `test:e2e`): `bun run build`, then Playwright in two projects, `desktop` 1280×800 and `phone` 390×844 (touch). Each worker runs the production server on a free port against its own clone of `sal_starter_test` (the `.env` `DATABASE_URL` server, `test/env.ts`'s env). Automatic checks on every flow, the every-screen check at the end, committed screenshots per project
 - **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:migrate:sql -o <file>` (agent shells, where `migrate dev` refuses; CLAUDE.md → Add a DB table) · `bun run db:deploy` (prod/CI). Never `bunx prisma` (npm latest is the Prisma 8 RC)
 - **Ship a mobile fix (OTA):** in `apps/mobile`: `bun run ota:preview --message "…"` → test on a preview build → `bun run ota:promote` (republishes that exact update to production). Hotfix straight to prod: `bun run ota:prod --message "…"`. Check `eas fingerprint:compare --build-id <id>` before the first update to a build. Run `eas` only in `apps/mobile`, never at the root
 - **Mobile checks:** `bun run --cwd apps/mobile doctor` · `bun run --cwd apps/mobile test` · `bunx expo export --platform ios` (in `apps/mobile`) · `bun run --cwd apps/mobile fingerprint` (= Home's `fingerprint:` row)
@@ -36,25 +36,25 @@ An SSR React starter template, a Bun workspace with an optional Expo app (iOS + 
 
 ## Stack
 
-| Layer              | Choice                           | Notes                                                                                                           |
-| ------------------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Runtime / pkg mgr  | Bun 1.4, workspaces              | root `bun.lock`, hoisted linker, 3-day `minimumReleaseAge`, shared pins in the root `catalog`                   |
-| Server             | **Express 5** + Vite 8 SSR       | required for `*splat` route wildcards                                                                           |
-| Routing            | React Router 8                   | createBrowserRouter (client, `getContext: browserContext`) / createStaticHandler (server); typed loader context |
-| State / data       | TanStack Query + tRPC v11        | `@trpc/tanstack-react-query` (`.queryOptions()`); **superjson** on the wire and in SSR state                    |
-| Validation         | zod 4                            | env, tRPC inputs                                                                                                |
-| API                | tRPC, Express mounts             | `/api/trpc`, `/api/auth/*`, `/healthz`                                                                          |
-| Database / ORM     | Postgres + Prisma 7              | `pg` driver adapter (`@prisma/adapter-pg`); `prisma migrate`, committed migrations                              |
-| Auth               | better-auth                      | email + password, autoSignIn; `SIGNUP_ALLOWLIST`, `ADMIN_EMAILS` + `adminProcedure`, `?next=`                   |
-| Styling            | Tailwind v4 + shadcn (base-nova) | CSS-first, oklch tokens; Base UI primitives; `cn` from shadcn's `cn` package; see `ui.md`                       |
-| Brand              | `packages/brand` (resvg)         | one mark → every icon, splash, favicon, manifest                                                                |
-| React Compiler     | babel-plugin-react-compiler 1.0  | web + desktop via `@rolldown/plugin-babel` (client build only); mobile via babel-preset-expo                    |
-| Tests              | Playwright + `bun:test` + `gate` | `*.rule.test.ts` / `*.api.test.ts` / flows; DB clones from a template (`apps/web/test/db.ts`); `gate.json`      |
-| Types              | TypeScript 7 `tsc`               | `tsconfig.base.json` shared by every workspace                                                                  |
-| Deploy             | Drydock (`drydock.yaml`)         | `rootDir: apps/web`, `workspace: "@app/web"`, predeploy `bun run db:deploy`                                     |
-| Analytics          | Crow's Nest                      | `<script defer src="https://cn.dested.com/cn.js">` in `index.html`; `cnEvent()` for custom events               |
-| Mobile (optional)  | Expo SDK 58, RN 0.88, Router     | dev client only; Uniwind 1.13; better-auth Expo plugin; EAS for distribution (iOS + Android)                    |
-| Desktop (optional) | Electron 44, electron-vite 6     | tRPC over IPC (`@app/trpc-ipc`), no superjson, no DB; electron-builder `--dir` releases                         |
+| Layer              | Choice                           | Notes                                                                                                                 |
+| ------------------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Runtime / pkg mgr  | Bun 1.4, workspaces              | root `bun.lock`, hoisted linker, 3-day `minimumReleaseAge`, shared pins in the root `catalog`                         |
+| Server             | **Express 5** + Vite 8 SSR       | required for `*splat` route wildcards                                                                                 |
+| Routing            | React Router 8                   | createBrowserRouter (client, `getContext: browserContext`) / createStaticHandler (server); typed loader context       |
+| State / data       | TanStack Query + tRPC v11        | `@trpc/tanstack-react-query` (`.queryOptions()`); **superjson** on the wire and in SSR state                          |
+| Validation         | zod 4                            | env, tRPC inputs                                                                                                      |
+| API                | tRPC, Express mounts             | `/api/trpc`, `/api/auth/*`, `/healthz`                                                                                |
+| Database / ORM     | Postgres + Prisma 7              | `pg` driver adapter (`@prisma/adapter-pg`); `prisma migrate`, committed migrations                                    |
+| Auth               | better-auth                      | email + password, autoSignIn; `SIGNUP_ALLOWLIST`, `ADMIN_EMAILS` + `adminProcedure`, `?next=`                         |
+| Styling            | Tailwind v4 + shadcn (base-nova) | CSS-first, oklch tokens; Base UI primitives; `cn` from shadcn's `cn` package; see `ui.md`                             |
+| Brand              | `packages/brand` (resvg)         | one mark → every icon, splash, favicon, manifest                                                                      |
+| React Compiler     | babel-plugin-react-compiler 1.0  | web + desktop via `@rolldown/plugin-babel` (client build only); mobile via babel-preset-expo                          |
+| Tests              | Playwright + `bun:test` + `gate` | `*.rule.test.ts` / `*.api.test.ts` / `*.flow.spec.ts`; DB clones from a template (`apps/web/test/db.ts`); `gate.json` |
+| Types              | TypeScript 7 `tsc`               | `tsconfig.base.json` shared by every workspace                                                                        |
+| Deploy             | Drydock (`drydock.yaml`)         | `rootDir: apps/web`, `workspace: "@app/web"`, predeploy `bun run db:deploy`                                           |
+| Analytics          | Crow's Nest                      | `<script defer src="https://cn.dested.com/cn.js">` in `index.html`; `cnEvent()` for custom events                     |
+| Mobile (optional)  | Expo SDK 58, RN 0.88, Router     | dev client only; Uniwind 1.13; better-auth Expo plugin; EAS for distribution (iOS + Android)                          |
+| Desktop (optional) | Electron 44, electron-vite 6     | tRPC over IPC (`@app/trpc-ipc`), no superjson, no DB; electron-builder `--dir` releases                               |
 
 ## Directory structure
 
@@ -76,7 +76,7 @@ scripts/
 ├── demo.ts              `bun run demo:drop [--check|--dry-run|--help]`: removes the Post demo + writes the drop migration,
 │                        regenerates the access table
 ├── test.ts              `test:rules` / `test:api` runner: each workspace's script in turn, unprefixed output
-├── test-names.ts        the names check (*.rule.test.ts | *.api.test.ts | *.flow.ts; e2e/*.spec.ts for now)
+├── test-names.ts        the names check (*.rule.test.ts | *.api.test.ts | *.flow.spec.ts; skips a top-level flows/, bx's)
 ├── gate.ts              gate.json read/write + gateForSurfaces (init: desktop-only drops db + flows; sync: report mode
 │                        for a fork that had none, never changes a fork's mode)
 ├── no-auth.ts           init --no-auth: checked edits that remove better-auth (`--check`); exports NO_AUTH_PATHS
@@ -147,12 +147,14 @@ src/
 └── styles/
     └── app.css          Tailwind v4 + @app/tokens theme.css/tokens.css + font mapping + base layer
 public/                  favicon.svg, apple-touch-icon.png, icon-192/512.png, manifest.webmanifest (all `bun run brand`), robots.txt
-e2e/                     smoke.spec.ts (routing, auth, 404, SSR Date via me.createdAt), auth-next.spec.ts (?next= round trip),
-                         demo.spec.ts (posts flow), global-setup.ts (template ready, fresh <template>_e2e clone),
-                         db.ts (port + the flows' DB URL), __screenshots__/
+e2e/                     flow.ts (the fixture every flow imports: worker server, world.signIn/account, emptyDatabase,
+                         a client address per test, the automatic checks), server.ts (prod server on a free port + its
+                         clone), coverage.ts (reporter: every route + 404 landed on in each project), screens.ts (+ rule
+                         test: route patterns from routes.tsx), global-setup.ts (build present, template ready, sweep),
+                         shell/auth/demo .flow.spec.ts, __screenshots__/{desktop,phone}/
 test/                    the test harness: db.ts (template: gate's DATABASE_URL or <db>_test, made/migrated/emptied; clones
                          <template>_<suffix>; assertTestDatabase guard; + rule test), env.ts (scrubEnv, useTestEnv,
-                         TEST_ADMIN_EMAIL), preload.rules.ts (no env), preload.api.ts (clone per process, dropped after),
+                         TEST_ADMIN_EMAIL, testEnv for flow servers), people.ts (test emails + password, no server import), preload.rules.ts (no env), preload.api.ts (clone per process, dropped after),
                          callers.ts (asAnon/asUser/asAdmin via better-auth), access-table.ts (`access:table`),
                          procedures.api.test.ts (every procedure has a describe; the table is current)
 index.html               SSR template — Crow's Nest tag, stylesheet <link>, icon + manifest links, <!--app-html--> + <!--app-state-->
@@ -241,7 +243,7 @@ apps/desktop/
 | Browser chrome color              | `vite.config.ts` (themeMeta: color-scheme + theme-color)                                        |
 | Kickoff                           | `.claude/skills/kickoff/SKILL.md` · `project.json` `look` · `src/components/kickoff-ribbon.tsx` |
 | Browser query/tRPC singletons     | `src/lib/trpc.tsx` (`getBrowserClients()`)                                                      |
-| E2E tests (flows)                 | `e2e/*.spec.ts` · `e2e/global-setup.ts`                                                         |
+| Flows                             | `e2e/*.flow.spec.ts` · `e2e/flow.ts` · `e2e/server.ts` · `e2e/coverage.ts`                      |
 | API tests / callers / DB clones   | `*.api.test.ts` · `test/callers.ts` · `test/db.ts` · `test/preload.api.ts`                      |
 | Who may call what                 | `server/procedure-access.ts` · `server/router.access.md` (`bun run access:table`)               |
 | Testing standard / gate           | CLAUDE.md → Testing · `gate.json` · `scripts/{test,test-names,gate}.ts`                         |
@@ -342,20 +344,21 @@ Edit `packages/brand/mark.svg` or `brand.json` → `bun run brand` → `bun run 
 
 `bun run add:ai|add:ws|add:jobs` (CLAUDE.md → Common tasks has what each adds), review the diff, commit.
 
-### Add an e2e test
+### Add a flow
 
-Add `e2e/*.spec.ts`; screenshot only stable views; `bun run test:flows:update` to write baselines.
+`e2e/<feature>.flow.spec.ts` importing `{ test, expect }` from `./flow`; title `<feature>/<flow> · <what a person sees>`, a `// Check:` line first; `world.signIn('user')` for a signed-in page. Every new route gets one (rule 31). Screenshot only stable views; `bun run test:flows:update` writes both projects' baselines. CLAUDE.md → Testing → Add a flow.
 
 ### Add a test
 
-Only three names: `*.rule.test.ts` (pure, many cases, silent when wrong), `*.api.test.ts` (router/Postgres/IPC), flows in `e2e/`. CLAUDE.md → Testing and rules 28–30.
+Only three names: `*.rule.test.ts` (pure, many cases, silent when wrong), `*.api.test.ts` (router/Postgres/IPC), `*.flow.spec.ts` (Playwright, `apps/web/e2e/`). CLAUDE.md → Testing and rules 28–31.
 
 ## Gotchas & hard rules
 
 - **Path alias `~/*` → `src/*`** (client only, in web and in mobile); server uses relative imports.
 - **Mobile ↔ web contract is `import type` only** (CLAUDE.md rule #17); tokens come from `@app/tokens`, brand colors from `@app/brand`. Identity only in `project.json` (#22). No hand edits to `ios/`/`android/` (#18), no custom Metro config (#21).
-- **WSL mirrored networking drops connects to a closed `127.0.0.1` port** instead of refusing them, so a "is it up?" probe on `localhost` hangs ~2 min (the TCP SYN timeout). Playwright's `webServer.url` probes `[::1]` for that reason; do the same in any readiness check.
-- **The e2e readiness probe is a static file** (`/robots.txt`), not `/healthz`: Playwright starts the server before global-setup creates a new fork's `_test` DB, so a DB ping never passes on a first run.
+- **WSL mirrored networking drops connects to a closed `127.0.0.1` port** instead of refusing them, so a "is it up?" probe on `localhost` hangs ~2 min (the TCP SYN timeout). The flow server's readiness poll (`e2e/server.ts`) uses `[::1]` for that reason; do the same in any readiness check.
+- **Flow servers send a client address.** better-auth's rate limiter is on in production (sign-in/up: 3 per 10 s per IP), and flows run the production build, so each test's context sends its own `x-forwarded-for` (`e2e/flow.ts`); without it every sign-up after the third 429s.
+- **Flow readiness polls `http://[::1]:<port>/healthz`** (the WSL note above); the worker's clone exists before its server starts, so the DB ping is safe there.
 - **`init` renames every `sal-starter` / `sal_starter` / `Sal Starter` string** in tracked text files, so never compare against the template's name to detect "am I the template". Key off `project.json` `template: true` (init drops it).
 - **JSX demo markers must be blocks** (`{/* demo:start */}` … `{/* demo:end */}`): a same-line `{/* demo */}` after an element leaves a stray text node on React Native.
 - **`Stack.Protected` needs `redirectTo`** on SDK 58: the default falls back to the first open group's path, and `(auth)` has no index, so a signed-out launch at `/` landed on "Unmatched Route".
@@ -368,7 +371,7 @@ Only three names: `*.rule.test.ts` (pure, many cases, silent when wrong), `*.api
 - **Run `bun run db:generate` after schema edits** (auto-runs on `bun install`).
 - **superjson everywhere** — any new tRPC link needs `transformer: superjson`; SSR state goes through `ssr-state.ts`, never raw `JSON.stringify`. Format Dates deterministically (UTC / fixed `timeZone`) or SSR/hydration markup diverges.
 - **Migrations, never `db push`** — and review generated SQL: Prisma can emit `DROP INDEX` for hand-made expression indexes.
-- **Port** — `PORT` env (default `project.json` apiPort, 4780); Metro = apiPort + 1, desktop renderer + 2, e2e + 3; never 3000/3001/5173/5174/8000/8080/4200/5000.
+- **Port** — `PORT` env (default `project.json` apiPort, 4780); Metro = apiPort + 1, desktop renderer + 2, flows a free port per worker; never 3000/3001/5173/5174/8000/8080/4200/5000.
 - **Types** — `strict` + `noUncheckedIndexedAccess`; no `any`, no `as` casts to paper over mismatches; loader context values come from typed `createContext` keys.
 - **Stylesheet is a `<link>` in `index.html`** — never `import` CSS from a component (Vite injects it after the module graph loads → unstyled flash in dev). `@import` new CSS from `app.css`.
 - **One theme, never dark mode** — no `.dark`, `prefers-color-scheme`, toggle, `useColorScheme` or `nativeTheme` anywhere; `dark:` classes compile to nothing. After any `tokens.css` edit run `bun run tokens` (and `bun run brand`) or the tests fail.
@@ -391,8 +394,8 @@ Only three names: `*.rule.test.ts` (pure, many cases, silent when wrong), `*.api
 
 ## Status
 
-- **Done** — SSR + hydration (typed loader context, server and client-nav prefetch), auth (email/pw, allowlist, admins, `?next=`), optional-key env helper, tRPC (public/protected/admin), Post demo with fork gates and `demo:drop`, logging, /healthz, 404/error handling, one-theme tokens + generated `colors` + kickoff skill/ribbon/test, brand pipeline (icons, splash, favicon, manifest, desktop icons) + BrandSplash, scroll restoration, immutable asset caching, init (rename, ports, `--mobile` with EAS setup, `--no-auth`, `--desktop[-only]`), Playwright e2e + screenshot baselines, the testing standard part 1 (three test names, rules/api/flows scripts, API harness on cloned Postgres, tagged builders + access table, gate.json). Monorepo (`apps/web`, optional `apps/mobile`, optional `apps/desktop`), `project.json` identity + `surfaces`, `sync` / `add:mobile|add:desktop`, `add:ai|add:ws|add:jobs` recipes, `upgrade:expo`, `@app/tokens`, `@app/brand`, Electron desktop surface with tRPC over IPC (`@app/trpc-ipc`) and unpacked releases, Drydock seed, Expo SDK 58 mobile app (iOS + Android profiles) with auth, Screen scaffold, haptic Button, fonts, OTA hold, build fingerprint. React Router 8, Vite 8, React Compiler (web, desktop, mobile), shadcn on Base UI. Express 5 + Prisma 7. superjson (wire + SSR state), zod 4, `noUncheckedIndexedAccess`, `prisma migrate` workflow, `bun:test` unit tests.
+- **Done** — SSR + hydration (typed loader context, server and client-nav prefetch), auth (email/pw, allowlist, admins, `?next=`), optional-key env helper, tRPC (public/protected/admin), Post demo with fork gates and `demo:drop`, logging, /healthz, 404/error handling, one-theme tokens + generated `colors` + kickoff skill/ribbon/test, brand pipeline (icons, splash, favicon, manifest, desktop icons) + BrandSplash, scroll restoration, immutable asset caching, init (rename, ports, `--mobile` with EAS setup, `--no-auth`, `--desktop[-only]`), the testing standard (three test names, rules/api/flows scripts, API harness on cloned Postgres, tagged builders + access table, gate.json; flows on the production build at desktop + phone widths, automatic checks, every screen walked). Monorepo (`apps/web`, optional `apps/mobile`, optional `apps/desktop`), `project.json` identity + `surfaces`, `sync` / `add:mobile|add:desktop`, `add:ai|add:ws|add:jobs` recipes, `upgrade:expo`, `@app/tokens`, `@app/brand`, Electron desktop surface with tRPC over IPC (`@app/trpc-ipc`) and unpacked releases, Drydock seed, Expo SDK 58 mobile app (iOS + Android profiles) with auth, Screen scaffold, haptic Button, fonts, OTA hold, build fingerprint. React Router 8, Vite 8, React Compiler (web, desktop, mobile), shadcn on Base UI. Express 5 + Prisma 7. superjson (wire + SSR state), zod 4, `noUncheckedIndexedAccess`, `prisma migrate` workflow, `bun:test` unit tests.
 - **Not built** — email verification, OAuth providers, rate limiting, CI, per-route head/meta.
 - **Unverified** — the new dev client on Limrun (BrandSplash hand-off, the baseline native libraries, the fingerprint row reading `EXUpdates.bundle/fingerprint`, Button press scale, keyboard-controller, Toaster); a real `eas-setup` run against quickgame; `upgrade:expo` past `--check`; `ota:promote` end to end and fingerprint parity on a real EAS build; `add:ai` against the real API; `add:jobs` on Drydock; the desktop icon on a Windows taskbar. Drydock deploys of the workspace shape are proven by 10 forks.
 - **Open** — the Expo 58.0.19 patch set clears the release age after 2026-10-26 ~23:30Z: then `bun run upgrade:expo` (until then `bun run doctor` fails its version check).
-- **Next:** testing standard part 2 (flows as `*.flow.ts` on the production build, desktop + phone projects, every route walked, auto-assertions) — `plans/2026-11-20-testing-standard.md`.
+- **Next:** the lead's side of the testing standard (the probe replay, QA flows mapped to flow slugs, the agent guard) — `plans/2026-11-20-testing-standard.md`.

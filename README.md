@@ -44,7 +44,7 @@ Then, before building anything:
 
 `init` renames everything, writes `project.json` (the project's identity: name, scheme, bundle id, surfaces, ports, db, EAS owner), picks per-project ports and writes a fresh `.env` (web only). Surfaces you didn't ask for are deleted in their own commit ("init: web-only", "init: desktop-only", …); `bun run add:mobile` / `add:desktop` bring one back any time. With `--mobile` it creates the EAS project (`--no-eas` skips it, `--dry-run-eas` prints the commands) and drops the template's native-example package (`--native-example` keeps it). `--no-auth` removes better-auth, sign-in/up and the auth tables. `--port <n>` picks the API port yourself (Metro gets n + 1, the desktop renderer n + 2, e2e n + 3). `--fresh-git` wipes history instead, which also cuts you off from `sync`.
 
-**Ports:** every project gets its own distinct, uncommon set and records it in `cliffnotes.md`. Never 3000/3001/5173/5174/8000/8080/4200/5000. The template uses 4780 (API), 4781 (Metro), 4782 (desktop) and 4783 (e2e).
+**Ports:** every project gets its own distinct, uncommon set and records it in `cliffnotes.md`. Never 3000/3001/5173/5174/8000/8080/4200/5000. The template uses 4780 (API), 4781 (Metro), 4782 (desktop); flows pick a free port per worker.
 
 **Pull template improvements later:**
 
@@ -75,9 +75,9 @@ All run from the repo root.
 | `bun run build`                          | build client (`apps/web/dist/client`) + SSR bundle (`dist/server`)             |
 | `bun run start`                          | run the production server (`NODE_ENV=production`)                              |
 | `bun run typecheck`                      | `tsc --noEmit` in the root and every workspace                                 |
-| `bun run test`                           | `bun:test` in every workspace                                                  |
-| `bun run test:e2e`                       | Playwright e2e + screenshot comparison                                         |
-| `bun run test:e2e:update`                | regenerate screenshot baselines                                                |
+| `bun run test`                           | `test:rules` then `test:api` in every workspace                                |
+| `bun run test:flows`                     | build, then every flow at desktop + phone widths (= `test:e2e`)                |
+| `bun run test:flows:update`              | regenerate screenshot baselines                                                |
 | `bun run db:migrate`                     | create + apply a migration, regenerate the client (dev)                        |
 | `bun run db:migrate:create`              | create a migration without applying (for raw SQL)                              |
 | `bun run db:migrate:sql`                 | write the schema diff to a file (agent shells, where `migrate dev` refuses)    |
@@ -148,17 +148,17 @@ When do you need a new build? When the native fingerprint changes: run `bun run 
 
 ## Testing
 
-Playwright e2e lives in `apps/web/e2e/`. `bun run test:e2e` boots the app on port 4783 (`project.json` apiPort + 3) against an **isolated test database** (`sal_starter_test`, from `project.json` db, on the server and credentials of your `.env` `DATABASE_URL`), creates it if missing, applies the committed migrations and truncates every table, and runs the specs: smoke (home, sign-up → dashboard → sign-out, the 404 page, a `Date` surviving SSR), the `?next=` round trip, and the Post demo flow. Visual baselines are committed under `e2e/__screenshots__/`; update them with `bun run test:e2e:update`.
+Five checks, three test names (CLAUDE.md → Testing has the detail):
 
 ```bash
-bun run test:e2e                                 # or E2E_DATABASE_URL=postgres://…/x_test bun run test:e2e
+bun run typecheck    # strict tsc everywhere
+bun run test:rules   # the names check, then pure *.rule.test.ts (no env)
+bun run test:api     # *.api.test.ts: every tRPC procedure on a fresh clone of <db>_test, plus the access table
+bun run test:flows   # build, then *.flow.spec.ts at desktop 1280×800 and phone 390×844, a production server per worker
+gate --dirty         # all four on a clean copy; `gate` before a push to main
 ```
 
-The e2e DB name must end in `_test`. Screenshots are OS/font specific; regenerate on the platform your CI uses.
-
-Unit tests: `bun run test`. `ssr-state.test.ts` proves a `Date` survives SSR dehydrate → hydrate; `tokens.test.ts` keeps `colors.json` in step with `tokens.css` and fails until the kickoff has set the look; `brand.test.ts` fails on stale or hand-edited icons; `demo.test.ts` fails in a fork until `bun run demo:drop`.
-
-Mobile has no device test runner in the template. `bunx expo export --platform ios` (in `apps/mobile`) proves the app bundles; `bun run doctor` checks the Expo setup. `verify.md` lists every check.
+The tests use the server and credentials of the root `.env` `DATABASE_URL` and never its other values: a migrated template (`sal_starter_test`, from `project.json` db) is created on first run and cloned per test process or flow worker. Every flow fails on a page error, a `console.error`, a 5xx or sideways overflow, and a full run fails if any route in `apps/web/src/app/routes.tsx` (or the 404) had no flow in either project. Screenshot baselines live in `apps/web/e2e/__screenshots__/{desktop,phone}/`; regenerate with `bun run test:flows:update`. They are OS/font specific.
 
 ## Deploy
 
