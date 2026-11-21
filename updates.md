@@ -2,6 +2,12 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-20 — testing standard part 1: three test names, the API check, the access table, gate.json
+
+Asked (Sal via the /w/code lead): sal-starter is the first repo on the testing standard. Done: every test file is `*.rule.test.ts` or `*.api.test.ts` (flows stay `e2e/*.spec.ts` until part 2) and `scripts/test-names.ts` fails anything else; `test:rules` / `test:api` / `test:flows` root and per workspace (`scripts/test.ts`), `test` = rules then api, `test:e2e*` aliases; `apps/web/test/` harness (a migrated template DB cloned per process, gate's `DATABASE_URL` under `GATE=1`; an env that never reads the root `.env`; `asAnon` / `asUser` / `asAdmin` through better-auth; every-procedure check); builders tagged `public` / `user` / `admin`, `server/router.access.md` from `bun run access:table`, the builders contract matrix, a real-cookie context test, API tests for `me` and `posts.*`; `isAssetPath` extension-named pages and the test-DB guard as rules; `gate.json` (block; setup also runs `db:generate`, since a reused node_modules skips postinstall), report mode for old forks on sync (root postinstall, since an old fork's first sync runs its old sync.ts), desktop-only init drops db + flows, demo:drop and no-auth regenerate the table. Verified: `gate` on HEAD (setup, types, rules 48, api 31, flows 8, receipt written), a simulated-gate clean copy, seen red for every planted bug, scratch forks (default, `--no-auth`, `--desktop-only`, an old fork synced), `add:ai|ws|jobs` in a fork.
+**Sync note for forks:** `isAdminEmail(email, admins)` and `signUpAllowed(email, { allowlist, admins })` in `apps/web/server/access.ts` no longer default to env (rule tests run without one). A fork that calls them with one argument gets a type error after `bun run sync`; the fix is one line: pass `env.ADMIN_EMAILS` (and `{ allowlist: env.SIGNUP_ALLOWLIST, admins: env.ADMIN_EMAILS }`), as `server/trpc.ts` and `server/auth.ts` do.
+Commits: 81b4b67, b85a3d5, bbdca75, 417c94b, b5e8fb6, 628a9a5
+
 ## 2026-10-30 — drop-EAS plan written, parked for someday
 
 Asked: do asc + TestFlight replace EAS, and how to self-host CodePush. Plan written: builds and store uploads move to the mini (iOS + Android), asc for App Store Connect, a self-hosted Expo Updates server, the 11 forks on EAS. Whole plan parked by Sal ("maybe someday"); nothing in the template changed.
