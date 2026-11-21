@@ -2,13 +2,17 @@
 
 import { execFileSync, spawnSync } from 'node:child_process'
 
+// NO_COLOR (gate sets it) keeps output plain, so logs parse.
+const paint = (code: number) => (s: string) =>
+  process.env.NO_COLOR === undefined ? `\x1b[${code}m${s}\x1b[0m` : s
+
 export const c = {
-  bold: (s: string) => `\x1b[1m${s}\x1b[0m`,
-  dim: (s: string) => `\x1b[2m${s}\x1b[0m`,
-  green: (s: string) => `\x1b[32m${s}\x1b[0m`,
-  yellow: (s: string) => `\x1b[33m${s}\x1b[0m`,
-  red: (s: string) => `\x1b[31m${s}\x1b[0m`,
-  cyan: (s: string) => `\x1b[36m${s}\x1b[0m`,
+  bold: paint(1),
+  dim: paint(2),
+  green: paint(32),
+  yellow: paint(33),
+  red: paint(31),
+  cyan: paint(36),
 }
 
 // git, capturing stdout. Throws on a non-zero exit.

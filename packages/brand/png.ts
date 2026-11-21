@@ -1,6 +1,6 @@
 // Just enough PNG and ICO for the brand outputs: an encoder for opaque RGB
 // (Apple rejects an app icon with an alpha channel, and resvg only writes
-// RGBA), an ICO container of PNGs, and header readers for brand.test.ts.
+// RGBA), an ICO container of PNGs, and header readers for brand.rule.test.ts.
 import { deflateSync } from 'node:zlib'
 
 const SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])

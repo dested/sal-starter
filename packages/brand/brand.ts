@@ -1,7 +1,7 @@
 // The brand: one glyph (mark.svg) and the token roles that colour it
 // (brand.json), composed into every icon and splash the apps ship. Pure: it
 // plans each output as SVG and never rasterizes. Shared by emit.ts (`bun run
-// brand` renders and writes the plan) and brand.test.ts (fails when it's stale).
+// brand` renders and writes the plan) and brand.rule.test.ts (fails when it's stale).
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { colors } from '@app/tokens'
@@ -138,7 +138,7 @@ const tile = (size: number) =>
 export type Output =
   | { kind: 'png'; path: string; size: number; opaque: boolean; svg: string }
   | { kind: 'ico'; path: string; images: Array<{ size: number; svg: string }> }
-  // `hashed: false` = checked by content in brand.test.ts instead: `bun run
+  // `hashed: false` = checked by content in brand.rule.test.ts instead: `bun run
   // init` rewrites the display name inside it.
   | { kind: 'text'; path: string; content: string; hashed: boolean }
 

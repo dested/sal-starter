@@ -1,25 +1,12 @@
-import { PrismaPg } from '@prisma/adapter-pg'
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
-import { E2E_DATABASE_URL } from '../e2e/db'
-import globalSetup from '../e2e/global-setup'
-import { PrismaClient } from './generated/prisma/client'
+import { prisma } from './prisma'
 import { backoffMs, defineJob, runDueJobs, type EnqueueOptions } from './jobs'
 
-// Runs against the isolated e2e database (`<db>_test`, created, migrated and
-// truncated by global-setup) through its own client, never the dev DB.
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: E2E_DATABASE_URL, options: '-c TimeZone=UTC' }),
-})
+// Runs on this test process's own clone of the test template (test/preload.api.ts
+// points DATABASE_URL at it), through the app's own Prisma client.
 const db = { db: prisma } satisfies EnqueueOptions
 const run = (now?: () => Date) => runDueJobs({ db: prisma, ...(now ? { now } : {}) })
-
-beforeAll(async () => {
-  await globalSetup()
-})
-afterAll(async () => {
-  await prisma.$disconnect()
-})
 
 describe('jobs', () => {
   test('enqueue is typed and parsed; a due job runs once and is done', async () => {

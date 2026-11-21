@@ -2,7 +2,8 @@
 // are env lists parsed in env.ts: trimmed, lowercased, blanks dropped. The
 // sign-up check runs in better-auth's user-create hook (auth.ts), so no client
 // can skip it; adminProcedure (trpc.ts) reads isAdmin off the tRPC context.
-import { env } from './env'
+// Pure: callers pass the lists in (env.ts parses them), so the rules test runs
+// without an environment.
 
 /** The better-auth error `code` a refused sign-up carries (web and mobile show its message). */
 export const SIGNUP_CLOSED = 'SIGNUP_CLOSED'
@@ -21,10 +22,7 @@ export function emailMatches(email: string, entries: readonly string[]): boolean
 }
 
 /** Exact addresses only: an `@domain` entry in ADMIN_EMAILS never makes anyone an admin. */
-export function isAdminEmail(
-  email: string | null | undefined,
-  admins: readonly string[] = env.ADMIN_EMAILS
-): boolean {
+export function isAdminEmail(email: string | null | undefined, admins: readonly string[]): boolean {
   if (typeof email !== 'string') return false
   return emailMatches(
     email,
@@ -35,10 +33,7 @@ export function isAdminEmail(
 /** A blank allowlist means sign-up is open; admins may always sign up. */
 export function signUpAllowed(
   email: string,
-  rules: { allowlist: readonly string[]; admins: readonly string[] } = {
-    allowlist: env.SIGNUP_ALLOWLIST,
-    admins: env.ADMIN_EMAILS,
-  }
+  rules: { allowlist: readonly string[]; admins: readonly string[] }
 ): boolean {
   if (rules.allowlist.length === 0) return true
   return emailMatches(email, rules.allowlist) || isAdminEmail(email, rules.admins)

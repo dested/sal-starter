@@ -52,7 +52,7 @@ export default function ws(): Recipe {
     name: 'ws',
     summary: 'WebSocket upgrades on the http server + tRPC subscriptions over wsLink',
     details: [
-      'Adds apps/web/server/upgrades.ts, trpc-ws.ts (+ trpc-ws.test.ts), shutdown.ts and ws.',
+      'Adds apps/web/server/upgrades.ts, trpc-ws.ts (+ trpc-ws.api.test.ts), shutdown.ts and ws.',
       '  - onUpgrade(path, handler): claim upgrades by path; Vite HMR keeps its own in dev,',
       '    unclaimed upgrades are closed in production',
       '  - tRPC on /api/trpc-ws (applyWSSHandler, superjson, keep-alive, cookie auth)',
@@ -66,7 +66,7 @@ export default function ws(): Recipe {
     files: [
       { from: 'apps/web/server/upgrades.ts' },
       { from: 'apps/web/server/trpc-ws.ts' },
-      { from: 'apps/web/server/trpc-ws.test.ts' },
+      { from: 'apps/web/server/trpc-ws.api.test.ts' },
       { from: 'apps/web/server/shutdown.ts', shared: true },
     ],
     dependencies: [

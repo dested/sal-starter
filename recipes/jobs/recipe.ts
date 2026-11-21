@@ -29,7 +29,7 @@ export default function jobs(root: string): Recipe {
     summary:
       'Postgres job queue: job table, SKIP LOCKED claims, retries with backoff, graceful stop',
     details: [
-      'Adds apps/web/server/jobs.ts (+ jobs.test.ts), shutdown.ts, the Job model and its migration.',
+      'Adds apps/web/server/jobs.ts (+ jobs.api.test.ts), shutdown.ts, the Job model and its migration.',
       '  const welcome = defineJob(kind, zodSchema, handler); await welcome.enqueue(data, { key, runAfter, tx })',
       '  - claims due rows with FOR UPDATE SKIP LOCKED (any number of processes)',
       '  - retries after 30 s, 1 min, 2 min, … (cap 1 h) up to maxAttempts (default 5), then `failed`',
@@ -41,7 +41,7 @@ export default function jobs(root: string): Recipe {
     ].join('\n'),
     files: [
       { from: 'apps/web/server/jobs.ts' },
-      { from: 'apps/web/server/jobs.test.ts' },
+      { from: 'apps/web/server/jobs.api.test.ts' },
       { from: 'apps/web/server/shutdown.ts', shared: true },
       {
         from: 'apps/web/prisma/add_job_queue.sql',

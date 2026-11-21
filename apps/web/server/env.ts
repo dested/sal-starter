@@ -1,27 +1,15 @@
 import { z } from 'zod'
 import project from '../../../project.json'
+import { emailList, optionalSecret, requireValue } from './env-schema'
+
+// The pieces that don't read process.env live in env-schema.ts (the rules
+// tests import them without an environment); re-exported for callers here.
+export { emailList, MissingEnvError, optionalSecret, requireValue } from './env-schema'
 
 // Dev port: a distinct, uncommon number per project so clones never collide.
 // Never 3000/3001/5173/5174/8000/8080/4200/5000. `bun run init` writes it to
 // the repo-root `project.json` (the one identity file).
 export const DEFAULT_PORT = project.apiPort
-
-/** An optional key: unset and blank both mean "not configured". */
-export const optionalSecret = z.preprocess(
-  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
-  z.string().optional()
-)
-
-/** A comma list ("a@x.com, @y.com"), trimmed and lowercased; blank is []. */
-export const emailList = z
-  .string()
-  .default('')
-  .transform((v) =>
-    v
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter((e) => e !== '')
-  )
 
 // Third-party keys and switches: optional at boot, so a deploy never fails
 // before a key is set in Drydock → Environment. Read a key with requireEnv('X')
@@ -59,21 +47,6 @@ export type OptionalEnvKey = {
       : never
     : never
 }[keyof Env]
-
-export class MissingEnvError extends Error {
-  constructor(readonly key: string) {
-    super(
-      `${key} is not set. Add it in Drydock → Project → Environment (Apply + redeploy), or to the root .env in dev.`
-    )
-    this.name = 'MissingEnvError'
-  }
-}
-
-/** `value`, or a MissingEnvError naming `key` when it's unset. */
-export function requireValue(key: string, value: string | undefined): string {
-  if (value === undefined) throw new MissingEnvError(key)
-  return value
-}
 
 /** Read an optional key at the point of use; throws MissingEnvError while it's unset. */
 export function requireEnv(key: OptionalEnvKey): string {

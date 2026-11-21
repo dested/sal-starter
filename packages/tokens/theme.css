@@ -2,7 +2,7 @@
  * (@app/tokens): maps every token in tokens.css to a utility (`bg-primary`,
  * `rounded-lg`). It comes from sal-starter and merges on `bun run sync`; the
  * fork's look is tokens.css. Every app imports theme.css, then tokens.css. A
- * role added here needs a value in tokens.css (tokens.test.ts names it). */
+ * role added here needs a value in tokens.css (tokens.rule.test.ts names it). */
 
 /* Single theme: `dark:` classes (shadcn copy-paste carries them) never match. */
 @custom-variant dark (&:not(*));

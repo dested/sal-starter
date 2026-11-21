@@ -60,6 +60,7 @@ import {
   type Surface,
 } from './project'
 import { checkNoAuth, removeAuth } from './no-auth'
+import { GATE_FILE, gateForSurfaces, readGate, writeGate } from './gate'
 import { c, fail, git, run } from './shell'
 
 const TEMPLATE_NAME = 'sal-starter'
@@ -216,8 +217,16 @@ if (present.length > 0) {
   // git rm leaves ignored files (node_modules, build output, generated code).
   for (const p of present) rmSync(p, { recursive: true, force: true })
   syncRootScripts(next)
-  if (!surfaces.includes('web')) dropServerEnv()
   const edited = new Set<string>()
+  if (!surfaces.includes('web')) {
+    dropServerEnv()
+    // No server: the gate keeps its checks minus the database and the flows.
+    const gate = readGate()
+    if (gate) {
+      await writeGate(gateForSurfaces(gate, next))
+      edited.add(GATE_FILE)
+    }
+  }
   if (dropNativeExample) {
     for (const [file, re] of NATIVE_EXAMPLE_EDITS) {
       writeFileSync(file, readFileSync(file, 'utf8').replace(re, ''))

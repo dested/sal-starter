@@ -24,10 +24,16 @@
     "db:migrate:sql": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "test": "bun --env-file=../../.env test ./src ./server",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:update": "playwright test --update-snapshots"
+    "test": "bun run test:rules && bun run test:api",
+    "test:rules": "bun test --preload ./test/preload.rules.ts .rule.test.",
+    "test:api": "bun test --preload ./test/preload.api.ts .api.test.",
+    "test:flows": "playwright test",
+    "test:flows:ui": "playwright test --ui",
+    "test:flows:update": "playwright test --update-snapshots",
+    "access:table": "bun test/access-table.ts",
+    "test:e2e": "bun run test:flows",
+    "test:e2e:ui": "bun run test:flows:ui",
+    "test:e2e:update": "bun run test:flows:update"
   },
   "dependencies": {
     "@app/tokens": "workspace:*",

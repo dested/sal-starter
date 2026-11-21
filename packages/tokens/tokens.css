@@ -9,7 +9,7 @@
  *
  * After editing: `bun run tokens` regenerates colors.json (hex copies for what
  * can't read CSS: native splash and system UI, <meta name="theme-color">, the
- * Electron window, SVG/Skia props). tokens.test.ts fails while it's stale. */
+ * Electron window, SVG/Skia props). tokens.rule.test.ts fails while it's stale. */
 
 :root {
   color-scheme: light;

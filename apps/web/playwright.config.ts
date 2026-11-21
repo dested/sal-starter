@@ -1,20 +1,22 @@
 import { defineConfig, devices } from '@playwright/test'
 import { E2E_DATABASE_URL, E2E_PORT } from './e2e/db'
 
-// E2E runs against an isolated test database on its own port (project.json
-// apiPort + 3) so it never touches your dev DB, your dev server or another fork's. `bun run test:e2e` boots the app itself
-// (see `webServer`) and `global-setup.ts` applies migrations (`migrate deploy`)
-// and truncates the test DB first so screenshots are deterministic. Override the
-// DB with E2E_DATABASE_URL (its name must end in `_test`).
+// Flows run against their own database on their own port (project.json
+// apiPort + 3) so they never touch your dev DB, your dev server or another
+// fork's. `bun run test:flows` boots the app itself (see `webServer`) and
+// `global-setup.ts` clones a fresh database from the migrated test template
+// (test/db.ts) so screenshots are deterministic. Under gate (GATE=1) the
+// template is gate's DATABASE_URL and an existing server is never reused.
 const PORT = E2E_PORT
 const baseURL = `http://localhost:${PORT}`
+const strict = Boolean(process.env.CI) || process.env.GATE === '1'
 
 export default defineConfig({
   testDir: './e2e',
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1,
-  forbidOnly: !!process.env.CI,
+  forbidOnly: strict,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   // Screenshots are pixel-compared; baselines live in e2e/__screenshots__ and
@@ -40,9 +42,9 @@ export default defineConfig({
     // check hung for ~2 min (the TCP SYN timeout) before every run. The server
     // listens on :: (both stacks); the browser still uses `baseURL`. A static
     // file, not /healthz: Playwright starts the server before global-setup
-    // creates a new fork's test database, so a DB ping would never pass.
+    // clones the flows' database, so a DB ping would never pass.
     url: `http://[::1]:${PORT}/robots.txt`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !strict,
     timeout: 60_000,
     stdout: 'pipe',
     env: {

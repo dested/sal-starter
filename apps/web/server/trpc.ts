@@ -4,12 +4,14 @@ import type { IncomingHttpHeaders } from 'node:http'
 import superjson from 'superjson'
 import { isAdminEmail } from './access'
 import { auth, type Session } from './auth'
+import { env } from './env'
+import type { Access } from './procedure-access'
 
 export type Context = { session: Session | null; isAdmin: boolean }
 
 /** The context for a session, wherever it came from (HTTP here, the SSR proxy in entry-server). */
 export function contextFor(session: Session | null): Context {
-  return { session, isAdmin: isAdminEmail(session?.user.email) }
+  return { session, isAdmin: isAdminEmail(session?.user.email, env.ADMIN_EMAILS) }
 }
 
 /** Node's header object as a Fetch `Headers` (what better-auth reads). */
@@ -35,13 +37,17 @@ export function createContext({ req }: CreateExpressContextOptions): Promise<Con
   return contextFromHeaders(toHeaders(req.headers))
 }
 
+// Every builder tags its procedures with who may call them (procedure-access.ts
+// ACCESS): `bun run access:table` writes server/router.access.md from the tags.
+export type Meta = { access: Access }
+
 // superjson on the wire: procedures return real Dates/Maps/BigInts and the
 // client gets them back as such. Every client link must use it too.
-const t = initTRPC.context<Context>().create({ transformer: superjson })
+const t = initTRPC.context<Context>().meta<Meta>().create({ transformer: superjson })
 
 export const router = t.router
-export const publicProcedure = t.procedure
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const publicProcedure = t.procedure.meta({ access: 'public' })
+export const protectedProcedure = t.procedure.meta({ access: 'user' }).use(({ ctx, next }) => {
   if (!ctx.session) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
@@ -49,7 +55,7 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 })
 
 /** A session whose email is in ADMIN_EMAILS. Signed out is UNAUTHORIZED; anyone else FORBIDDEN. */
-export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+export const adminProcedure = protectedProcedure.meta({ access: 'admin' }).use(({ ctx, next }) => {
   if (!ctx.isAdmin) {
     throw new TRPCError({ code: 'FORBIDDEN' })
   }

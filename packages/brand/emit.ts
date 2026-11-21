@@ -1,6 +1,6 @@
 // `bun run brand` (root): renders mark.svg + brand.json into every icon and
 // splash image (brand.ts plans them), then records what they were made from in
-// brand.gen.json. Run it after editing either file or the tokens; brand.test.ts
+// brand.gen.json. Run it after editing either file or the tokens; brand.rule.test.ts
 // fails while the outputs are stale. Rasterized with @resvg/resvg-js: prebuilt
 // binaries for every OS, no system libraries, and the same pixels on each run.
 import { mkdirSync, writeFileSync } from 'node:fs'

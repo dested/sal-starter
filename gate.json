@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "mode": "block",
+  "branches": ["main", "master"],
+  "copy": { "env": [".env"], "keep": ["node_modules"] },
+  "setup": ["bun install --frozen-lockfile"],
+  "databases": [
+    {
+      "env": "DATABASE_URL",
+      "migrate": "bun run db:deploy",
+      "key": ["apps/web/prisma/schema.prisma", "apps/web/prisma/migrations"]
+    }
+  ],
+  "ports": [],
+  "pass": [],
+  "checks": [
+    { "name": "types", "run": "bun run typecheck" },
+    { "name": "rules", "run": "bun run test:rules" },
+    { "name": "api", "run": "bun run test:api" },
+    { "name": "flows", "run": "bun run test:flows", "timeout": 900 }
+  ],
+  "probe": {
+    "include": ["apps/web/server.ts", "apps/web/server/**/*.ts", "apps/web/src/**/*.{ts,tsx}"],
+    "exclude": [
+      { "path": "apps/web/server/logger.ts", "why": "log colours and formatting" },
+      { "path": "apps/web/**/*.test.ts", "why": "the tests themselves, not code under test" }
+    ]
+  }
+}

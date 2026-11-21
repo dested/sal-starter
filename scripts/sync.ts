@@ -16,9 +16,14 @@
 //   - a no-auth fork (`init --no-auth`: web without apps/web/server/auth.ts):
 //     the auth-only files (no-auth.ts NO_AUTH_PATHS) stay deleted the same way
 //   - forks older than `surfaces` get it (plus desktopPort, appId) filled in
+//   - gate.json (scripts/gate.ts): a fork that had none gets it in `report`
+//     mode (runs and records, never blocks a push); a fork that has one keeps
+//     its own `mode`, whatever upstream's says
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
 
+import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { GATE_FILE, gateForSurfaces, parseGate, readGate, writeGate } from './gate'
 import { dropDependencies, NO_AUTH_PATHS } from './no-auth'
 import {
   excludedPaths,
@@ -59,6 +64,11 @@ function noAuthPaths(project: Project, surfacePaths: string[]): string[] {
 }
 
 const project = readProject()
+// The fork's gate mode before the merge (none = it never had a gate.json).
+const gateBefore =
+  spawnSync('git', ['cat-file', '-e', `HEAD:${GATE_FILE}`], { stdio: 'ignore' }).status === 0
+    ? parseGate(git('show', `HEAD:${GATE_FILE}`)).mode
+    : null
 const surfaceExcluded = excludedPaths(project)
 const excluded = [...surfaceExcluded, ...noAuthPaths(project, surfaceExcluded)]
 const projectBefore = readFileSync('project.json', 'utf8')
@@ -100,6 +110,22 @@ if (isNoAuth(project)) {
     if (git('diff', '--name-only', '--diff-filter=U', '--', file) !== '') continue
     if (dropDependencies(file)) git('add', file)
   }
+}
+
+// gate.json: an old fork takes upstream's in report mode until it is ready to
+// block; a fork with one keeps its mode. Either way, fitted to its surfaces.
+const gateNow = existsSync(GATE_FILE) ? readGate() : null
+if (gateNow && git('diff', '--name-only', '--diff-filter=U', '--', GATE_FILE) === '') {
+  const mode = gateBefore ?? 'report'
+  await writeGate(gateForSurfaces({ ...gateNow, mode }, project))
+  git('add', GATE_FILE)
+  console.log(
+    `  ${c.green(gateBefore ? 'kept' : 'added')} ${GATE_FILE} ${c.dim(
+      gateBefore
+        ? `(mode ${mode})`
+        : '(mode report: gate runs and records, never blocks; set "block" once the four checks pass)'
+    )}`
+  )
 }
 
 // Older forks: persist the surfaces/desktopPort/appId readProject inferred.

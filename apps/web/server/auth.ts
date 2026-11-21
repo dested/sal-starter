@@ -29,7 +29,12 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          if (!signUpAllowed(user.email)) {
+          if (
+            !signUpAllowed(user.email, {
+              allowlist: env.SIGNUP_ALLOWLIST,
+              admins: env.ADMIN_EMAILS,
+            })
+          ) {
             throw new APIError('FORBIDDEN', { code: SIGNUP_CLOSED, message: SIGNUP_CLOSED_MESSAGE })
           }
         },

@@ -6,7 +6,7 @@ export default function ai(): Recipe {
     summary:
       'server/ai/claude.ts: Anthropic client, AI_FAKE mode, zod structured output, caching, cost log',
     details: [
-      'Adds apps/web/server/ai/claude.ts (+ claude.test.ts) and @anthropic-ai/sdk.',
+      'Adds apps/web/server/ai/claude.ts (+ claude.api.test.ts) and @anthropic-ai/sdk.',
       '  generate({ label, system, prompt, schema, fake }) → { data, model, usage, costUsd }',
       '  - the client is lazy: the server boots without ANTHROPIC_API_KEY (optional key in env.ts)',
       '  - AI_FAKE=1 returns each call’s `fake` (e2e runs with it on; no API calls, no key)',
@@ -17,7 +17,7 @@ export default function ai(): Recipe {
     ].join('\n'),
     files: [
       { from: 'apps/web/server/ai/claude.ts' },
-      { from: 'apps/web/server/ai/claude.test.ts' },
+      { from: 'apps/web/server/ai/claude.api.test.ts' },
     ],
     dependencies: [{ name: '@anthropic-ai/sdk', range: '^1.1.0' }],
     edits: [

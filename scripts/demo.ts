@@ -1,5 +1,5 @@
-// The Post demo: the template's working example of a table, a tRPC router, an
-// SSR-prefetched page and an e2e flow. It exists to be read, then deleted; nine
+// The Post demo: the template's working example of a table, a tRPC router with
+// its API tests, an SSR-prefetched page and an e2e flow. It exists to be read, then deleted; nine
 // forks shipped it to production. So in a fork (project.json without
 // `template: true`, which init drops) the build and `bun run test` fail while
 // it's present, and one command removes it.
@@ -22,7 +22,8 @@ export const DEMO_MARKER = 'apps/web/server/demo.ts'
 
 const DEMO_FILES = [
   DEMO_MARKER,
-  'apps/web/server/demo.test.ts',
+  'apps/web/server/demo.rule.test.ts',
+  'apps/web/server/demo.api.test.ts',
   'apps/web/src/components/demo/posts-demo.tsx',
   'apps/web/src/components/demo/template-demo-bar.tsx',
   'apps/web/e2e/demo.spec.ts',
@@ -37,7 +38,6 @@ const MARKED_FILES = [
   'apps/web/prisma/schema.prisma',
   'apps/web/src/app/dashboard.tsx',
   'apps/web/src/app/routes.tsx',
-  'apps/web/e2e/global-setup.ts',
   'apps/mobile/src/screens/home.tsx',
 ]
 
@@ -107,9 +107,11 @@ function drop(dryRun: boolean): void {
   for (const line of changes) console.log(`  ${line}`)
   if (dryRun) return
   run('bun', 'run', 'db:generate')
+  // The posts rows leave the access table with the router.
+  run('bun', 'run', 'access:table')
   console.log(c.green('\nThe Post demo is gone.'))
   console.log(
-    `Next: ${c.bold('bun run db:deploy')} (applies the drop to your dev DB), then ${c.bold('bun run typecheck')} and ${c.bold('bun run test:e2e:update')}.`
+    `Next: ${c.bold('bun run db:deploy')} (applies the drop to your dev DB), then ${c.bold('bun run typecheck')}, ${c.bold('bun run test')} and ${c.bold('bun run test:flows:update')}.`
   )
 }
 

@@ -1,6 +1,6 @@
 // Reads the token CSS: the :root values (tokens.css), the color roles exposed
 // to Tailwind (theme.css), and each role as hex. Shared by emit.ts (writes
-// colors.json) and tokens.test.ts (fails when colors.json is stale).
+// colors.json) and tokens.rule.test.ts (fails when colors.json is stale).
 import { readFileSync } from 'node:fs'
 
 export const tokensCss = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8')

@@ -1,5 +1,5 @@
 // `bun run tokens` (root): rewrites colors.json from tokens.css + theme.css. Run
-// it after every tokens.css edit; tokens.test.ts fails while colors.json is stale.
+// it after every tokens.css edit; tokens.rule.test.ts fails while colors.json is stale.
 import { writeFileSync } from 'node:fs'
 import { emitColors } from './css'
 

@@ -8,7 +8,7 @@ Briefing for an LLM extending this codebase. Read this before changing files.
 
 A starter template (cloned, then mutated into a real product). Every file is intentionally minimal — keep it that way. When asked to add a feature, add the feature; do not also "improve" surrounding files.
 
-It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Express + tRPC + better-auth + Prisma), the optional **`apps/mobile`** is an Expo dev-client app that talks to that same server, and the optional **`apps/desktop`** is an Electron app whose main process serves its own tRPC router over IPC. `project.json` `surfaces` says which a fork has: `bun run init <name>` keeps web only, `--mobile` / `--desktop` keep those too, `--desktop-only` keeps just the Electron app (no server, database or auth), `--no-auth` takes accounts out (Common tasks → Start a fork). `bun run add:mobile` / `add:desktop` bring a surface back; `bun run add:ai` / `add:ws` / `add:jobs` add an optional server slot. **Paths in hard rules 1–16, 24–27 and in the web sections below are relative to `apps/web/`.**
+It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Express + tRPC + better-auth + Prisma), the optional **`apps/mobile`** is an Expo dev-client app that talks to that same server, and the optional **`apps/desktop`** is an Electron app whose main process serves its own tRPC router over IPC. `project.json` `surfaces` says which a fork has: `bun run init <name>` keeps web only, `--mobile` / `--desktop` keep those too, `--desktop-only` keeps just the Electron app (no server, database or auth), `--no-auth` takes accounts out (Common tasks → Start a fork). `bun run add:mobile` / `add:desktop` bring a surface back; `bun run add:ai` / `add:ws` / `add:jobs` add an optional server slot. **Paths in hard rules 1–16, 24–29 and in the web sections below are relative to `apps/web/`.**
 
 ## Stack
 
@@ -24,7 +24,7 @@ It's a Bun workspace: **`apps/web`** is the SSR web app _and_ the API server (Ex
 | styles             | Tailwind v4 + shadcn (base-nova) | CSS-first config, oklch tokens in `packages/tokens`, ONE theme (no dark mode, no toggle); primitives wrap `@base-ui/react`; `cn` from shadcn's `cn` package; the kickoff sets the look                 |
 | brand              | `packages/brand` + resvg         | one `mark.svg` + `brand.json` → every icon, splash, favicon and manifest (`bun run brand`), committed and test-checked                                                                                 |
 | React Compiler     | babel-plugin-react-compiler 1.0  | web + desktop through `@rolldown/plugin-babel` + `reactCompilerPreset` (client build only); mobile through babel-preset-expo                                                                           |
-| tests              | Playwright e2e + `bun:test`      | `e2e/` + committed screenshot baselines against an isolated, migrated test DB; unit tests are `*.test.ts` under `src/` / `server/` (`bun run test`)                                                    |
+| tests              | Playwright + `bun:test` + `gate` | five checks, three file names (Testing below): `*.rule.test.ts`, `*.api.test.ts` on a cloned Postgres, `e2e/` flows; `gate.json` for `gate`                                                            |
 | deploy             | Drydock (`drydock.yaml`)         | only `apps/web` deploys (`rootDir: apps/web`, `workspace: "@app/web"`); mobile ships via EAS Build + EAS Update                                                                                        |
 | analytics          | Crow's Nest                      | one `<script defer>` in `index.html` (silent on localhost); custom events via `cnEvent()` in `src/lib/crowsnest.ts`                                                                                    |
 | mobile (optional)  | Expo SDK 58 + Expo Router        | dev client (never Expo Go), Uniwind over `@app/tokens`, better-auth Expo plugin, tRPC + superjson via `import type` from `@app/web/router`; iOS + Android profiles                                     |
@@ -45,11 +45,14 @@ tsconfig.base.json   shared strict compiler options (apps extend it)
 tsconfig.json        root typecheck: scripts/**, recipes/*.ts, recipes/*/recipe.ts, prettier.config.js
 drydock.yaml         deploy seed (rootDir apps/web, workspace @app/web, predeploy = bun run db:deploy)
 .easignore           EAS upload filter (EAS reads it instead of every .gitignore)
+gate.json            the contract with `gate`: mode (block | report), setup, the database, the four checks
 scripts/
 ├── init.ts          clone → rename, project.json, ports, drops surfaces (flags: Common tasks → Start a fork)
 ├── sync.ts          merge upstream/main, never commits; keeps identity, lock, dropped surfaces/pieces dropped
 ├── add-surface.ts   add:mobile / add:desktop from upstream
 ├── project.ts       project.json schema, SURFACE_PATHS, SURFACE_SCRIPTS, OPTIONAL_PATHS
+├── test.ts          test:rules / test:api runner over every workspace; test-names.ts = the names check
+├── gate.ts          gate.json read/write, fitted to a fork's surfaces (init, sync)
 ├── demo.ts          bun run demo:drop [--check|--dry-run]: removes the Post demo (rule 24)
 ├── no-auth.ts       init --no-auth: checked edits that remove better-auth (--check)
 ├── eas-setup.ts     EAS project for mobile (init --mobile, or `bun run --cwd apps/mobile eas:setup`)
@@ -68,7 +71,7 @@ packages/tokens/
 ├── colors.json      generated hex per role (`bun run tokens`); never edit by hand
 ├── index.ts         `colors` (+ ColorRole) for code that can't use classes: native, SVG, Electron
 ├── css.ts / emit.ts parser + oklch→hex, and the `bun run tokens` writer
-└── tokens.test.ts   colors.json current, every role has a value, one theme, the kickoff ran
+└── tokens.rule.test.ts colors.json current, every role has a value, one theme, the kickoff ran
 
 packages/brand/
 ├── mark.svg         the glyph, one color (`fill="currentColor"`), fork-owned
@@ -76,20 +79,26 @@ packages/brand/
 ├── brand.ts / emit.ts / png.ts   the generator (`bun run brand`, @resvg/resvg-js)
 ├── brand.gen.json   generated: resolved hex, input hash, a hash per output
 ├── index.ts         `brand` for code (mobile's BrandSplash)
-└── brand.test.ts    outputs current and untouched, PNG sizes/alpha, ICO entries, manifest
+└── brand.rule.test.ts outputs current and untouched, PNG sizes/alpha, ICO entries, manifest
 
 apps/web/
 server.ts            Express server entry. Bun runs this in dev and prod.
 server/
 ├── env.ts           zod-validated env at import time + optionalSecret / requireEnv / hasEnv (rule 6)
-├── access.ts        SIGNUP_ALLOWLIST / ADMIN_EMAILS checks (+ test) (rule 25)
-├── asset-path.ts    isAssetPath(): which paths 404 before SSR (+ test)
+├── env-schema.ts    the env helpers that don't read process.env (optionalSecret, emailList, MissingEnvError)
+├── access.ts        SIGNUP_ALLOWLIST / ADMIN_EMAILS checks, pure (+ rule test) (rule 25)
+├── asset-path.ts    isAssetPath(): which paths 404 before SSR (+ rule test)
 ├── logger.ts        color request logging, startup banner, error formatting
 ├── prisma.ts        PrismaClient singleton (survives HMR; pg adapter)
 ├── auth.ts          better-auth instance + Session type; sign-up hook enforces the allowlist
-├── trpc.ts          Context { session, isAdmin }, contextFor, public/protected/adminProcedure
-├── router.ts        appRouter (exports AppRouter type for the client)
-└── demo.ts          the Post demo router (+ demo.test.ts, the fork gate) (rule 24)
+├── trpc.ts          Context { session, isAdmin }, contextFor, public/protected/adminProcedure, each tagged
+│                    (+ trpc.api.test.ts: the builders contract, real-cookie context)
+├── procedure-access.ts  ACCESS: who each tag lets in (the access table's columns)
+├── router.ts        appRouter (exports AppRouter type for the client) (+ router.api.test.ts)
+├── router.access.md generated: who may call each procedure (`bun run access:table`, rule 29)
+└── demo.ts          the Post demo router (+ demo.api.test.ts, demo.rule.test.ts the fork gate) (rule 24)
+test/                the test harness: db.ts (template + clones), env.ts, callers.ts (asAnon/asUser/asAdmin),
+                     preload.{rules,api}.ts, access-table.ts, procedures.api.test.ts (every procedure tested, table current)
 
 src/
 ├── index.tsx              client entry (hydrateRoot + createBrowserRouter with getContext)
@@ -119,7 +128,7 @@ src/
 
 public/                favicon.svg, apple-touch-icon.png, icon-192/512.png, manifest.webmanifest (all from
                        `bun run brand`), robots.txt
-e2e/                   smoke + auth-next + demo specs, committed __screenshots__; db.ts = the isolated test DB URL
+e2e/                   smoke + auth-next + demo specs, committed __screenshots__; db.ts = port + the flows' DB (a clone)
 index.html             Vite entry HTML: stylesheet <link>, icon + manifest links, Crow's Nest tag, placeholders
 vite.config.ts         `~` alias, React Compiler, themeMeta (color-scheme + theme-color), noTemplateDemo gate
 prisma/schema.prisma   DB schema (User/Session/Account/Verification + the demo's Post)
@@ -183,13 +192,19 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 
 23. **Expo Router route files are one-line re-exports.** `apps/mobile/src/app/**` is file-based (the one exception to rule #3, decisions.md), so to keep "routes are data you can read": each route file is `export { XScreen as default } from '~/screens/x'`; screens live in `src/screens/`. Route groups are `(auth)` and `(app)` only. Layouts hold providers and the session guard (`Stack.Protected`, each with an explicit `redirectTo`), never data work. `typedRoutes` is on.
 
-24. **The Post demo is template-only.** It's a reference (a table, a router, an SSR-prefetched page, an e2e flow), never a feature. It lives in its own files (`server/demo.ts` — the marker — and `demo.test.ts`, `src/components/demo/`, `e2e/demo.spec.ts`, `apps/mobile/src/components/demo/`) and in marked lines elsewhere (`server/router.ts`, `prisma/schema.prisma`, `src/app/dashboard.tsx`, `src/app/routes.tsx`, `apps/mobile/src/screens/home.tsx`). Two marker forms: a trailing `// demo` / `{/* demo */}` on one line, or a `demo:start` … `demo:end` block. **In JSX use block markers only**: a same-line `{/* demo */}` after an element leaves a stray text node on React Native. In a fork (no `template: true`) the `noTemplateDemo` Vite plugin fails `vite build` and `server/demo.test.ts` fails `bun run test` until `bun run demo:drop` runs. Copy the pattern into a real feature; never extend the demo.
+24. **The Post demo is template-only.** It's a reference (a table, a router, an SSR-prefetched page, an e2e flow), never a feature. It lives in its own files (`server/demo.ts` — the marker — and `demo.rule.test.ts`, `demo.api.test.ts`, `src/components/demo/`, `e2e/demo.spec.ts`, `apps/mobile/src/components/demo/`) and in marked lines elsewhere (`server/router.ts`, `prisma/schema.prisma`, `src/app/dashboard.tsx`, `src/app/routes.tsx`, `apps/mobile/src/screens/home.tsx`). Two marker forms: a trailing `// demo` / `{/* demo */}` on one line, or a `demo:start` … `demo:end` block. **In JSX use block markers only**: a same-line `{/* demo */}` after an element leaves a stray text node on React Native. In a fork (no `template: true`) the `noTemplateDemo` Vite plugin fails `vite build` and `server/demo.rule.test.ts` fails `bun run test` until `bun run demo:drop` runs. Copy the pattern into a real feature; never extend the demo.
 
 25. **Who may sign up and who is admin.** `SIGNUP_ALLOWLIST` is a comma list of emails and `@domain` entries (blank = anyone; `@domain` matches that domain only, not subdomains). It's enforced server-side in better-auth's `databaseHooks.user.create.before` (`server/auth.ts`; logic in `server/access.ts`), which answers 403 `{ code: 'SIGNUP_CLOSED' }`; the sign-up forms show the server's message. `ADMIN_EMAILS` lists exact addresses (an `@domain` entry never makes anyone admin); those users get `ctx.isAdmin`, pass `adminProcedure` (signed out: UNAUTHORIZED, anyone else: FORBIDDEN) and may always sign up. A tRPC context is only ever built by `contextFor(session)` / `contextFromHeaders(headers)` in `server/trpc.ts`: HTTP, the SSR proxy and WebSocket adapters all go through it.
 
 26. **Protected pages and `?next=`.** A protected route's loader calls `requireSession(args)` from `~/lib/loader`; signed out, it redirects to `/sign-in?next=<path+search>`. `/sign-in` and `/sign-up` use `redirectIfSignedIn` and keep `?next=` on their cross links. After sign-in or sign-up, navigate only to `nextFromSearch(search)` (it runs `safeNext`: same-site paths only, no `//host`, `/\host`, absolute URLs or control characters, encoded or not; default `/dashboard`). Never navigate to a raw `next`.
 
-27. **Icons and splash are generated.** `packages/brand/mark.svg` + `brand.json` → `bun run brand` writes every icon, the splash mark, the favicon, `manifest.webmanifest` and the desktop `.png`/`.ico`, and records hashes in `brand.gen.json`. Never hand-edit or hand-drop an output: `brand.test.ts` fails. Rerun `bun run brand` after `bun run tokens` and after any change to the generator.
+27. **Icons and splash are generated.** `packages/brand/mark.svg` + `brand.json` → `bun run brand` writes every icon, the splash mark, the favicon, `manifest.webmanifest` and the desktop `.png`/`.ico`, and records hashes in `brand.gen.json`. Never hand-edit or hand-drop an output: `brand.rule.test.ts` fails. Rerun `bun run brand` after `bun run tokens` and after any change to the generator.
+
+28. **No new unit test unless it is a rule.** A `*.rule.test.ts` is for logic where a wrong answer is silent and has many cases (money, dates, permissions, parsers, redirects, a game's simulation), and it stays pure: `test:rules` runs with no environment, so one that imports `server/env.ts` fails on import. Everything else is proved by an API test or a flow. The first time a non-rule unit test blocks a change Sal asked for, delete it instead of rewriting it.
+
+29. **Every procedure gets a tag and an API test.** Build procedures only from the tagged builders in `server/trpc.ts` (a new builder gets a tag in `server/procedure-access.ts` and a row in the builders contract, `server/trpc.api.test.ts`). Every path in `appRouter` needs a `describe('<path>', …)` in some `*.api.test.ts` (`test/procedures.api.test.ts` names any that don't). `server/router.access.md` is generated by `bun run access:table`; a permission change shows up as a diff there, and the commit says what changed and why. It covers the builder only: a rule inside a resolver ("only the author may edit") needs its own API test.
+
+30. **Run `gate` before any push to main, and never pass `--no-verify`.** Every change: `gate --dirty` (or the four scripts: typecheck, `test:rules`, `test:api`, `test:flows`). Before a push: `gate`, which runs them on a clean copy of the commit and writes the receipt the push hook checks. A check stays only once it has been seen red, and skipped counts as failed: no `test.skip`, `test.todo`, or a test that quietly passes when an env var is missing.
 
 ## Architecture flows
 
@@ -223,7 +238,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 - After the static handler resolves, `dehydrate(queryClient)` is serialized **with superjson** (`serializeSsrState` in `src/lib/ssr-state.ts`) into `window.__SSR_STATE__` via the `<!--app-state-->` placeholder in `index.html`.
 - On the client, `index.tsx` runs `deserializeSsrState(window.__SSR_STATE__)` and feeds the result to `<HydrationBoundary>` in `App.tsx`. Components reading `useQuery(trpc.me.queryOptions())` get cached data instantly. No refetch, no flicker.
 
-**Date handling note**: procedures return real `Date`s (superjson on the wire and in the SSR payload — `src/lib/ssr-state.test.ts` and the e2e smoke, through `me.createdAt`, prove a `Date` is still a `Date` after hydration). What must stay deterministic is the _formatting_: `toLocaleString()` without a fixed locale/timeZone differs between server and browser and React will warn about a hydration mismatch. Format with `toISOString().slice(0, 10)` or a fixed `timeZone`.
+**Date handling note**: procedures return real `Date`s (superjson on the wire and in the SSR payload — `src/lib/ssr-state.rule.test.ts` and the e2e smoke, through `me.createdAt`, prove a `Date` is still a `Date` after hydration). What must stay deterministic is the _formatting_: `toLocaleString()` without a fixed locale/timeZone differs between server and browser and React will warn about a hydration mismatch. Format with `toISOString().slice(0, 10)` or a fixed `timeZone`.
 
 **Client-nav prefetch IS wired up too**: `src/lib/trpc.tsx` exports `getBrowserClients()` — lazy module singletons (`queryClient`, `trpcClient`, and a `createTRPCOptionsProxy` bound to them). `index.tsx` hands the same instances to `<App>`, and `browserContext()` puts them in `clientsContext`, so the same loader code prefetches on a client navigation — no "Loading…" flash, and no loader branches on where it runs.
 
@@ -252,7 +267,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 - **Machines.** Windows/WSL: editor, Postgres, `bun run dev` (API + Metro). Run and test on Limrun (the `limrun` skill: `lim xcode build`, then a simulator with a tunnel to Metro + API). Sal's iPhone: expo-wsl-ios (`npx expo-wsl-ios run`). Distribution: EAS (`build:*`, `ota:*`). The Mac (`ios:prebuild`, `ios:device`) only for what those can't do.
 - **Upgrading Expo.** `bun run upgrade:expo [--check] [--sdk <n>] [--json]` (the `upgrade-expo` skill for a major). It respects the 3-day release age, lists what's blocked and when it clears, aligns the catalog React, and says from the fingerprints whether the dev client needs a rebuild.
 - **Fork gotchas.** Stacks keep `fullScreenGestureEnabled: false` (iOS 26 otherwise turns any sideways drag into go-back). App Store Connect can reject an upload for a missing `NSMicrophoneUsageDescription` when a linked SDK references the mic API, even if the app never records: add a plain "never uses the microphone" string. Expo runs config-plugin mods last-registered first: a plugin whose Info.plist mod must run after `expo-build-properties` is listed before it.
-- **Checks.** `bun run doctor` (expo-doctor + `expo-modules-autolinking verify`), `bun run test` (`bun test src`), `bunx expo export --platform ios` (bundles without a device). No linter, no `expo lint`.
+- **Checks.** `bun run doctor` (expo-doctor + `expo-modules-autolinking verify`), `bun run test` (the `*.rule.test.ts` files), `bunx expo export --platform ios` (bundles without a device). No linter, no `expo lint`.
 
 ## Desktop (apps/desktop)
 
@@ -311,7 +326,7 @@ In `server/router.ts`, add to the `appRouter` tree. Choose `publicProcedure`, `p
 1. Edit `prisma/schema.prisma` (FK relations to `User` should be `onDelete: Cascade`).
 2. `bun run db:migrate --name add_my_model` — generates `prisma/migrations/<ts>_add_my_model/migration.sql`, applies it to your dev DB, and regenerates the client. **Read the SQL** and commit the folder with the schema change.
    In an agent shell `prisma migrate dev` refuses (non-interactive). Instead, with the dev DB at the latest migration, in `apps/web`: `mkdir -p prisma/migrations/<YYYYMMDDHHMMSS>_<name> && bun run db:migrate:sql -o prisma/migrations/<YYYYMMDDHHMMSS>_<name>/migration.sql` (the diff from the dev DB to the schema), read the SQL, then `bun run db:deploy && bun run db:generate`.
-3. Use it in tRPC procedures: `prisma.myModel.findMany(...)`. e2e's global-setup truncates every table, so a new model needs no e2e change.
+3. Use it in tRPC procedures: `prisma.myModel.findMany(...)`. Tests run on fresh clones of the migrated test template, so a new model needs no test setup.
 
 Never `prisma db push` — it skips the migration history and silently drops anything Prisma doesn't model (FTS indexes, triggers).
 
@@ -370,15 +385,44 @@ Edit values in `packages/tokens/tokens.css` (the one `:root`), then `bun run tok
 
 ### Add an e2e test
 
-Specs live in `e2e/*.spec.ts` (Playwright). Tests run against an isolated DB on apiPort + 3 (4783 here): `e2e/db.ts` takes the dev `DATABASE_URL`'s server and credentials and swaps the database for `<project.json db>_test` (`sal_starter_test`); override with `E2E_DATABASE_URL` (the name must end in `_test`). Playwright starts the server first (its readiness probe is `/robots.txt` over `[::1]`, a static file, so a fork whose test DB doesn't exist yet still boots); `e2e/global-setup.ts` then creates the DB if missing, runs `prisma migrate deploy` on it and truncates every table so screenshots are deterministic. The screenshot tolerance is 0.2% of pixels: a mostly white page differs from a different page by under 2%. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:e2e:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:e2e`. Don't screenshot pages with per-run dynamic content unless you mask it.
+Specs live in `e2e/*.spec.ts` (Playwright; they become `*.flow.ts` next). They run on apiPort + 3 (4783 here) against `<template>_e2e`, a fresh clone of the test template (`test/db.ts`) that `e2e/global-setup.ts` makes on every run. Playwright starts the server first (its readiness probe is `/robots.txt` over `[::1]`, a static file, so a fork whose test DB doesn't exist yet still boots). The screenshot tolerance is 0.2% of pixels: a mostly white page differs from a different page by under 2%. Add visual coverage with `await expect(page).toHaveScreenshot('name.png')` on a STABLE view (no dynamic dates/ids), then `bun run test:flows:update` to write the baseline (committed under `e2e/__screenshots__/`). Run with `bun run test:flows`. Don't screenshot pages with per-run dynamic content unless you mask it.
+
+## Testing
+
+Five checks, the same in every repo built from this one. `gate` runs the first four on a clean copy of the commit (`gate.json`); the fifth comes after a deploy.
+
+| check | what it is                                                                                                 | run                  |
+| ----- | ---------------------------------------------------------------------------------------------------------- | -------------------- |
+| Types | strict TypeScript + zod at every boundary                                                                  | `bun run typecheck`  |
+| Rules | pure logic where a wrong answer is silent and has many cases; no database, network or server (rule 28)     | `bun run test:rules` |
+| API   | every tRPC procedure through the real router on a real Postgres, plus the committed access table (rule 29) | `bun run test:api`   |
+| Flows | a person's path through the real app in a real browser                                                     | `bun run test:flows` |
+| Live  | after a deploy: the live site reports the new commit and passes smoke flows                                | (later)              |
+
+`bun run test` = rules then API. Every test file has exactly one of three names, checked first by `test:rules` (`scripts/test-names.ts` says which to use): `*.rule.test.ts` (bun:test, pure code), `*.api.test.ts` (bun:test, the real router, handlers, Postgres or IPC), `*.flow.ts` (Playwright; `e2e/*.spec.ts` until the flows move).
+
+**The databases.** One migrated, empty template, cloned per test process with `CREATE DATABASE … TEMPLATE` (`test/db.ts`). Under gate (`GATE=1`) the template is the `DATABASE_URL` gate hands over. Otherwise it is `<project.json db>_test` (`sal_starter_test`) on the server of the shell's or the root `.env`'s `DATABASE_URL`, created, migrated (`bun run db:deploy`), rebuilt when its migration history isn't the committed one and emptied as needed. API tests get `<template>_p<pid>`, dropped at the end (stale ones swept at start); flows get `<template>_e2e`. One guard (`assertTestDatabase`) refuses to create, drop or truncate anything else.
+
+**The environment.** `test:api` never loads the root `.env`: `test/preload.api.ts` removes every key it defines and sets exactly what the server needs (the clone's `DATABASE_URL`, a fixed `BETTER_AUTH_SECRET`, `ADMIN_EMAILS` = `admin@test.local`, an open `SIGNUP_ALLOWLIST`), so no test can reach a paid service with a real key. `test:rules` runs with no environment at all.
+
+**Add a rule.** Pure function, many cases, silent when wrong: `foo.rule.test.ts` next to it. Import nothing that reads `process.env` (split a schema out the way `server/env-schema.ts` is).
+
+**Add an API test.** `foo.api.test.ts`, one `describe('<procedure path>', …)` per procedure: what it returns, what it writes (read the row back with `prisma`), what it rejects (bad input, the wrong caller). Callers come from `test/callers.ts`: `await asAnon()`, `await asUser(name?)`, `await asAdmin()` each give `{ api, context, user, cookie }` with `api` = `appRouter.createCaller(context)` for a real session made through better-auth. Each `asUser()` is a new person; the admin is one user per process (a new session each call). Rows are shared within a run, so assert on the ids you made, not on totals.
+
+**Add a procedure.** Use `publicProcedure`, `protectedProcedure` or `adminProcedure` (each tags its procedures `public`, `user`, `admin`), write its API test, then `bun run access:table` and commit `server/router.access.md`. A new builder: a tag in `server/procedure-access.ts`, a row in `server/trpc.api.test.ts`'s matrix.
+
+**gate.json** (repo root) is the contract with `gate` (destedtui): `mode` `block` refuses a push to main without a passing receipt; `report` records and never blocks. A fork made by `init` keeps `block`; `bun run sync` brings it into an older fork as `report` and never changes a fork's mode after that. `demo:drop` and `init --no-auth` leave the four scripts passing (they regenerate the table).
 
 ## Build / verify
 
 ```
 bun run typecheck   # tsc --noEmit (TypeScript 7) in the root (scripts/, recipes/) and every workspace
-bun run test        # bun:test unit tests in every workspace (a fork fails here until the kickoff and demo:drop)
+bun run test        # test:rules then test:api in every workspace (a fork fails here until the kickoff and demo:drop)
+bun run test:rules  # names check, then *.rule.test.ts (pure, no env)
+bun run test:api    # *.api.test.ts on a fresh clone of the test template
+bun run test:flows  # Playwright on :4783 (apiPort + 3) against a clone of the test template (= test:e2e)
+gate --dirty        # all four on a copy of the working tree; `gate` before a push (rule 30)
 bun run build       # vite build (client) + vite build --ssr (server) → dist/client + dist/server (a fork fails while the demo is present)
-bun run test:e2e    # Playwright against the isolated, migrated test DB on :4783 (apiPort + 3)
 bun run dev         # web: bun --watch server.ts → http://localhost:4780 (HMR on the same port) + Metro on 4781 if apps/mobile exists
 bun run start       # NODE_ENV=production bun server.ts
 ```
@@ -434,7 +478,8 @@ The `// @ts-ignore` on that dist import is intentional — the file doesn't exis
 - Don't hand-edit icons, the splash, the favicon or the manifest (rule 27).
 - Don't commit `.env`, `dist/`, `node_modules/`, or Playwright run artifacts (`test-results/`, `playwright-report/`). They're in `.gitignore`. DO commit `e2e/__screenshots__/` baselines.
 - Don't hand-edit anything under `apps/web/server/generated/`. Re-run `bun run db:generate` after schema changes.
-- Don't add ESLint, `expo lint` or any linter. `tsc` is the gate, Prettier formats.
+- Don't add ESLint, `expo lint` or any linter. `tsc` is a check, Prettier formats.
+- Don't name a test file anything but `*.rule.test.ts`, `*.api.test.ts` or `*.flow.ts`, don't `test.skip` / `test.todo`, and don't edit `server/router.access.md` by hand (rules 28–30).
 - Don't use Expo Go or write code that branches on it. The dev client is the only dev runtime.
 - Don't `prisma db push`, and don't edit a migration that has already been applied anywhere shared — add a new one.
 - Don't `bunx prisma`: outside the workspace it pulls npm `latest`, the Prisma 8 RC. Use the `bun run db:*` scripts.

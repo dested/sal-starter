@@ -9,7 +9,8 @@
   "scripts": {
     "emit": "bun emit.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun run test:rules",
+    "test:rules": "bun test .rule.test."
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",

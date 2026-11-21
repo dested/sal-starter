@@ -1,7 +1,8 @@
 // `init --no-auth`: a fork with no accounts. Takes better-auth out of web (and
 // mobile when the fork has it): the auth server and client, sign-in/up pages
 // and screens, the session in loaders and the tRPC context, the auth tables
-// (the init migration is regenerated), the auth env vars and the e2e auth flows.
+// (the init migration is regenerated), the auth env vars, the e2e auth flows
+// and the API tests of signed-in callers (the access table is regenerated).
 // Posts stay as the demo, without an author; /dashboard is public.
 //
 // Every edit is an exact string or an anchored span copied from the template,
@@ -21,13 +22,18 @@ type Edit = { file: string; find: string | RegExp; replace?: string }
 const WEB_DELETE = [
   'apps/web/server/auth.ts',
   'apps/web/server/access.ts',
-  'apps/web/server/access.test.ts',
+  'apps/web/server/access.rule.test.ts',
   'apps/web/src/lib/auth-client.ts',
   'apps/web/src/lib/loader.ts',
-  'apps/web/src/lib/loader.test.ts',
+  'apps/web/src/lib/loader.rule.test.ts',
   'apps/web/src/app/sign-in.tsx',
   'apps/web/src/app/sign-up.tsx',
   'apps/web/e2e/auth-next.spec.ts',
+  // API tests of what no-auth removes: the builders contract and real-cookie
+  // context, `me`, and the demo's signed-in posts (it goes with demo:drop).
+  'apps/web/server/trpc.api.test.ts',
+  'apps/web/server/router.api.test.ts',
+  'apps/web/server/demo.api.test.ts',
   // Every baseline shows the signed-out nav; `bun run test:e2e:update` rewrites them.
   'apps/web/e2e/__screenshots__/smoke.spec.ts',
 ]
@@ -77,7 +83,7 @@ const WEB_EDITS: Edit[] = [
   },
   {
     file: 'apps/web/server/trpc.ts',
-    find: "import { isAdminEmail } from './access'\nimport { auth, type Session } from './auth'\n",
+    find: "import { isAdminEmail } from './access'\nimport { auth, type Session } from './auth'\nimport { env } from './env'\n",
   },
   { file: 'apps/web/server/trpc.ts', find: ' (what better-auth reads)' },
   {
@@ -100,6 +106,35 @@ const WEB_EDITS: Edit[] = [
     find: /\nexport const protectedProcedure = [\s\S]*$/,
     replace: '\n',
   },
+
+  // procedure-access.ts: one caller, one column in the access table.
+  {
+    file: 'apps/web/server/procedure-access.ts',
+    find: /^export const ACCESS = \{\n[\s\S]*?\n\} as const/m,
+    replace: 'export const ACCESS = {\n  public: { anyone: true },\n} as const',
+  },
+
+  // test/callers.ts: the anonymous caller is the only one.
+  {
+    file: 'apps/web/test/callers.ts',
+    find: /^\/\/ Who calls the router in API tests:[\s\S]*?\n\n/m,
+    replace:
+      '// Who calls the router in API tests: the real appRouter with a real context.\n' +
+      '// No accounts in this project (init --no-auth), so there is one caller.\n\n',
+  },
+  { file: 'apps/web/test/callers.ts', find: "import { randomUUID } from 'node:crypto'\n" },
+  {
+    file: 'apps/web/test/callers.ts',
+    find: "import { contextFor, contextFromHeaders, type Context } from '../server/trpc'",
+    replace: "import { contextFor, type Context } from '../server/trpc'",
+  },
+  {
+    file: 'apps/web/test/callers.ts',
+    find: "import { auth } from '../server/auth'\nimport { TEST_ADMIN_EMAIL } from './env'\n",
+  },
+  { file: 'apps/web/test/callers.ts', find: /^export const TEST_PASSWORD = [^\n]*\n\n/m },
+  { file: 'apps/web/test/callers.ts', find: 'contextFor(null)', replace: 'contextFor()' },
+  { file: 'apps/web/test/callers.ts', find: /\n\/\*\* `name=value; …`[\s\S]*$/, replace: '' },
 
   // router.ts: no `me`; the demo's posts are anonymous.
   {
@@ -299,11 +334,6 @@ const WEB_EDITS: Edit[] = [
   },
 
   // e2e: no auth tables, secrets or sign-up flow.
-  {
-    file: 'apps/web/e2e/global-setup.ts',
-    find: 'so sign-up uses a fresh fixed user and screenshots',
-    replace: 'so screenshots',
-  },
   {
     file: 'apps/web/playwright.config.ts',
     find: /^ {6}BETTER_AUTH_SECRET: [^\n]*\n {6}BETTER_AUTH_URL: [^\n]*\n/m,
@@ -539,6 +569,9 @@ export function removeAuth(surfaces: Surface[]): string[] {
   }
   touched.add(regenerateInitMigration())
   run('bun', 'run', '--cwd', 'apps/web', 'db:generate')
+  // The access table loses `me` and its signed-in/admin columns.
+  run('bun', 'run', '--cwd', 'apps/web', 'access:table')
+  touched.add('apps/web/server/router.access.md')
   const formattable = [...touched].filter((f) => /\.(tsx?|json)$/.test(f) && existsSync(f))
   run('bunx', 'prettier', '--log-level', 'warn', '--write', ...formattable)
   console.log(

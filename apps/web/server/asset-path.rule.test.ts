@@ -20,4 +20,10 @@ describe('isAssetPath', () => {
       expect(isAssetPath(p)).toBe(false)
     }
   })
+
+  test('a last segment without a dot is a page, even when it reads like an extension', () => {
+    for (const p of ['/png', '/css', '/docs/js', '/files/pdf', '/env']) {
+      expect(isAssetPath(p)).toBe(false)
+    }
+  })
 })

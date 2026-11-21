@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { MissingEnvError, optionalSecret, requireValue } from './env'
+import { MissingEnvError, optionalSecret, requireValue } from './env-schema'
 
 describe('optionalSecret', () => {
   test('unset and blank both mean not configured', () => {

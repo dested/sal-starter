@@ -12,7 +12,8 @@
     "preview": "electron-vite preview",
     "release": "electron-vite build && bun scripts/release.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test ./src"
+    "test": "bun run test:api",
+    "test:api": "bun test .api.test."
   },
   "devDependencies": {
     "@app/tokens": "workspace:*",

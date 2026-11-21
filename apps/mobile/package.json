@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun ../../scripts/dev.ts mobile",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src",
+    "test": "bun run test:rules",
+    "test:rules": "bun test .rule.test.",
     "doctor": "bunx expo-doctor && expo-modules-autolinking verify",
     "doctor:fix": "expo install --check",
     "add-device": "eas device:create",

@@ -125,7 +125,7 @@ Work through every item; each is a place the placeholder survives otherwise.
 - `bun run brand` renders the app icon, splash mark, Android adaptive and
   monochrome icons, favicon, apple-touch and PWA icons, `manifest.webmanifest`
   and the desktop `icon.png` / `icon.ico`, and records them in
-  `brand.gen.json`. Never hand-edit an output: `brand.test.ts` fails on it.
+  `brand.gen.json`. Never hand-edit an output: `brand.rule.test.ts` fails on it.
   Rerun after any token change.
 - Look at the renders before moving on (Read the PNGs): `icon.png` in a
   rounded mask, the favicon at 16 and 32 px, the splash as a phone-sized frame

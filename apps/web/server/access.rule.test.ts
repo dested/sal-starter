@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { emailMatches, isAdminEmail, signUpAllowed } from './access'
-import { emailList } from './env'
+import { emailList } from './env-schema'
 
 describe('emailList', () => {
   test('splits, trims, lowercases and drops blanks', () => {

@@ -9,12 +9,12 @@
 project.json merge=ours
 drydock.yaml merge=ours
 # The look (the kickoff writes these). The Tailwind mapping, theme.css, merges;
-# a role it gains fails tokens.test.ts until tokens.css has it (`bun run tokens`).
+# a role it gains fails tokens.rule.test.ts until tokens.css has it (`bun run tokens`).
 packages/tokens/tokens.css merge=ours
 packages/tokens/colors.json merge=ours
 # The brand (the kickoff draws the mark): the source and everything
 # `bun run brand` renders from it. brand.ts/emit.ts (the generator) merge; a
-# change there fails brand.test.ts until `bun run brand` re-renders.
+# change there fails brand.rule.test.ts until `bun run brand` re-renders.
 packages/brand/mark.svg merge=ours
 packages/brand/brand.json merge=ours
 packages/brand/brand.gen.json merge=ours
