@@ -155,7 +155,7 @@ bun run typecheck    # strict tsc everywhere
 bun run test:rules   # the names check, then pure *.rule.test.ts (no env)
 bun run test:api     # *.api.test.ts: every tRPC procedure on a fresh clone of <db>_test, plus the access table
 bun run test:flows   # build, then *.flow.spec.ts at desktop 1280×800 and phone 390×844, a production server per worker
-gate --dirty         # all four on a clean copy; `gate` before a push to main
+gate --dirty         # all four on a clean copy, reported; `gate` before a push to main (it never blocks one)
 ```
 
 The tests use the server and credentials of the root `.env` `DATABASE_URL` and never its other values: a migrated template (`sal_starter_test`, from `project.json` db) is created on first run and cloned per test process or flow worker. Every flow fails on a page error, a `console.error`, a 5xx or sideways overflow, and a full run fails if any route in `apps/web/src/app/routes.tsx` (or the 404) had no flow in either project. Screenshot baselines live in `apps/web/e2e/__screenshots__/{desktop,phone}/`; regenerate with `bun run test:flows:update`. They are OS/font specific.

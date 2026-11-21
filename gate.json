@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "mode": "block",
+  "mode": "report",
   "branches": ["main", "master"],
   "copy": { "env": [".env"], "keep": ["node_modules"] },
   "setup": ["bun install --frozen-lockfile", "bun run db:generate"],

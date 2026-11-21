@@ -79,8 +79,7 @@
     "demo:drop": "bun scripts/demo.ts",
     "tokens": "bun run --cwd packages/tokens emit",
     "brand": "bun run --cwd packages/brand emit",
-    "prettier": "prettier .",
-    "postinstall": "test -e .git/MERGE_HEAD && bun scripts/gate.ts --keep-mode || true"
+    "prettier": "prettier ."
   },
   "devDependencies": {
     "@types/bun": "catalog:",

@@ -1,18 +1,12 @@
 // gate.json: this repo's contract with `gate` (destedtui), the command that runs
-// the four checks (types, rules, api, flows) on a clean copy of a commit before
-// it may reach main. The template ships it in `block` mode; init keeps that.
-// `sync` brings it into an older fork in `report` mode (runs and records, never
-// blocks) and never changes a fork's mode after that. A fork without the web
+// the four checks (types, rules, api, flows) on a clean copy of a commit and
+// reports. Every repo runs it in `report` mode (Sal, 2026-11-20: nothing is
+// gated): it records each run and never blocks a push. A fork without the web
 // app has no database and no flows, so those entries go.
 //
-//   bun scripts/gate.ts --keep-mode   mid-merge only: gate.json gets the fork's
-//                                     mode from HEAD (report if HEAD had none)
-//
-// The root `postinstall` runs --keep-mode, because a fork's first sync runs the
-// fork's OLD sync.ts: `bun install` after the merge is the only new code it runs.
-// It is guarded in the script line itself (`test -e .git/MERGE_HEAD && …`), so
-// outside a merge (a clean copy, a deploy image, a fresh clone) this file never
-// loads: no prettier, zod or dev dependency needed, nothing printed.
+//   bun scripts/gate.ts --fit   gate.json in report mode, fitted to this fork's
+//                               surfaces (sync does this; run it once in a fork
+//                               whose sync.ts predates it)
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -82,46 +76,35 @@ function gitOk(...args: string[]): boolean {
 }
 
 /**
- * During a merge (`bun run sync`): gate.json keeps the mode this fork had at
- * HEAD, or becomes `report` when the fork had no gate.json, and is fitted to
- * the fork's surfaces, and staged. Returns what it did, or null when there was
- * nothing to do.
+ * gate.json in report mode and fitted to this fork's surfaces. Mid-merge
+ * (`bun run sync`) the result is staged, so the commit that ends the merge
+ * carries it. Returns what it changed, or null when there was nothing to do
+ * (no gate.json, or a conflicted one: that is the person's to resolve first).
  */
-export async function keepForkMode(): Promise<string | null> {
-  if (!existsSync(GATE_FILE) || !gitOk('rev-parse', '-q', '--verify', 'MERGE_HEAD')) return null
-  // A conflicted gate.json is the person's to resolve; run again after (bun install).
+export async function fitForkGate(): Promise<string | null> {
+  if (!existsSync(GATE_FILE)) return null
   if (spawnSync('git', ['ls-files', '-u', '--', GATE_FILE], { encoding: 'utf8' }).stdout !== '')
     return null
   const gate = readGate()
   if (gate === null) return null
-  const before = gitOk('cat-file', '-e', `HEAD:${GATE_FILE}`)
-    ? parseGate(spawnSync('git', ['show', `HEAD:${GATE_FILE}`], { encoding: 'utf8' }).stdout).mode
-    : null
-  const mode = before ?? 'report'
-  const next = gateForSurfaces({ ...gate, raw: { ...gate.raw, mode } }, readProject())
+  const next = gateForSurfaces({ ...gate, raw: { ...gate.raw, mode: 'report' } }, readProject())
   if (JSON.stringify(next) === JSON.stringify(gate.raw)) return null
   await writeGate(next)
-  // Staged with the merge, so the commit that ends it carries this mode.
-  spawnSync('git', ['add', '--', GATE_FILE], { stdio: 'ignore' })
-  return before
-    ? `kept ${GATE_FILE} mode ${mode}`
-    : `added ${GATE_FILE} in mode report: gate runs and records, never blocks; set "block" once the four checks pass`
+  if (gitOk('rev-parse', '-q', '--verify', 'MERGE_HEAD'))
+    spawnSync('git', ['add', '--', GATE_FILE], { stdio: 'ignore' })
+  return gate.mode === 'report'
+    ? `fitted ${GATE_FILE} to this fork's surfaces`
+    : `${GATE_FILE} is in report mode now: gate runs the checks and reports, it never blocks a push`
 }
 
 if (import.meta.main) {
-  if (process.argv.includes('--keep-mode')) {
-    try {
-      const did = await keepForkMode()
-      if (did) console.log(`gate: ${did}`)
-    } catch (error) {
-      // Never fail an install over this; sync.ts does the same step itself.
-      console.warn(
-        `gate: could not fit gate.json (${error instanceof Error ? error.message : String(error)})`
-      )
-    }
+  if (process.argv.includes('--fit')) {
+    const did = await fitForkGate()
+    console.log(did ? `gate: ${did}` : `gate: ${GATE_FILE} already fits`)
   } else {
     console.log(
-      "Usage: bun scripts/gate.ts --keep-mode   (mid-merge: keep the fork's gate.json mode)"
+      'Usage: bun scripts/gate.ts --fit   (gate.json in report mode, fitted to this fork)'
     )
+    process.exit(process.argv.includes('--help') ? 0 : 2)
   }
 }

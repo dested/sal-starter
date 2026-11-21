@@ -16,13 +16,12 @@
 //   - a no-auth fork (`init --no-auth`: web without apps/web/server/auth.ts):
 //     the auth-only files (no-auth.ts NO_AUTH_PATHS) stay deleted the same way
 //   - forks older than `surfaces` get it (plus desktopPort, appId) filled in
-//   - gate.json (scripts/gate.ts): a fork that had none gets it in `report`
-//     mode (runs and records, never blocks a push); a fork that has one keeps
-//     its own `mode`, whatever upstream's says
+//   - gate.json (scripts/gate.ts): always `report` mode (gate runs the checks
+//     and reports, it never blocks a push), fitted to the fork's surfaces
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { keepForkMode } from './gate'
+import { fitForkGate } from './gate'
 import { dropDependencies, NO_AUTH_PATHS } from './no-auth'
 import {
   excludedPaths,
@@ -106,10 +105,8 @@ if (isNoAuth(project)) {
   }
 }
 
-// gate.json: an old fork takes upstream's in report mode until it is ready to
-// block; a fork with one keeps its mode. Either way, fitted to its surfaces.
-// (The root postinstall does the same, for forks whose sync.ts predates this.)
-const gateDid = await keepForkMode()
+// gate.json: report mode (nothing is gated), fitted to the fork's surfaces.
+const gateDid = await fitForkGate()
 if (gateDid) console.log(`  ${c.green('gate')} ${c.dim(gateDid)}`)
 
 // Older forks: persist the surfaces/desktopPort/appId readProject inferred.

@@ -1,6 +1,6 @@
 # The testing standard in sal-starter
 
-**Status:** done (sal-starter's side). Part 1 and Part 2 done 2026-11-20. What's left belongs to the lead (below).
+**Status:** done (sal-starter's side). Parts 1, 2 and 3 done 2026-11-20. What's left belongs to the lead (below).
 
 Sal's brief (via the /w/code lead, 2026-11-20): one testing standard for every future repo, enforced by tooling; sal-starter first because every repo forks it. Contract with `gate`: `/w/junk/code/testing-strategy/spec/gate-contract.md`. Evidence: `/w/code/sal-starter/plans/artifacts/testing-strategy.html`, planted bugs in `/w/junk/code/testing-strategy/out/probe-sal-starter.jsonl`.
 
@@ -11,7 +11,7 @@ Sal's brief (via the /w/code lead, 2026-11-20): one testing standard for every f
 - `apps/web/test/`: template + clone databases (`db.ts`), the test environment (`env.ts`, never the root `.env`), preloads, callers (`asAnon` / `asUser` / `asAdmin` through better-auth), the access table generator, the every-procedure check.
 - tRPC meta tags on the three builders, `server/procedure-access.ts`, `server/router.access.md` (`bun run access:table`), the builders contract (`server/trpc.api.test.ts`), API tests for `me`, `posts.list`, `posts.create`.
 - Rules added: `isAssetPath` for extension-named pages, the test-database guard.
-- `gate.json` (block); init keeps it (desktop-only drops db + flows); sync adds it as `report` to forks without one and keeps a fork's mode; demo:drop and no-auth regenerate the table.
+- `gate.json`; init fits it (desktop-only drops db + flows); demo:drop and no-auth regenerate the table. (Part 1 shipped it in block mode; Part 3 moved everything to report.)
 
 ## Part 2: the flows check (done)
 
@@ -22,7 +22,7 @@ Sal's brief (via the /w/code lead, 2026-11-20): one testing standard for every f
 - 16 flows: `shell/home`, `shell/not-found`, `shell/not-found-asset`, `shell/dashboard`, `auth/sign-up`, `auth/sign-up-short-password`, `auth/sign-up-next`, `auth/protected-redirect`, `auth/sign-in-next`, `auth/off-site-next`, `auth/sign-out`, `auth/dashboard-ssr`, `auth/session-check-retry`, `auth/session-check-error`, `demo/posts-create`, `demo/posts-empty`.
 - Found by the phone project: the signed-in header's email overflowed 390px; it now hides below `sm`.
 - Decided: `layout.tsx` `replace: true` is covered (`auth/sign-out` presses Back); the `prisma.ts` singleton line is covered (`server/prisma.api.test.ts`); `entry-server.tsx`'s body line carries `probe-ignore` (server.ts sends only GET and HEAD there).
-- Root `postinstall` guards in the script line (`test -e .git/MERGE_HEAD && … || true`), so a deploy image loads nothing.
+- Root `postinstall` guarded in the script line (removed again in Part 3).
 
 ### Seen red (a clean copy of 523f9fe, one at a time)
 
@@ -47,8 +47,12 @@ Sal's brief (via the /w/code lead, 2026-11-20): one testing standard for every f
 | the three flows landing on `/sign-in` deleted      | flows | coverage: `/sign-in in desktop`, `/sign-in in phone`                             |
 | `e2e/extra.spec.ts` importing `./flow`             | rules | names check: rename to `*.flow.spec.ts`; a bx `flows/login.flow.ts` alone passes |
 
+## Part 3: report mode everywhere (done)
+
+Sal, 2026-11-20: "i dont want anything gates for now." `gate.json` is `"mode": "report"` in the template, init and sync keep every fork there (`fitForkGate`, `bun scripts/gate.ts --fit`), `--keep-mode` and the root `postinstall` are gone, and every doc says `gate` runs and reports. The checks are unchanged.
+
 ## Left for the lead
 
-- The probe replay: rerun `/w/junk/code/testing-strategy/out/probe-sal-starter.jsonl` with `gate probe --from` against this commit and read the catch rate.
+- The probe replay: done by the lead on d7821e0, 0 of the 40 planted bugs got through (16 before).
 - QA flows: map Sal's QA checklist to the `<feature>/<flow>` slugs in the test titles.
-- The agent guard: `gate guard push` before an agent's push to main (destedtui).
+- The agent guard (destedtui): with every repo in report mode, nothing to enforce; `gate allow-weaken` for this commit's block → report change.

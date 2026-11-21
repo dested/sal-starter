@@ -2,6 +2,11 @@
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
 
+## 2026-11-20 — Report mode everywhere: nothing is gated
+
+**Why:** Sal, 2026-11-20: "i dont want anything gates for now." `gate.json` is `"mode": "report"` in the template and in every fork: `gate` still runs the four checks on a clean copy and records them, and never blocks a push. An agent runs it before pushing and fixes what's red because that's the job, not because anything stops the push. Report mode everywhere; don't flip a repo to block or propose it unless Sal raises it. Supersedes the "template and new forks are `block`" part of the testing-standard entry below. init and sync keep forks in report (`fitForkGate`); `--keep-mode` and the root `postinstall` that protected a fork's mode are gone.
+**Rejected:** keeping block in the template with report in forks (the same gate, two behaviours, and Sal said nothing), dropping `gate.json` (the checks and the clean-copy run are still wanted).
+
 ## 2026-11-20 — Flows run the production build, one server per worker, at two widths, with automatic checks
 
 **Why:** the planted bugs that survived every check were things a person sees (a 9-character minimum, "Loading…" that never leaves, a session error without its status). Flows catch them only if they run what ships: so `test:flows` builds, and each Playwright worker starts `NODE_ENV=production bun server.ts` on a free port against its own template clone with `test/env.ts`'s env (parallel, no shared rows, no `.env`). Every flow runs at `desktop` 1280×800 and `phone` 390×844 because the phone project found a real overflow on its first run (the signed-in email). The automatic checks (page error, `console.error`, ≥ 500, failed same-origin request, sideways overflow) turn every flow into a check on the whole page, not just its one assertion; an opt-out is a pattern for one test, visible in the report. The every-screen check reads the routes from `src/app/routes.tsx` in a Playwright reporter, so there is no second list to drift, and a `--no-auth` fork's shorter tree just works. Production servers keep better-auth's rate limiter on, so each test sends its own `x-forwarded-for` rather than turning the limiter off in tests.

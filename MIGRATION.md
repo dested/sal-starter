@@ -475,7 +475,12 @@ bun run test:e2e        # then review and commit any new baselines (test:e2e:upd
 
 ## 23. Syncing a fork past the testing standard (2026-11-20)
 
-`bun run sync` brings the five checks, the three test names, the API harness, the access table and `gate.json` (as `"mode": "report"` in a fork that had none). Do it on a branch.
+`bun run sync` brings the five checks, the three test names, the API harness, the access table and `gate.json` in report mode (`gate` runs the four checks on a clean copy and reports; it never blocks a push). Do it on a branch.
+
+**gate.json from an older sync.** A fork whose `sync.ts` predates this runs its old copy for this one merge, so its `gate.json` may stay `"mode": "block"` (forks made 2026-11-20) or keep web's database and flows entries in a desktop-only fork.
+
+- **Detect:** `grep '"mode"' gate.json`, or `gate` failing `flows` in a desktop-only fork.
+- **Fix:** `bun scripts/gate.ts --fit` (report mode, fitted to the fork's surfaces), then commit `gate.json` with the merge. The root `postinstall` that used to do this is gone.
 
 **Test names.** `bun run test:rules` starts with the names check and fails on any other test file name.
 
@@ -501,7 +506,7 @@ bun run test:e2e        # then review and commit any new baselines (test:e2e:upd
 
 ```bash
 bun install && bun run typecheck && bun run test:rules && bun run test:api && bun run test:flows
-gate --dirty            # the same four on a copy; `gate` before a push (rule 30)
+gate --dirty            # the same four on a copy, reported; `gate` before a push (rule 30)
 ```
 
 ## Final verification checklist

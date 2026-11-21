@@ -2,6 +2,11 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-20 — testing standard part 3: report mode everywhere
+
+Asked (Sal via the /w/code lead): "i dont want anything gates for now." Done: `gate.json` mode `report`; `scripts/gate.ts` `keepForkMode` / `--keep-mode` replaced by `fitForkGate` / `--fit` (always report, fitted to surfaces), called by sync; the root `postinstall` deleted; CLAUDE.md rule 30 and Testing, cliffnotes, README, MIGRATION §23, verify.md and the plan say `gate` runs and reports; cliffnotes "Not built" now says better-auth's rate limiter is on in production and the flows depend on it. Verified: the four scripts, `gate`, scratch forks (init → report; a block fork synced → report; `--fit`), each seen red on the old code.
+**Sync note for forks:** this sync runs your old `sync.ts`; afterwards run `bun scripts/gate.ts --fit` and commit `gate.json` with the merge (report mode, fitted to your surfaces).
+
 ## 2026-11-20 — testing standard part 2: flows on the production build, desktop + phone, every screen walked
 
 Asked (Sal via the /w/code lead): the flows check. Done: the third name is `*.flow.spec.ts` (a top-level `flows/` is bx's, skipped); `apps/web/e2e/flow.ts` (a prod server per worker on a free port and its own clone, `world.signIn` / `world.account` through `/api/auth`, `emptyDatabase`, a client address per test, automatic checks for page errors, `console.error`, 5xx, failed requests and overflow); `e2e/coverage.ts` fails a full run naming any route or the 404 a project never landed on; projects `desktop` and `phone`, per-project baselines, `test:flows` builds first; 16 flows (shell, auth, demo); the phone overflow in the signed-in header fixed; `prisma.api.test.ts` for the singleton, `probe-ignore` on entry-server's body line; root postinstall guarded in the script line; rule 31 and CLAUDE.md → Testing → Add a flow. Verified: `gate` on 523f9fe (setup 3.7 s, types 1.1 s, rules 0.2 s, api 2.6 s, flows 15.8 s: 16 per project, receipt written); seen red for every planted bug and each automatic check (the table in `plans/2026-11-20-testing-standard.md`); scratch forks default (14 flows × 2) and `--no-auth` (4 × 2, coverage `/, /dashboard, 404`) green on the four scripts after demo:drop.
