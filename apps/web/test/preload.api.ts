@@ -1,6 +1,8 @@
 // `bun run test:api` preload: a fresh clone of the test template for this
 // process, the test environment pointed at it, and the clone dropped at the end.
-// Runs before any test file imports a server module.
+// Runs before any test file imports a server module. test:api runs with
+// --timeout 30000 (hooks too): sign-ups hash passwords, and on a loaded machine
+// three of them in a beforeAll passed bun's 5 s default.
 import { afterAll } from 'bun:test'
 import { createClone, dropClone, ensureTemplate, processSuffix, sweepClones } from './db'
 import { useTestEnv } from './env'

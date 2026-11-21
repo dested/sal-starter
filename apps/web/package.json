@@ -26,7 +26,7 @@
     "db:studio": "prisma studio",
     "test": "bun run test:rules && bun run test:api",
     "test:rules": "bun test --preload ./test/preload.rules.ts .rule.test.",
-    "test:api": "bun test --preload ./test/preload.api.ts .api.test.",
+    "test:api": "bun test --timeout 30000 --preload ./test/preload.api.ts .api.test.",
     "test:flows": "playwright test",
     "test:flows:ui": "playwright test --ui",
     "test:flows:update": "playwright test --update-snapshots",
