@@ -2,6 +2,11 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-10-30 — drop-EAS plan written, parked for someday
+
+Asked: do asc + TestFlight replace EAS, and how to self-host CodePush. Plan written: builds and store uploads move to the mini (iOS + Android), asc for App Store Connect, a self-hosted Expo Updates server, the 11 forks on EAS. Whole plan parked by Sal ("maybe someday"); nothing in the template changed.
+Touched: plans/2026-10-30-drop-eas.md
+
 ## 2026-10-25 — lead follow-ups after the crew
 
 `demo:drop` refuses in the template; eas-setup and the demo gates key off `template: true` (init renames every `sal-starter` string, so name checks passed in every fork); sign-in/up navigate before revalidating; `add:*` are web scripts; sync drops better-auth from a no-auth fork's package.json after a merge; e2e probes `/robots.txt`. Verified: scratch forks (`--mobile --dry-run-eas`, `--no-auth`) fail build and test with the demo, pass after `demo:drop` (e2e 7/7 and 2/2 on fresh test DBs). Limrun check blocked: the org is out of credits.
