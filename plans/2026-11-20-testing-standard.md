@@ -2,7 +2,7 @@
 
 **Status:** done (sal-starter's side). Parts 1, 2 and 3 done 2026-11-20. What's left belongs to the lead (below).
 
-Sal's brief (via the /w/code lead, 2026-11-20): one testing standard for every future repo, enforced by tooling; sal-starter first because every repo forks it. Contract with `gate`: `/w/junk/code/testing-strategy/spec/gate-contract.md`. Evidence: `/w/code/sal-starter/plans/artifacts/testing-strategy.html`, planted bugs in `/w/junk/code/testing-strategy/out/probe-sal-starter.jsonl`.
+Sal's brief (via the /w/code lead, 2026-11-20): one testing standard for every future repo, enforced by tooling; sal-starter first because every repo forks it. Contract with `gate`: `/w/junk/code/testing-strategy/spec/gate-contract.md`. The standard itself is public: https://github.com/dested/testing-standard. Planted bugs: `/w/junk/code/testing-strategy/out/probe-sal-starter.jsonl`.
 
 ## Part 1: names, the API check, the access table, gate.json (done)
 

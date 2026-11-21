@@ -2,6 +2,10 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-21 — private report pages out, the public standard linked
+
+Asked (the /w/code lead): this repo is public, so take out the two report pages written for Sal alone and link the now-public standard. Done: the strategy report page deleted from `plans/artifacts/` (the build-review page never reached a pushed commit); the plan's evidence line points at https://github.com/dested/testing-standard instead; the standard linked once each in CLAUDE.md → Testing, the cliffnotes Tests line and the README's Testing. Verified: no tracked file names either page or its claude.ai links; typecheck, the names check, gate.
+
 ## 2026-11-21 — first fresh probe of the checks: 80%
 
 Asked (Sal via the /w/code lead): the morning testing review. Found: `gate probe --max 40 --seed 1` on 6aa609c, bugs the tests had never seen, caught 32 of 40 (80%: types 15, rules 9, flows 6, api 2) and missed 8: `apps/web/server.ts:160`, `:17`, `:108`, `:141`, `apps/web/server/auth.ts:50`, `:14`, `apps/web/src/app/sign-in.tsx:25`, `apps/web/src/app/sign-up.tsx:26`. Results: `.git/gate/probes/2026-11-21T13-47-38.431Z-6aa609c.json`. The replay of the audit's 40 was 100%; the fresh run is the number to watch. Not fixed: waiting on Sal's answer about a nightly run.

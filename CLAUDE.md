@@ -388,6 +388,8 @@ Edit values in `packages/tokens/tokens.css` (the one `:root`), then `bun run tok
 
 ## Testing
 
+This section is how the template implements the testing standard, which is public at https://github.com/dested/testing-standard (`README.md` is the standard, `adopt.md` brings an existing repo onto it, `examples.md` quotes this repo's files).
+
 Five checks, the same in every repo built from this one. `gate` runs the first four on a clean copy of the commit (`gate.json`); the fifth comes after a deploy.
 
 | check | what it is                                                                                                 | run                  |

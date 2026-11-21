@@ -148,7 +148,7 @@ When do you need a new build? When the native fingerprint changes: run `bun run 
 
 ## Testing
 
-Five checks, three test names (CLAUDE.md → Testing has the detail):
+Five checks, three test names, implementing the public [testing standard](https://github.com/dested/testing-standard) (CLAUDE.md → Testing has the detail):
 
 ```bash
 bun run typecheck    # strict tsc everywhere
