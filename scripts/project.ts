@@ -108,6 +108,8 @@ export const SURFACE_SCRIPTS: Record<Surface, Record<string, string>> = {
     start: 'bun run --cwd apps/web start',
     'start:local': 'bun run --cwd apps/web start:local',
     'test:flows': 'bun run --cwd apps/web test:flows',
+    'test:flows:ui': 'bun run --cwd apps/web test:flows:ui',
+    'test:flows:update': 'bun run --cwd apps/web test:flows:update',
     'test:e2e': 'bun run --cwd apps/web test:e2e',
     'test:e2e:ui': 'bun run --cwd apps/web test:e2e:ui',
     'test:e2e:update': 'bun run --cwd apps/web test:e2e:update',
