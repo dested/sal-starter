@@ -23,31 +23,35 @@ export const GATE_FILE = 'gate.json'
 export const gateMode = z.enum(['report', 'block'])
 export type GateMode = z.infer<typeof gateMode>
 
-// Only the fields these scripts change are typed; the rest passes through.
+// Validated on read; only the fields these scripts change are typed. Edits are
+// made on the file's own JSON object, so its key order (and diffs) stay put.
 const gateSchema = z.looseObject({
   version: z.literal(1),
   mode: gateMode,
   databases: z.array(z.unknown()).optional(),
   checks: z.array(z.looseObject({ name: z.string() })),
-  probe: z
-    .looseObject({
-      include: z.array(z.string()),
-      exclude: z.array(z.looseObject({ path: z.string(), why: z.string() })).optional(),
-    })
-    .optional(),
 })
-export type Gate = z.infer<typeof gateSchema>
+const jsonObject = z.record(z.string(), z.unknown())
 
-export function parseGate(text: string): Gate {
-  return gateSchema.parse(JSON.parse(text))
+/** gate.json as written (key order kept), checked against the fields scripts rely on. */
+export type GateFile = {
+  raw: Record<string, unknown>
+  mode: GateMode
+  checks: Array<{ name: string }>
 }
 
-export function readGate(): Gate | null {
+export function parseGate(text: string): GateFile {
+  const raw = jsonObject.parse(JSON.parse(text))
+  const { mode, checks } = gateSchema.parse(raw)
+  return { raw, mode, checks }
+}
+
+export function readGate(): GateFile | null {
   return existsSync(GATE_FILE) ? parseGate(readFileSync(GATE_FILE, 'utf8')) : null
 }
 
-export async function writeGate(gate: Gate): Promise<void> {
-  const text = await format(JSON.stringify(gate), {
+export async function writeGate(raw: Record<string, unknown>): Promise<void> {
+  const text = await format(JSON.stringify(raw), {
     ...(await resolveConfig(GATE_FILE)),
     parser: 'json',
   })
@@ -55,17 +59,16 @@ export async function writeGate(gate: Gate): Promise<void> {
 }
 
 /** The gate for this fork's surfaces: without web, no database, no flows, no web probe paths. */
-export function gateForSurfaces(gate: Gate, project: Project): Gate {
-  if (project.surfaces.includes('web')) return gate
-  const probe = project.surfaces.includes('desktop')
-    ? { include: ['apps/desktop/src/main/**/*.ts'], exclude: [] }
-    : undefined
-  const { probe: _web, ...rest } = gate
+export function gateForSurfaces(gate: GateFile, project: Project): Record<string, unknown> {
+  if (project.surfaces.includes('web')) return gate.raw
+  const { probe: _web, ...rest } = gate.raw
   return {
     ...rest,
     databases: [],
-    checks: gate.checks.filter((check) => check.name !== 'flows'),
-    ...(probe ? { probe } : {}),
+    checks: gate.checks.filter((c) => c.name !== 'flows'),
+    ...(project.surfaces.includes('desktop')
+      ? { probe: { include: ['apps/desktop/src/main/**/*.ts'], exclude: [] } }
+      : {}),
   }
 }
 
@@ -90,8 +93,8 @@ export async function keepForkMode(): Promise<string | null> {
     ? parseGate(spawnSync('git', ['show', `HEAD:${GATE_FILE}`], { encoding: 'utf8' }).stdout).mode
     : null
   const mode = before ?? 'report'
-  const next = gateForSurfaces({ ...gate, mode }, readProject())
-  if (JSON.stringify(next) === JSON.stringify(gate)) return null
+  const next = gateForSurfaces({ ...gate, raw: { ...gate.raw, mode } }, readProject())
+  if (JSON.stringify(next) === JSON.stringify(gate.raw)) return null
   await writeGate(next)
   // Staged with the merge, so the commit that ends it carries this mode.
   spawnSync('git', ['add', '--', GATE_FILE], { stdio: 'ignore' })
