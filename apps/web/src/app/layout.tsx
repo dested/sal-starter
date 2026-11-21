@@ -45,10 +45,13 @@ export function Layout() {
             }>
             Dashboard
           </NavLink>
-          <div className="ml-auto flex items-center gap-3 text-sm">
+          <div className="ml-auto flex min-w-0 items-center gap-3 text-sm">
             {session ? (
               <>
-                <span className="text-muted-foreground">{session.user.email}</span>
+                {/* A phone has room for the button, not the address. */}
+                <span className="hidden truncate text-muted-foreground sm:inline">
+                  {session.user.email}
+                </span>
                 <button type="button" className="hover:underline" onClick={signOut}>
                   Sign out
                 </button>

@@ -4,15 +4,12 @@
 // cookie it sets, the way a browser's would. Import only from *.api.test.ts
 // (test/preload.api.ts has set the environment by then).
 
-import { randomUUID } from 'node:crypto'
 import { appRouter } from '../server/router'
 import { contextFor, contextFromHeaders, type Context } from '../server/trpc'
 import { auth } from '../server/auth'
-import { TEST_ADMIN_EMAIL } from './env'
+import { newUserEmail, TEST_ADMIN_EMAIL, TEST_PASSWORD } from './people'
 
 export type Api = ReturnType<typeof appRouter.createCaller>
-
-export const TEST_PASSWORD = 'test-password-1234'
 
 /** The anonymous caller: no session. */
 export async function asAnon(): Promise<{ api: Api; context: Context }> {
@@ -65,7 +62,7 @@ export async function signIn(email: string): Promise<Person> {
 
 /** A fresh signed-in person: a new user row and session per call. */
 export async function asUser(name = 'Test Person'): Promise<Person> {
-  return signUp(`user-${randomUUID()}@test.local`, name)
+  return signUp(newUserEmail(), name)
 }
 
 let adminSignedUp = false

@@ -28,14 +28,14 @@ const WEB_DELETE = [
   'apps/web/src/lib/loader.rule.test.ts',
   'apps/web/src/app/sign-in.tsx',
   'apps/web/src/app/sign-up.tsx',
-  'apps/web/e2e/auth-next.spec.ts',
+  'apps/web/e2e/auth.flow.spec.ts',
   // API tests of what no-auth removes: the builders contract and real-cookie
   // context, `me`, and the demo's signed-in posts (it goes with demo:drop).
   'apps/web/server/trpc.api.test.ts',
   'apps/web/server/router.api.test.ts',
   'apps/web/server/demo.api.test.ts',
-  // Every baseline shows the signed-out nav; `bun run test:e2e:update` rewrites them.
-  'apps/web/e2e/__screenshots__/smoke.spec.ts',
+  // Every baseline shows the signed-out nav; `bun run test:flows:update` rewrites them.
+  'apps/web/e2e/__screenshots__',
 ]
 const MOBILE_DELETE = [
   'apps/mobile/src/app/(auth)',
@@ -122,7 +122,6 @@ const WEB_EDITS: Edit[] = [
       '// Who calls the router in API tests: the real appRouter with a real context.\n' +
       '// No accounts in this project (init --no-auth), so there is one caller.\n\n',
   },
-  { file: 'apps/web/test/callers.ts', find: "import { randomUUID } from 'node:crypto'\n" },
   {
     file: 'apps/web/test/callers.ts',
     find: "import { contextFor, contextFromHeaders, type Context } from '../server/trpc'",
@@ -130,9 +129,8 @@ const WEB_EDITS: Edit[] = [
   },
   {
     file: 'apps/web/test/callers.ts',
-    find: "import { auth } from '../server/auth'\nimport { TEST_ADMIN_EMAIL } from './env'\n",
+    find: "import { auth } from '../server/auth'\nimport { newUserEmail, TEST_ADMIN_EMAIL, TEST_PASSWORD } from './people'\n",
   },
-  { file: 'apps/web/test/callers.ts', find: /^export const TEST_PASSWORD = [^\n]*\n\n/m },
   { file: 'apps/web/test/callers.ts', find: 'contextFor(null)', replace: 'contextFor()' },
   { file: 'apps/web/test/callers.ts', find: /\n\/\*\* `name=value; …`[\s\S]*$/, replace: '' },
 
@@ -333,35 +331,27 @@ const WEB_EDITS: Edit[] = [
     find: "by {p.authorName ?? 'unknown'} · ",
   },
 
-  // e2e: no auth tables, secrets or sign-up flow.
+  // Flows: the auth flows go (WEB_DELETE); the dashboard is public, posts anonymous.
   {
-    file: 'apps/web/playwright.config.ts',
-    find: /^ {6}BETTER_AUTH_SECRET: [^\n]*\n {6}BETTER_AUTH_URL: [^\n]*\n/m,
-  },
-  { file: 'apps/web/e2e/smoke.spec.ts', find: /^\/\/ Fixed user[\s\S]*?const USER = [^\n]*\n\n/m },
-  {
-    file: 'apps/web/e2e/smoke.spec.ts',
-    find: "test('home page renders for a signed-out visitor'",
-    replace: "test('home page renders'",
+    file: 'apps/web/e2e/shell.flow.spec.ts',
+    find: "  // Check: the dashboard's heading is the signed-in person's name.\n  const person = await world.signIn('user', 'Nav Walker')\n",
+    replace: '  // Check: the dashboard opens, public (no accounts in this project).\n',
   },
   {
-    file: 'apps/web/e2e/smoke.spec.ts',
-    find: /^ {2}\/\/ Two "Sign in" links[^\n]*\n {2}await expect\(page\.getByRole\('link', \{ name: 'Sign in'[^\n]*\n/m,
-    replace: "  await expect(page.getByRole('link', { name: 'Open dashboard' })).toBeVisible()\n",
-  },
-  { file: 'apps/web/e2e/smoke.spec.ts', find: /^test\('sign-up page renders'[\s\S]*?\n\}\)\n\n/m },
-  {
-    file: 'apps/web/e2e/smoke.spec.ts',
-    find: "import { deserializeSsrState, isSuperJSONResult } from '../src/lib/ssr-state'\n",
+    file: 'apps/web/e2e/shell.flow.spec.ts',
+    find: 'async ({ page, world }) => {\n  // Check: the dashboard opens',
+    replace: 'async ({ page }) => {\n  // Check: the dashboard opens',
   },
   {
-    file: 'apps/web/e2e/smoke.spec.ts',
-    find: /\ntest\('sign up → dashboard → sign out'[\s\S]*?\n\}\)\n/,
+    file: 'apps/web/e2e/shell.flow.spec.ts',
+    find: "getByRole('heading', { level: 1, name: person.name })",
+    replace: "getByRole('heading', { level: 1, name: 'Dashboard' })",
   },
   {
-    file: 'apps/web/e2e/demo.spec.ts',
-    find: /^ {2}await page\.goto\('\/sign-up'\)[\s\S]*?await page\.waitForURL\('\*\*\/dashboard'\)\n/m,
-    replace: "  await page.goto('/dashboard')\n",
+    file: 'apps/web/e2e/demo.flow.spec.ts',
+    find: "// posts.create is for signed-in people.\nconst asWriter = (world: World) => world.signIn('user', 'Demo Writer')",
+    replace:
+      '// No accounts in this project: anyone may post.\nconst asWriter = async (_world: World) => {}',
   },
 
   { file: '.env.example', find: /^BETTER_AUTH_SECRET=[^\n]*\nBETTER_AUTH_URL=[^\n]*\n/m },

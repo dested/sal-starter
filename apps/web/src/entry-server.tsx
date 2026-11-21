@@ -101,6 +101,7 @@ function expressToFetch(req: express.Request): Request {
     headers,
     signal: controller.signal,
   }
+  // probe-ignore: unreachable today: server.ts sends only GET and HEAD here, neither has a body
   if (req.method !== 'GET' && req.method !== 'HEAD') init.body = req.body
 
   return new Request(url.href, init)

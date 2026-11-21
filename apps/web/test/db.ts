@@ -242,7 +242,7 @@ function alive(pid: number): boolean {
 /** The clone name for this process: `<template>_p<pid>`, so a sweep can tell a dead owner. */
 export const processSuffix = (): string => `p${process.pid}`
 
-/** Drops `<template>_p<pid>` clones whose process is gone (a crashed or killed run). */
+/** Drops `<template>_p<pid>[_<more>]` clones whose process is gone (a crashed or killed run). */
 export async function sweepClones(template: string): Promise<string[]> {
   const templateName = databaseName(template)
   return withServer(template, async (client) => {
@@ -250,11 +250,12 @@ export async function sweepClones(template: string): Promise<string[]> {
       'SELECT datname FROM pg_database WHERE starts_with(datname, $1)',
       [`${templateName}_p`]
     )
+    // `<template>_p<pid>` and `<template>_p<pid>_<more>` (a flow's own server).
     const dead = rows
       .map((r) => r.datname)
       .filter((n) => {
-        const pid = /_p(\d+)$/.exec(n)?.[1]
-        return pid !== undefined && n === `${templateName}_p${pid}` && !alive(Number(pid))
+        const pid = /^_p(\d+)(_\w+)?$/.exec(n.slice(templateName.length))?.[1]
+        return pid !== undefined && !alive(Number(pid))
       })
     for (const name of dead) {
       assertTestDatabase(name, templateName, 'clone')

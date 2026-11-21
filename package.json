@@ -80,7 +80,7 @@
     "tokens": "bun run --cwd packages/tokens emit",
     "brand": "bun run --cwd packages/brand emit",
     "prettier": "prettier .",
-    "postinstall": "bun scripts/gate.ts --keep-mode || true"
+    "postinstall": "test -e .git/MERGE_HEAD && bun scripts/gate.ts --keep-mode || true"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

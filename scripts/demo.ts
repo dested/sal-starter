@@ -26,7 +26,7 @@ const DEMO_FILES = [
   'apps/web/server/demo.api.test.ts',
   'apps/web/src/components/demo/posts-demo.tsx',
   'apps/web/src/components/demo/template-demo-bar.tsx',
-  'apps/web/e2e/demo.spec.ts',
+  'apps/web/e2e/demo.flow.spec.ts',
   'apps/mobile/src/components/demo/posts-demo.tsx',
 ]
 

@@ -9,7 +9,7 @@ export default function ai(): Recipe {
       'Adds apps/web/server/ai/claude.ts (+ claude.api.test.ts) and @anthropic-ai/sdk.',
       '  generate({ label, system, prompt, schema, fake }) → { data, model, usage, costUsd }',
       '  - the client is lazy: the server boots without ANTHROPIC_API_KEY (optional key in env.ts)',
-      '  - AI_FAKE=1 returns each call’s `fake` (e2e runs with it on; no API calls, no key)',
+      '  - AI_FAKE=1 returns each call’s `fake` (API tests and flows run with it on; no API calls, no key)',
       '  - zod schema → output_config.format, re-parsed with zod, one retry with the issues',
       '  - `cache: true` on a system part puts a prompt-cache breakpoint after it',
       '  - every call logs tokens and $ cost; refusals fall back server-side (fallbacks: default)',
@@ -37,10 +37,10 @@ export default function ai(): Recipe {
         '# Anthropic (bun run add:ai). Get one with `keys new anthropic --project <name>`.\nANTHROPIC_API_KEY=\n# AI_FAKE=1 answers every AI call with its fake (tests, e2e, no key).\n# AI_FAKE=1'
       ),
       insertAfterLine(
-        'apps/web/playwright.config.ts',
-        'e2e server runs AI_FAKE=1',
-        "NODE_ENV: 'development',",
-        "      AI_FAKE: '1',\n",
+        'apps/web/test/env.ts',
+        'API tests and flow servers run AI_FAKE=1',
+        "    SIGNUP_ALLOWLIST: '',",
+        "    AI_FAKE: '1',\n",
         'AI_FAKE:'
       ),
     ],

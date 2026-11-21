@@ -5,9 +5,9 @@
 // defines is removed first, then exactly what the server needs is set.
 
 import { rootEnv } from './db'
+import { TEST_ADMIN_EMAIL } from './people'
 
-/** The one address ADMIN_EMAILS lists in API tests (asAdmin signs in as it). */
-export const TEST_ADMIN_EMAIL = 'admin@test.local'
+export { TEST_ADMIN_EMAIL } from './people'
 
 export const TEST_AUTH_URL = 'http://localhost:4780'
 
@@ -17,14 +17,19 @@ export function scrubEnv(): void {
   delete process.env.DATABASE_URL
 }
 
-/** Exactly what server/env.ts needs, pointed at `databaseUrl`. */
-export function useTestEnv(databaseUrl: string): void {
-  scrubEnv()
-  Object.assign(process.env, {
+/** Exactly what server/env.ts needs, pointed at `databaseUrl` (the flows' servers start with this too). */
+export function testEnv(databaseUrl: string, authUrl = TEST_AUTH_URL): Record<string, string> {
+  return {
     DATABASE_URL: databaseUrl,
     BETTER_AUTH_SECRET: 'api-tests-secret-at-least-32-characters!!',
-    BETTER_AUTH_URL: TEST_AUTH_URL,
+    BETTER_AUTH_URL: authUrl,
     ADMIN_EMAILS: TEST_ADMIN_EMAIL,
     SIGNUP_ALLOWLIST: '',
-  })
+  }
+}
+
+/** This process's environment = testEnv(databaseUrl), nothing from the root .env. */
+export function useTestEnv(databaseUrl: string): void {
+  scrubEnv()
+  Object.assign(process.env, testEnv(databaseUrl))
 }

@@ -10,7 +10,9 @@
 //
 // The root `postinstall` runs --keep-mode, because a fork's first sync runs the
 // fork's OLD sync.ts: `bun install` after the merge is the only new code it runs.
-// Outside a merge (a clean copy, a deploy, a fresh clone) it does nothing.
+// It is guarded in the script line itself (`test -e .git/MERGE_HEAD && …`), so
+// outside a merge (a clean copy, a deploy image, a fresh clone) this file never
+// loads: no prettier, zod or dev dependency needed, nothing printed.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'

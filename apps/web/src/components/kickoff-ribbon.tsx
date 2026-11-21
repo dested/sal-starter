@@ -1,4 +1,4 @@
-import project from '../../../../project.json'
+import project from '../../../../project.json' with { type: 'json' }
 
 // Dev-only nag while project.json `look` is null: the starter's neutral
 // placeholder is still on. Never renders in a build or after the kickoff.

@@ -387,10 +387,11 @@ steps.push([
   'bun run dev',
   surfaces.includes('web') ? `# → http://localhost:${apiPort}` : '# opens the desktop window',
 ])
-if (noAuth) steps.push(['bun run test:e2e:update', '# e2e baselines without the sign-in nav'])
 steps.push(['/kickoff in Claude Code', '# the look, `/`, icon: before any feature work'])
-if (surfaces.includes('web'))
+if (surfaces.includes('web')) {
   steps.push(['bun run demo:drop', "# the Post demo: a fork can't build or test until it's gone"])
+  steps.push(['bun run test:flows:update', "# flow screenshots show this project's name and look"])
+}
 if (easPending) steps.push([EAS_LATER, '# the EAS project: easProjectId, APP_VARIANT, channels'])
 if (surfaces.includes('desktop')) steps.push(['bun run release', '# unpacked build in release/'])
 steps.forEach(([cmd, note], i) =>
