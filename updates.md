@@ -2,6 +2,10 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-21 — first fresh probe of the checks: 80%
+
+Asked (Sal via the /w/code lead): the morning testing review. Found: `gate probe --max 40 --seed 1` on 6aa609c, bugs the tests had never seen, caught 32 of 40 (80%: types 15, rules 9, flows 6, api 2) and missed 8: `apps/web/server.ts:160`, `:17`, `:108`, `:141`, `apps/web/server/auth.ts:50`, `:14`, `apps/web/src/app/sign-in.tsx:25`, `apps/web/src/app/sign-up.tsx:26`. Results: `.git/gate/probes/2026-11-21T13-47-38.431Z-6aa609c.json`. The replay of the audit's 40 was 100%; the fresh run is the number to watch. Not fixed: waiting on Sal's answer about a nightly run.
+
 ## 2026-11-20 — testing standard part 3: report mode everywhere
 
 Asked (Sal via the /w/code lead): "i dont want anything gates for now." Done: `gate.json` mode `report`; `scripts/gate.ts` `keepForkMode` / `--keep-mode` replaced by `fitForkGate` / `--fit` (always report, fitted to surfaces), called by sync; the root `postinstall` deleted; CLAUDE.md rule 30 and Testing, cliffnotes, README, MIGRATION §23, verify.md and the plan say `gate` runs and reports; cliffnotes "Not built" now says better-auth's rate limiter is on in production and the flows depend on it. Verified: the four scripts, `gate`, scratch forks (init → report; a block fork synced → report; `--fit`), each seen red on the old code.
