@@ -31,6 +31,10 @@ export default defineConfig({
   },
   use: {
     trace: 'retain-on-failure',
+    // A local production server answers in milliseconds: a wait that runs 10 s is a
+    // failure, not a slow page, so it fails there instead of at the 30 s test timeout.
+    navigationTimeout: 10_000,
+    actionTimeout: 10_000,
     screenshot: 'only-on-failure',
   },
   projects: [
