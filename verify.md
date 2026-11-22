@@ -16,11 +16,12 @@ bun install                 # lockfile resolves; postinstall regenerates the Pri
 bun run typecheck           # tsc --noEmit: root (scripts/, recipes/) + every workspace. Must be green
 bun run test:rules          # names check, then *.rule.test.ts in every workspace, no environment (ssr-state, loader,
                             # env-schema, access, asset-path, test-DB guard, demo gate, tokens + kickoff, brand,
-                            # mobile api-url + OTA hold)
+                            # mobile api-url + OTA hold + app.config universal)
 bun run test:api            # *.api.test.ts: web on a fresh clone of sal_starter_test (builders contract, real-cookie
                             # context, me, posts.*, every procedure tested, access table current), trpc-ipc round
                             # trips, desktop router
-bun run test:flows          # build, then 16 flows × desktop + phone on prod servers (free ports, clones); ~15 s
+bun run test:flows          # build, then 20 flows × desktop + phone on prod servers (free ports, clones); ~30 s.
+                            # no-overflow.flow.spec.ts loads every page in its PAGES list at 320–1920px
 bun run access:table        # rewrites apps/web/server/router.access.md; no diff unless a permission changed
 bun run build               # apps/web/dist/client + dist/server
 bun pm why react            # exactly one react (the Expo SDK's version)
@@ -56,7 +57,7 @@ Run in `apps/mobile`:
 
 ```bash
 bun run doctor                                  # expo-doctor + expo-modules-autolinking verify (a patch inside the release age fails its version check until it clears)
-bun run test                                    # api-url resolution, OTA hold gate
+bun run test                                    # api-url resolution, OTA hold gate, app.config.ts universal (supportsTablet, ITMS-90474)
 bun run fingerprint                             # ios + development hash (= Home's fingerprint row); --platform android, --variant, --json
 bunx expo-modules-autolinking search            # app-native (+ @app/native-example in the template only)
 bunx expo export --platform ios --output-dir .cache/export   # bundles the whole app (no device needed); --platform android too
@@ -125,7 +126,7 @@ Allowlist by hand (bx, a scratch DB): with `SIGNUP_ALLOWLIST=@allowed.test` anot
 
 ## Device `[heavy — ask first]`
 
-Limrun is the default (the `limrun` skill; billed minutes). With `bun run dev` up on Windows/WSL:
+On the iOS machine `~/.claude/sal/mobile.md`'s order picks (the Mac mini first; Limrun, the `limrun` skill, billed minutes, only when neither Mac answers). With `bun run dev` up on Windows/WSL:
 
 1. `lim xcode build . --configuration Debug --expo-app-dir apps/mobile --upload <bundleId>.dev/<branch>-debug.zip`, then a simulator with a tunnel to Metro + API.
 2. Launch: the native splash hands off to BrandSplash with no jump, the mark grows as it fades, then sign-in.
@@ -134,6 +135,7 @@ Limrun is the default (the `limrun` skill; billed minutes). With `bun run dev` u
 5. Buttons give a press scale; a field near the bottom scrolls above the keyboard; a toast renders in token colors; a sideways drag mid-screen doesn't go back.
 6. Kill the API → Home shows the "Can’t reach the server" card; Retry recovers once it's back.
 7. Toggle the simulator's dark mode → the app does NOT change: same colors, keyboard and alerts in the look's scheme.
+8. iPad (CLAUDE.md rule 32): the same dev client on a 13-inch iPad simulator (`iPad Pro 13-inch`, portrait; `lim ios create --model ipad` on Limrun). It installs as an iPad app (full screen, no iPhone letterbox or 2x button). Walk every screen (sign-in, sign-up, Home and each screen the fork adds) and screenshot each one next to the iPhone's: content sits in a centred column with even margins, nothing stretched edge to edge, nothing clipped, the keyboard never covers the focused field. Rotate to landscape: still a centred column. A layout that only looks right on one of the two is a bug in the layout, not the device.
 
 Sal's iPhone: expo-wsl-ios (`npx expo-wsl-ios run` in `apps/mobile`; Sal plugs in and trusts). The Mac only for what those can't do (`bun run ios:prebuild`, `bun run ios:device`).
 

@@ -130,7 +130,8 @@ src/
 public/                favicon.svg, apple-touch-icon.png, icon-192/512.png, manifest.webmanifest (all from
                        `bun run brand`), robots.txt
 e2e/                   flows: flow.ts (the fixture: a prod server per worker, world, the automatic checks), server.ts,
-                       coverage.ts (the every-screen reporter) + screens.ts, *.flow.spec.ts, __screenshots__/<project>/
+                       coverage.ts (the every-screen reporter) + screens.ts, overflow.ts + no-overflow.flow.spec.ts
+                       (every page at ten widths, rule 31), *.flow.spec.ts, __screenshots__/<project>/
 index.html             Vite entry HTML: stylesheet <link>, icon + manifest links, Crow's Nest tag, placeholders
 vite.config.ts         `~` alias, React Compiler, themeMeta (color-scheme + theme-color), noTemplateDemo gate
 prisma/schema.prisma   DB schema (User/Session/Account/Verification + the demo's Post)
@@ -208,7 +209,9 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 
 30. **Run `gate` before any push to main, and fix what's red.** Every change: `gate --dirty` (or the four scripts: typecheck, `test:rules`, `test:api`, `test:flows`). Before a push: `gate`, which runs them on a clean copy of the commit and reports. Nothing stops the push (`gate.json` is in report mode, decisions 2026-11-20); pushing red is still shipping a known break, so make it green first. A check stays only once it has been seen red, and skipped counts as failed: no `test.skip`, `test.todo`, or a test that quietly passes when an env var is missing.
 
-31. **Every screen has a flow, and every flow runs at both widths.** A new route in `src/app/routes.tsx` (or a new state a person can reach, like an empty list or an error screen) ships with a `*.flow.spec.ts` that lands on it. Every flow runs in both Playwright projects, `desktop` (1280×800) and `phone` (390×844, touch); never pin one to a project. A full `test:flows` fails naming any route (or the 404) that no flow landed on in a project (`e2e/coverage.ts`), and fails any flow that logs a `console.error`, throws, gets a 5xx or overflows sideways (`e2e/flow.ts`).
+31. **Every screen has a flow, and every flow runs at both widths.** A new route in `src/app/routes.tsx` (or a new state a person can reach, like an empty list or an error screen) ships with a `*.flow.spec.ts` that lands on it. Every flow runs in both Playwright projects, `desktop` (1280×800) and `phone` (390×844, touch); never pin one to a project. A full `test:flows` fails naming any route (or the 404) that no flow landed on in a project (`e2e/coverage.ts`), and fails any flow that logs a `console.error`, throws, gets a 5xx or overflows sideways (`e2e/flow.ts`). Every route also gets a line in `PAGES` in `e2e/no-overflow.flow.spec.ts`, which loads each page at ten widths from 320 to 1920 and fails on a sideways scroll or on text sticking out of its box, naming the path, width, element and pixels (`e2e/overflow.ts`); its first test names any route the list is missing.
+
+32. **Every fork is a universal app; layouts key off the window size.** `apps/mobile/app.config.ts` keeps `ios.supportsTablet: true`, never `false` (an iPhone-only app runs letterboxed on an iPad: Tell Santa shipped that). A locked `orientation` (`portrait` or `landscape`) needs `ios.requireFullScreen: true`, or App Store validation refuses it (ITMS-90474). `apps/mobile/app.config.rule.test.ts` fails on either. Layouts respond to the window, never the device: a max-width or `useWindowDimensions`, never `Platform.isPad` or a model check, because an iPad window can be resized on iOS 27 even with `requireFullScreen`. `Screen` puts content in a centred `max-w-2xl` column, which never binds on a phone; a sheet or full-bleed screen does the same. Check every screen on a 13-inch iPad simulator in portrait as well as an iPhone (`verify.md` → Device).
 
 ## Architecture flows
 
@@ -255,7 +258,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 - **Talks to the web server.** Same `/api/trpc` and `/api/auth/*`; there is no second API. `src/lib/resolve-api-url.ts` (pure, tested) resolves the base URL, wrapped by `src/lib/api-url.ts`: `EXPO_PUBLIC_API_URL` if set, otherwise in `__DEV__` the LAN host from Metro's `hostUri` (IPv6 hosts keep their brackets) plus `project.json` `apiPort` (passed through `app.config.ts` `extra`), otherwise the deployed server `extra.apiUrl` (`https://<name>.dested.com`). Never a throw: an OTA bundle that can't start gets rolled back silently.
 - **Auth.** `src/lib/auth-client.ts` = better-auth `expoClient` with SecureStore (cookie + cached session, so a cold start has no signed-out flash). The tRPC link sends the cookie as a `Cookie` header with `credentials: 'omit'`. Server side, `server/auth.ts` has `plugins: [expo()]` and `trustedOrigins` for the app schemes (`exp://` dev only). A refused sign-up is `error.code === 'SIGNUP_CLOSED'` (status 403); show `error.message`.
 - **Root layout.** `GestureHandlerRootView` → `KeyboardProvider` → React Query/tRPC → navigation `ThemeProvider` (`src/lib/nav-theme.ts`, from `colors`; dark = `look.scheme`) → StatusBar, Stack, sonner-native `Toaster`, `KickoffRibbon`; then `<BrandSplash ready onGone />` last, rendered from the first frame. The native splash is held until BrandSplash has drawn its exact copy and hides it; BrandSplash leaves once the cached session and the fonts (`src/lib/fonts.ts` `FONTS`) are ready. The Stack mounts only after the session resolves, so the guard never flashes the wrong side.
-- **Screens use `Screen`** (`src/components/screen.tsx`): safe area (`edges`), background, scroll and keyboard avoidance (react-native-keyboard-controller). Don't hand-roll SafeAreaView + ScrollView + KeyboardAvoidingView.
+- **Screens use `Screen`** (`src/components/screen.tsx`): safe area (`edges`), background, scroll and keyboard avoidance (react-native-keyboard-controller), and a centred `max-w-2xl` column on a wide window (an iPad; rule 32). A screen's `className` can narrow it (`max-w-md`). Don't hand-roll SafeAreaView + ScrollView + KeyboardAvoidingView.
 - **Button** (`src/components/ui/button.tsx`): light haptic + Reanimated press scale (skipped with reduced motion). Never give a Pressable a `({ pressed }) => …` style function next to `className`: Uniwind drops the className.
 - **Icons:** `lucide-react-native` (same names as web's `lucide-react`); color from `colors.<role>` (the `color` prop takes hex).
 - **Fonts:** `bunx expo install @expo-google-fonts/<family>`, add the weights to `FONTS` in `src/lib/fonts.ts`, map them in `global.css` `@theme` (one family name per weight). Runtime-loaded, so a font swap is JS-only (hot reload / OTA).
@@ -271,7 +274,7 @@ server/generated/      prisma-client generator output (gitignored; postinstall /
 - **Machines.** Windows/WSL: editor, Postgres, `bun run dev` (API + Metro). Run and test on Limrun (the `limrun` skill: `lim xcode build`, then a simulator with a tunnel to Metro + API). Sal's iPhone: expo-wsl-ios (`npx expo-wsl-ios run`). Distribution: EAS (`build:*`, `ota:*`). The Mac (`ios:prebuild`, `ios:device`) only for what those can't do.
 - **Upgrading Expo.** `bun run upgrade:expo [--check] [--sdk <n>] [--json]` (the `upgrade-expo` skill for a major). It respects the 3-day release age, lists what's blocked and when it clears, aligns the catalog React, and says from the fingerprints whether the dev client needs a rebuild.
 - **Fork gotchas.** Stacks keep `fullScreenGestureEnabled: false` (iOS 26 otherwise turns any sideways drag into go-back). App Store Connect can reject an upload for a missing `NSMicrophoneUsageDescription` when a linked SDK references the mic API, even if the app never records: add a plain "never uses the microphone" string. Expo runs config-plugin mods last-registered first: a plugin whose Info.plist mod must run after `expo-build-properties` is listed before it.
-- **Checks.** `bun run doctor` (expo-doctor + `expo-modules-autolinking verify`), `bun run test` (the `*.rule.test.ts` files), `bunx expo export --platform ios` (bundles without a device). No linter, no `expo lint`.
+- **Checks.** `bun run doctor` (expo-doctor + `expo-modules-autolinking verify`), `bun run test` (the `*.rule.test.ts` files, `app.config.rule.test.ts` among them: universal, rule 32), `bunx expo export --platform ios` (bundles without a device), every screen on an iPhone and a 13-inch iPad simulator (`verify.md` → Device). No linter, no `expo lint`.
 
 ## Desktop (apps/desktop)
 
@@ -319,7 +322,7 @@ Create `src/app/<name>.tsx` exporting a `<NamePage>` component. Add it to `src/a
 { path: '<name>', Component: NamePage, loader: nameLoader }
 ```
 
-A protected page's loader starts with `await requireSession(args)` (rule 26). A data page prefetches through `context.get(clientsContext)`, which works on both sides. Nested paths work the same as standard RR — see https://reactrouter.com/start/data/routing.
+Then a line in `PAGES` in `e2e/no-overflow.flow.spec.ts` (rule 31) and a flow that lands on it. A protected page's loader starts with `await requireSession(args)` (rule 26). A data page prefetches through `context.get(clientsContext)`, which works on both sides. Nested paths work the same as standard RR — see https://reactrouter.com/start/data/routing.
 
 ### Add a tRPC procedure
 

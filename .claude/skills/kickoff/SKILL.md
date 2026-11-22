@@ -145,8 +145,13 @@ Work through every item; each is a place the placeholder survives otherwise.
   (the tests stay red while the demo is present: `bun run demo:drop`).
 - `bx`: screenshot `/`, sign-in and the signed-in page at desktop width and at
   390px. No ribbon. Nothing still neutral grey that should carry the look.
-- Mobile: run it on Limrun (`limrun` skill) and screenshot the first screen. If
-  that isn't possible this session, say mobile is unverified.
+- `bun run test:flows` green, `no-overflow.flow.spec.ts` included: the new
+  pages fit every width from 320 to 1920px with nothing sticking out sideways.
+- Mobile: run it on a simulator (the machine order in `~/.claude/sal/mobile.md`:
+  the Mac mini first, Limrun only when neither Mac answers) and screenshot every
+  screen on an iPhone and on a 13-inch iPad in portrait (`verify.md` → Device,
+  step 8). On the iPad the content sits in a centred column, never stretched or
+  letterboxed. If that isn't possible this session, say mobile is unverified.
 - `bun run build` green (it fails while the demo is present).
 - `bun run test:flows:update` once the pages are final, and review the new
   baselines before committing them.

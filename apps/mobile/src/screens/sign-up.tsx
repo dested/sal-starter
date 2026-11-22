@@ -24,7 +24,7 @@ export function SignUpScreen() {
   }
 
   return (
-    <Screen className="mx-auto w-full max-w-md justify-center gap-8">
+    <Screen className="max-w-md justify-center gap-8">
       <Text className="font-display text-4xl font-bold tracking-tight text-foreground">
         Create account
       </Text>
