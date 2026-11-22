@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url'
 import { isAssetPath } from './server/asset-path'
 import { auth } from './server/auth'
 import { env } from './server/env'
+import { healthz } from './server/health'
 import { formatError, log, requestLogger, startupBanner } from './server/logger'
-import { prisma } from './server/prisma'
 import { appRouter } from './server/router'
 import { createContext } from './server/trpc'
 
@@ -29,16 +29,8 @@ async function createServer() {
   // One tidy log line per request (status + timing), asset noise filtered out.
   app.use(requestLogger(isProd))
 
-  // Liveness/readiness probe — pings the DB. Drydock's health check hits it.
-  app.get('/healthz', async (_req, res) => {
-    try {
-      await prisma.$queryRaw`SELECT 1`
-      res.json({ status: 'ok', uptime: process.uptime() })
-    } catch (e) {
-      log.error(`healthz db check failed: ${formatError(e)}`)
-      res.status(503).json({ status: 'error', error: 'database unreachable' })
-    }
-  })
+  // Pings the DB and reports the deployed commit (server/health.ts).
+  app.get('/healthz', healthz())
 
   // better-auth handler — mounted BEFORE express.json() (better-auth reads
   // the raw body itself).

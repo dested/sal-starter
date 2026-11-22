@@ -114,7 +114,7 @@ Need the root `.env` `DATABASE_URL` to reach Postgres; the tests use the same se
 ```bash
 bun run test:flows          # build + every flow at both widths; ends with "coverage: every screen walked in desktop and phone (…)"
 cd apps/web && bunx playwright test auth.flow.spec.ts   # one file on the existing build (coverage says "partial run")
-curl -s http://localhost:4780/healthz          # {"status":"ok",...} with bun run dev up
+curl -s http://localhost:4780/healthz          # {"status":"ok","uptime":…,"commit":null} with bun run dev up (commit = DRYDOCK_COMMIT when deployed)
 ```
 
 Screenshot diffs after an intentional UI change: `bun run test:flows:update`, then review and commit the PNGs (`apps/web/e2e/__screenshots__/{desktop,phone}/`). A failing flow's trace and the server's output are in `bunx playwright show-report` (run in `apps/web`).
@@ -144,4 +144,4 @@ Sal's iPhone: expo-wsl-ios (`npx expo-wsl-ios run` in `apps/mobile`; Sal plugs i
 - Before any `eas update`: `eas fingerprint:compare --build-id <build>` says the local runtime matches the build's.
 - OTA: publish a visible JS change with `bun run ota:preview --message "…"`, background and reopen the app → it reloads into the change (not under the splash).
 - Promote: `bun run ota:promote` → the production build reloads into the same update (same update group id in `eas update:list`).
-- Drydock: push → deploy green (a fork's deploy fails while the demo is present), `/healthz` 200, sign up on the deployed URL, the host shows up under Crow's Nest → Sites → Waiting to be claimed.
+- Drydock: push → deploy green (a fork's deploy fails while the demo is present), `/healthz` 200 (with `"commit":"<the pushed sha>"` once the app's Live check is on), sign up on the deployed URL, the host shows up under Crow's Nest → Sites → Waiting to be claimed.

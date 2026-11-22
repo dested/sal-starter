@@ -2,6 +2,10 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-21 — `/healthz` reports the deployed commit (the Live check's half)
+
+Asked (the /w/code lead): the public standard says Live can require a path to report the new commit, and that a new project starts from this starter with it. Done: `apps/web/server/health.ts` (`healthz()`, mounted by `server.ts`) answers `{ status, uptime, commit }`, `commit` = `DRYDOCK_COMMIT` (a new `deployKeys` entry in `server/env.ts`, `optionalSecret`) or `null`; status codes and the 503 body unchanged. `test/env.ts` scrubs `DRYDOCK_COMMIT`; flow servers set it to `FLOW_COMMIT` (`e2e/server.ts`). Tests: `server/health.api.test.ts` (`/healthz`: null outside a deploy, 503 when the DB is down), `e2e/health.flow.spec.ts` (`health/commit`: the body contains `"commit":"<FLOW_COMMIT>"`, desktop + phone). Docs: CLAUDE.md Testing (Live row + paragraph, layout), cliffnotes (Health, routes, file map), README Deploy, verify.md. Seen red: handler without `commit` and with 500 for 503 failed both API tests and both flow runs. No MIGRATION note: a synced fork merges it; turning the check on is a Drydock portal setting per app.
+
 ## 2026-11-21 — private report pages out, the public standard linked
 
 Asked (the /w/code lead): this repo is public, so take out the two report pages written for Sal alone and link the now-public standard. Done: the strategy report page deleted from `plans/artifacts/` (the build-review page never reached a pushed commit); the plan's evidence line points at https://github.com/dested/testing-standard instead; the standard linked once each in CLAUDE.md → Testing, the cliffnotes Tests line and the README's Testing. Verified: no tracked file names either page or its claude.ai links; typecheck, the names check, gate.

@@ -19,6 +19,12 @@ const optionalKeys = {
   // EXAMPLE_API_KEY: optionalSecret,
 }
 
+// Set by Drydock, never by hand: the deployed commit (the image tag), on an app
+// whose Live check is on. /healthz reports it; unset (dev, tests) is null.
+const deployKeys = {
+  DRYDOCK_COMMIT: optionalSecret,
+}
+
 const schema = z
   .object({
     PORT: z.coerce.number().int().min(1).max(65535).default(DEFAULT_PORT),
@@ -32,6 +38,7 @@ const schema = z
     /** Emails whose sessions pass adminProcedure (ctx.isAdmin). */
     ADMIN_EMAILS: emailList,
     ...optionalKeys,
+    ...deployKeys,
   })
   .transform((e) => ({ ...e, BETTER_AUTH_URL: e.BETTER_AUTH_URL ?? `http://localhost:${e.PORT}` }))
 

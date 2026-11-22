@@ -16,6 +16,9 @@ const BUILD = new URL('../dist/server/entry-server.js', import.meta.url)
 // Passed through from the runner: what a process needs to run, never a key.
 const PASSTHROUGH = ['PATH', 'HOME', 'USER', 'LANG', 'LC_ALL', 'TZ', 'TMPDIR', 'BUN_INSTALL']
 
+/** What a flow server reports as its deployed commit (DRYDOCK_COMMIT, as Drydock sets it). */
+export const FLOW_COMMIT = 'f10e5e7f10e5e7f10e5e7f10e5e7f10e5e7f10e5'
+
 export type FlowServer = {
   url: string
   /** Everything the server printed so far, and the offset a test started at. */
@@ -76,7 +79,7 @@ export async function startFlowServer(template: string, suffix: string): Promise
     const value = process.env[key]
     if (value !== undefined) env[key] = value
   }
-  Object.assign(env, testEnv(database, url))
+  Object.assign(env, testEnv(database, url), { DRYDOCK_COMMIT: FLOW_COMMIT })
   const child = spawn('bun', ['server.ts'], {
     cwd: WEB_DIR,
     env,

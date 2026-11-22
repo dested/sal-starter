@@ -30,7 +30,7 @@ An SSR React starter template, a Bun workspace with an optional Expo app (iOS + 
 - **Migrations:** `bun run db:migrate --name <what>` (dev) · `bun run db:migrate:create` (hand-written SQL) · `bun run db:migrate:sql -o <file>` (agent shells, where `migrate dev` refuses; CLAUDE.md → Add a DB table) · `bun run db:deploy` (prod/CI). Never `bunx prisma` (npm latest is the Prisma 8 RC)
 - **Ship a mobile fix (OTA):** in `apps/mobile`: `bun run ota:preview --message "…"` → test on a preview build → `bun run ota:promote` (republishes that exact update to production). Hotfix straight to prod: `bun run ota:prod --message "…"`. Check `eas fingerprint:compare --build-id <id>` before the first update to a build. Run `eas` only in `apps/mobile`, never at the root
 - **Mobile checks:** `bun run --cwd apps/mobile doctor` · `bun run --cwd apps/mobile test` · `bunx expo export --platform ios` (in `apps/mobile`) · `bun run --cwd apps/mobile fingerprint` (= Home's `fingerprint:` row)
-- **Health:** `GET /healthz` (pings the DB)
+- **Health:** `GET /healthz` (`server/health.ts`): pings the DB (503 when it's down) and reports `commit`, the `DRYDOCK_COMMIT` Drydock sets on an app whose Live check is on (`null` otherwise). Turn the check on in Drydock → Project → Settings → Live check: path `/healthz`, containing `"commit":"{sha}"`
 - **Verification recipes:** `verify.md`
 - **Day-one fact:** server-only code lives in `apps/web/server/` — never import it from `src/*.tsx` (or from mobile) except `import type`.
 
@@ -103,11 +103,12 @@ server.ts                Express entry: request logging, /healthz, auth + tRPC m
                          vite (dev) / static+SSR (prod), startup banner. Dev AND prod.
 server/
 ├── env.ts               zod-validated env (PORT, DATABASE_URL, BETTER_AUTH_*, SIGNUP_ALLOWLIST, ADMIN_EMAILS), parsed at import
-│                        (throws → no boot); optionalKeys / requireEnv / hasEnv; re-exports env-schema
+│                        (throws → no boot); optionalKeys / requireEnv / hasEnv; deployKeys (DRYDOCK_COMMIT); re-exports env-schema
 ├── env-schema.ts        optionalSecret, emailList, MissingEnvError, requireValue: no process.env (+ rule test)
 ├── access.ts            SIGNUP_ALLOWLIST + ADMIN_EMAILS checks, pure (lists passed in): emailMatches, isAdminEmail,
 │                        signUpAllowed (+ rule test)
 ├── asset-path.ts        isAssetPath(): known asset extensions 404 before SSR; dotted page paths render (+ rule test)
+├── health.ts            GET /healthz: DB ping + `commit` (DRYDOCK_COMMIT, the Live check) (+ health.api.test.ts)
 ├── logger.ts            ANSI request logger, startup banner, formatError
 ├── prisma.ts            PrismaClient singleton (HMR-safe) via pg adapter, sessions pinned to UTC
 ├── auth.ts              better-auth instance + Session type; databaseHooks.user.create.before → 403 SIGNUP_CLOSED
@@ -149,9 +150,9 @@ src/
 public/                  favicon.svg, apple-touch-icon.png, icon-192/512.png, manifest.webmanifest (all `bun run brand`), robots.txt
 e2e/                     flow.ts (the fixture every flow imports: worker server, world.signIn/account, emptyDatabase,
                          a client address per test, the automatic checks), server.ts (prod server on a free port + its
-                         clone), coverage.ts (reporter: every route + 404 landed on in each project), screens.ts (+ rule
+                         clone, DRYDOCK_COMMIT = FLOW_COMMIT), coverage.ts (reporter: every route + 404 landed on in each project), screens.ts (+ rule
                          test: route patterns from routes.tsx), global-setup.ts (build present, template ready, sweep),
-                         shell/auth/demo .flow.spec.ts, __screenshots__/{desktop,phone}/
+                         shell/auth/demo/health .flow.spec.ts, __screenshots__/{desktop,phone}/
 test/                    the test harness: db.ts (template: gate's DATABASE_URL or <db>_test, made/migrated/emptied; clones
                          <template>_<suffix>; assertTestDatabase guard; + rule test), env.ts (scrubEnv, useTestEnv,
                          TEST_ADMIN_EMAIL, testEnv for flow servers), people.ts (test emails + password, no server import), preload.rules.ts (no env), preload.api.ts (clone per process, dropped after),
@@ -258,7 +259,7 @@ Routes are explicit in `src/app/routes.tsx` (no file-based routing). All page ro
 | `/sign-in`    | Sign in (`?next=`)            | `src/app/sign-in.tsx`            | `redirectIfSignedIn`                                      |
 | `/sign-up`    | Sign up (`?next=`)            | `src/app/sign-up.tsx`            | `redirectIfSignedIn`                                      |
 | `/dashboard`  | Protected signed-in page      | `src/app/dashboard.tsx`          | `dashboardLoader` (`requireSession` + prefetch me, posts) |
-| `/healthz`    | DB health JSON                | `server.ts`                      | —                                                         |
+| `/healthz`    | DB ping + deployed `commit`   | `server/health.ts`               | —                                                         |
 | `/api/auth/*` | better-auth                   | `server.ts` (`toNodeHandler`)    | —                                                         |
 | `/api/trpc/*` | tRPC                          | `server.ts` → `server/router.ts` | —                                                         |
 | unmatched GET | 404 page (status 404)         | `error-boundary.tsx`             | —                                                         |

@@ -11,10 +11,12 @@ export { TEST_ADMIN_EMAIL } from './people'
 
 export const TEST_AUTH_URL = 'http://localhost:4780'
 
-/** Removes every key the root .env defines (and DATABASE_URL) from process.env. */
+/** Removes every key the root .env defines (and DATABASE_URL, DRYDOCK_COMMIT) from process.env. */
 export function scrubEnv(): void {
   for (const key of Object.keys(rootEnv())) delete process.env[key]
   delete process.env.DATABASE_URL
+  // A deploy's commit: a test that saw one would report a deploy that isn't there.
+  delete process.env.DRYDOCK_COMMIT
 }
 
 /** Exactly what server/env.ts needs, pointed at `databaseUrl` (the flows' servers start with this too). */

@@ -88,6 +88,7 @@ server/
 ├── env-schema.ts    the env helpers that don't read process.env (optionalSecret, emailList, MissingEnvError)
 ├── access.ts        SIGNUP_ALLOWLIST / ADMIN_EMAILS checks, pure (+ rule test) (rule 25)
 ├── asset-path.ts    isAssetPath(): which paths 404 before SSR (+ rule test)
+├── health.ts        GET /healthz: DB ping + `commit` (DRYDOCK_COMMIT, the Live check) (+ health.api.test.ts)
 ├── logger.ts        color request logging, startup banner, error formatting
 ├── prisma.ts        PrismaClient singleton (survives HMR; pg adapter)
 ├── auth.ts          better-auth instance + Session type; sign-up hook enforces the allowlist
@@ -398,7 +399,9 @@ Five checks, the same in every repo built from this one. `gate` runs the first f
 | Rules | pure logic where a wrong answer is silent and has many cases; no database, network or server (rule 28)     | `bun run test:rules` |
 | API   | every tRPC procedure through the real router on a real Postgres, plus the committed access table (rule 29) | `bun run test:api`   |
 | Flows | a person's path through the real app in a real browser                                                     | `bun run test:flows` |
-| Live  | after a deploy: the live site reports the new commit and passes smoke flows                                | (later)              |
+| Live  | after a deploy: the live site reports the new commit                                                       | Drydock's Live check |
+
+**Live.** The app's half is `commit` in `GET /healthz` (`server/health.ts`): the `DRYDOCK_COMMIT` Drydock sets (the image tag, the commit sha) on an app whose Live check is on, `null` everywhere else. The check itself is turned on per app in Drydock, Project → Settings → Live check, with the path `/healthz` containing `"commit":"{sha}"`; never by hand in `drydock.yaml`. `server/health.api.test.ts` covers `null` and the database-down 503; `e2e/health.flow.spec.ts` proves the production server reports the commit (flow servers set `DRYDOCK_COMMIT` to `FLOW_COMMIT`).
 
 `bun run test` = rules then API. Every test file has exactly one of three names, checked first by `test:rules` (`scripts/test-names.ts` says which to use): `*.rule.test.ts` (bun:test, pure code), `*.api.test.ts` (bun:test, the real router, handlers, Postgres or IPC), `*.flow.spec.ts` (Playwright, in `apps/web/e2e/`). A top-level `flows/` folder is bx's replays, not tests, and is skipped.
 

@@ -98,7 +98,7 @@ scripts/                 init, sync, add-surface, demo, no-auth, eas-setup, upgr
 recipes/                 add:ai / add:ws / add:jobs
 apps/web/                the SSR app and the API server
 ├── server.ts            Express entry: logging, /healthz, auth + tRPC mounts, vite/SSR
-├── server/              env, access, logger, prisma, auth, trpc, router (exports AppRouter), demo
+├── server/              env, access, health, logger, prisma, auth, trpc, router (exports AppRouter), demo
 ├── src/                 client: routes, pages, shadcn primitives, lib, styles
 ├── prisma/              schema + committed migrations
 └── e2e/                 Playwright specs + __screenshots__
@@ -162,7 +162,7 @@ The tests use the server and credentials of the root `.env` `DATABASE_URL` and n
 
 ## Deploy
 
-**Web: Drydock.** `drydock.yaml` at the root deploys `apps/web` (`kind: ssr`, `runtime: bun`, `workspace: "@app/web"`). `predeploy` runs `bun run db:deploy`, so committed migrations only; a failed migration fails the deploy. Drydock provides `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`; other keys go in Project → Environment. Every push to `master` redeploys. A fork's build fails while the Post demo is present.
+**Web: Drydock.** `drydock.yaml` at the root deploys `apps/web` (`kind: ssr`, `runtime: bun`, `workspace: "@app/web"`). `predeploy` runs `bun run db:deploy`, so committed migrations only; a failed migration fails the deploy. Drydock provides `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`; other keys go in Project → Environment. Every push to `master` redeploys. A fork's build fails while the Post demo is present. `GET /healthz` pings the database and reports `commit`, the deployed commit Drydock passes in `DRYDOCK_COMMIT` (`null` until the app's Live check is on): turn it on in Drydock → Project → Settings → Live check, path `/healthz` containing `"commit":"{sha}"`.
 
 **App: EAS.** See "Mobile" above. Builds and OTA updates are separate from the web deploy.
 
