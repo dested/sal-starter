@@ -2,6 +2,10 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-21 — CLAUDE.md machine order matches mobile.md
+
+Asked (Sal via the Tell Santa lead): rule 20 and the Mobile → Machines bullet still named Limrun as the default iOS runner. Done: both now follow `~/.claude/sal/mobile.md`: the Mac mini first, the MacBook when it doesn't answer, then (said aloud) expo-wsl-ios for Sal's iPhone or Limrun for a simulator; Android on the mini only. Docs only.
+
 ## 2026-11-21 — tablets and sideways overflow: two guards every fork inherits
 
 Asked (Sal via the Tell Santa lead): "make sure sal starter always works for tablets", and, after the fork's site overflowed sideways at a desktop width, "make sure this doesn't happen". Done: `apps/mobile/app.config.rule.test.ts` fails unless `ios.supportsTablet` is true, `isTabletOnly` isn't, and a locked orientation sets `ios.requireFullScreen` (ITMS-90474); `Screen` puts content in a centred `max-w-2xl` column (a max-width, so it follows the window, never the device; sign-in/up keep `max-w-md`); `apps/web/e2e/no-overflow.flow.spec.ts` + `e2e/overflow.ts` (adapted from Tell Santa) load every page in one `PAGES` list (the dashboard signed in) at 320, 375, 390, 430, 768, 1024, 1180, 1280, 1440 and 1920 px and fail on a sideways scroll or text sticking out of its clipping or card box, naming path, width, element and pixels, with a still attached; its first test names any route `PAGES` lacks. CLAUDE.md rule 32 (universal, window-keyed layouts) and rule 31's overflow line; verify.md Device step 8 (13-inch iPad, portrait); the kickoff checks name the iPad and the overflow flow. The template had no overflow to fix. Seen red: a planted 1500px block and a nowrap card (page scroll + box overflow), `/dashboard` dropped from `PAGES`, `supportsTablet: false`, `orientation: 'portrait'` alone. Not run: the iPad simulator pass (needs a Mac).
