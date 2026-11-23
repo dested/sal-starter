@@ -2,6 +2,11 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-23 — no store build without EAS Update; the channel in every binary
+
+Asked (Sal via the Tell Santa lead): Santa 1.0 shipped to the App Store from a `--no-eas` fork with expo-updates off; "fix sal starter so this never happens again." Done: `apps/mobile/app.config.ts` is now `appConfig(config, project, variant)` + `updatesProblem` + `withUpdatesRequired`, a dangerous mod that refuses a production `expo prebuild` / EAS Build without EAS Update ("EAS Update is off, so this production (App Store / Play Store) build would ship without over-the-air updates … Run `bun run --cwd apps/mobile eas:setup` …"); `updates.requestHeaders['expo-channel-name']` = APP_VARIANT so Mac / expo-wsl-ios / Limrun builds get updates; `apps/mobile/scripts/eas-ready.ts` runs before every `build:*`, `submit:*`, `ota:*`; init (`--no-eas`, failed or dry-run EAS step) and sync warn that store builds refuse until `eas:setup`; the kickoff's finish step says so. Tests in `app.config.rule.test.ts`: production url / channel / fingerprint runtime, preview + development channels, the refusal on both platforms, local-only dev/preview, a disabled or wrong-channel config; seen red by planting a fixed channel and a no-op guard. Verified: real `APP_VARIANT=production expo prebuild -p ios` and `-p android` refuse in the template (exit 1); development prebuild, `expo config` and `--type introspect` still pass; expo-updates' own plist/manifest writers put the channel in Expo.plist and AndroidManifest. Not run: a real EAS Build or a Mac archive of a linked fork.
+**Sync note for forks:** with an EAS project, the fingerprint (runtimeVersion) changes once (the channel header is hashed): ship the next binary from the synced tree before relying on OTA. Without one, run `bun run --cwd apps/mobile eas:setup` before any TestFlight or store build.
+
 ## 2026-11-21 — CLAUDE.md machine order matches mobile.md
 
 Asked (Sal via the Tell Santa lead): rule 20 and the Mobile → Machines bullet still named Limrun as the default iOS runner. Done: both now follow `~/.claude/sal/mobile.md`: the Mac mini first, the MacBook when it doesn't answer, then (said aloud) expo-wsl-ios for Sal's iPhone or Limrun for a simulator; Android on the mini only. Docs only.

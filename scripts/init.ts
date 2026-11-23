@@ -27,7 +27,8 @@
 //   6. With mobile: creates the EAS project under project.json `easOwner`
 //      (scripts/eas-setup.ts: easProjectId, APP_VARIANT per EAS environment, a
 //      protected production channel). Never fails init: without eas-cli or a
-//      login it prints the command to run later.
+//      login it prints the command to run later, and warns that production
+//      (store) builds refuse until it runs (app.config.ts withUpdatesRequired).
 // Everything after step 1 is left uncommitted for you to review. Then the
 // kickoff (.claude/skills/kickoff, `/kickoff` in Claude Code) sets the look.
 // Until it does, dev shows a "Kickoff pending" ribbon and `bun run test` fails.
@@ -35,7 +36,8 @@
 // Flags:
 //   --mobile        keep the Expo app (apps/mobile)
 //   --native-example  with --mobile: keep packages/native-example
-//   --no-eas        with --mobile: skip the EAS project (later: bun run --cwd apps/mobile eas:setup)
+//   --no-eas        with --mobile: skip the EAS project (later: bun run --cwd apps/mobile eas:setup;
+//                   local-only until then: production/store builds refuse)
 //   --dry-run-eas   with --mobile: print the EAS commands instead of running them
 //   --desktop       keep the Electron app (apps/desktop) next to web
 //   --desktop-only  keep only the Electron app: no web server, database or auth
@@ -358,7 +360,9 @@ let easPending = false
 if (surfaces.includes('mobile')) {
   if (noEas) {
     easPending = true
-    console.log(`  ${c.dim('skipped')} EAS project ${c.dim(`(--no-eas; later: ${EAS_LATER})`)}`)
+    console.log(
+      `  ${c.yellow('skipped')} EAS project ${c.dim(`(--no-eas; store builds refuse until: ${EAS_LATER})`)}`
+    )
   } else {
     const easArgs = ['scripts/eas-setup.ts', ...(dryRunEas ? ['--dry-run'] : [])]
     const eas = spawnSync('bun', easArgs, { stdio: 'inherit' })
@@ -392,9 +396,29 @@ if (surfaces.includes('web')) {
   steps.push(['bun run demo:drop', "# the Post demo: a fork can't build or test until it's gone"])
   steps.push(['bun run test:flows:update', "# flow screenshots show this project's name and look"])
 }
-if (easPending) steps.push([EAS_LATER, '# the EAS project: easProjectId, APP_VARIANT, channels'])
+if (easPending) {
+  steps.push([EAS_LATER, '# REQUIRED before the first TestFlight or store build (EAS Update)'])
+}
 if (surfaces.includes('desktop')) steps.push(['bun run release', '# unpacked build in release/'])
 steps.forEach(([cmd, note], i) =>
   console.log(`  ${c.dim(`${i + 1}.`)} ${cmd.padEnd(30)} ${c.dim(note)}`)
 )
 console.log()
+// Tell Santa 1.0 reached the App Store from a --no-eas fork with expo-updates
+// off (decisions 2026-11-23). Production builds now refuse without the EAS
+// project (app.config.ts withUpdatesRequired); say so where it can't be missed.
+if (easPending) {
+  console.log(
+    c.yellow(
+      c.bold(
+        `⚠ No EAS project yet: production (TestFlight / App Store / Play) builds refuse until \`${EAS_LATER}\` runs.`
+      )
+    )
+  )
+  console.log(
+    c.dim(
+      '  A store binary without it has no over-the-air updates, so every fix needs a new review.'
+    )
+  )
+  console.log()
+}

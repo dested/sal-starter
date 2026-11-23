@@ -16,6 +16,8 @@
 //   - a no-auth fork (`init --no-auth`: web without apps/web/server/auth.ts):
 //     the auth-only files (no-auth.ts NO_AUTH_PATHS) stay deleted the same way
 //   - forks older than `surfaces` get it (plus desktopPort, appId) filled in
+//   - a mobile fork without an EAS project is told store builds refuse until
+//     `eas:setup` runs (the refusal itself merges in with app.config.ts)
 //   - gate.json (scripts/gate.ts): always `report` mode (gate runs the checks
 //     and reports, it never blocks a push), fitted to the fork's surfaces
 // Real conflicts are listed for you to resolve. Finish with `git commit`.
@@ -150,3 +152,16 @@ console.log()
 console.log(c.bold(c.green(`✓ Merged ${ref}; install + typecheck green.`)))
 console.log(c.dim('  Review with `git diff --cached`, then `git commit` (or `git merge --abort`).'))
 console.log(c.dim('  `bun run test` names any token a new theme.css role needs in tokens.css.'))
+
+// A mobile fork with no EAS project can't make a store build any more
+// (app.config.ts withUpdatesRequired, decisions 2026-11-23): say so on every sync.
+if (project.surfaces.includes('mobile') && project.easProjectId === null) {
+  console.log()
+  console.log(
+    c.yellow(
+      c.bold(
+        '⚠ No EAS project (project.json easProjectId is null): production (TestFlight / App Store / Play) builds refuse until `bun run --cwd apps/mobile eas:setup` runs.'
+      )
+    )
+  )
+}

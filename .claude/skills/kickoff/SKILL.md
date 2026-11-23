@@ -163,5 +163,9 @@ Work through every item; each is a place the placeholder survives otherwise.
 - `decisions.md`: "Look: <direction>", with the two directions not picked as the
   rejected ones.
 - `updates.md` entry, `cliffnotes.md` if the map changed, then commit.
+- Mobile with `project.json` `easProjectId` still null (`init --no-eas`, or
+  eas-cli wasn't logged in): tell Sal `bun run --cwd apps/mobile eas:setup` is
+  required before the first TestFlight or store build. Production builds refuse
+  until it runs, so a store binary always has over-the-air updates.
 - After the first deploy: claim the host in the Crow's Nest dashboard
   (cn.dested.com), where it shows up as a pending site.
