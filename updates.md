@@ -2,6 +2,11 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-24 — sideload update prompt for APKs from appstore.dested.com
+
+Asked (the appstore lead, for Sal's App Store): a self-contained Android-only local module every APK-shipping fork copies. Done: `apps/mobile/modules/sideload-update/` (Kotlin `installerPackageName()`, `manifest.ts` zod copy of appstore's `AndroidManifest` schema 1, pure `updateState` + rule test seen red, `useSideloadUpdatePrompt()` hook, README); called once in `apps/mobile/src/app/_layout.tsx`. Production + sideloaded + Android only; 12 h throttle in SecureStore except while required; 5 s timeout; Update opens `installPageUrl`. Verified: typecheck, `bun run test`, `expo-modules-autolinking verify` + resolve (module found for Android), `expo export --platform android` (strings in the bundle). Not run: a Gradle/device build, so the Kotlin is unbuilt. `expo-doctor` fails only its version check (22 packages out of date, not from this change).
+**Sync note for forks:** the Android fingerprint (runtimeVersion) changes once (a new native module); ship the next APK from the synced tree. iOS is unchanged.
+
 ## 2026-11-23 — the fingerprint can't depend on the machine
 
 Asked (Sal via the Tell Santa lead): Santa's Mac-archived store build and WSL's `eas update` got different runtimeVersions (a5e2e73 vs 06bf86c) because `app.config.ts` passed `expo-font` absolute `require.resolve` paths. Done: the template's resolved config had no absolute path (only `_internal`, dropped by the fingerprint), so nothing to relativize; new `apps/mobile/fingerprint.rule.test.ts` runs `expo-updates fingerprint:generate --debug` for every variant × platform and fails on any repo-root, home-folder or absolute path in what's hashed (seen red with Santa's exact `['expo-font', { fonts: [require.resolve(…)] }]`); `scripts/fingerprint.ts` exports `generateFingerprint` for it (same CLI, hash unchanged: 89b1b54 production/ios); `fingerprint.config.js` now says what keeps local and EAS hashes equal; CLAUDE.md Fonts + EAS Update lanes. No Mac archive script exists in the template, so no read-back check to extend. Not run: a hash comparison on the Mac itself.

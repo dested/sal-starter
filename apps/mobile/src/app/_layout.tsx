@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { Toaster } from 'sonner-native'
 import { Uniwind } from 'uniwind'
+import { useSideloadUpdatePrompt } from '../../modules/sideload-update'
 import { BrandSplash } from '~/components/brand-splash'
 import { KickoffRibbon } from '~/components/kickoff-ribbon'
 import { appConfig } from '~/lib/app-config'
@@ -49,6 +50,8 @@ export default function RootLayout() {
   // under the splash or mid-exit.
   useEffect(() => startOta(), [])
   useOtaHold(!splashGone)
+  // A sideloaded production APK (appstore.dested.com) offers a new native build.
+  useSideloadUpdatePrompt()
 
   return (
     <GestureHandlerRootView style={styles.root}>
