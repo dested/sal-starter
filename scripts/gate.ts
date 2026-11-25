@@ -1,6 +1,6 @@
-// gate.json: this repo's contract with `gate` (destedtui), the command that runs
-// the four checks (types, rules, api, flows) on a clean copy of a commit and
-// reports. Every repo runs it in `report` mode (Sal, 2026-11-20: nothing is
+// gate.json: this repo's contract with `gate` (the testing-standard repo,
+// gate/), the command that runs the four checks (types, rules, api, flows) on
+// a clean copy of a commit and reports. Every repo runs it in `report` mode (Sal, 2026-11-20: nothing is
 // gated): it records each run and never blocks a push. A fork without the web
 // app has no database and no flows, so those entries go.
 //

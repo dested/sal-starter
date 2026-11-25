@@ -66,7 +66,7 @@ package.json             workspace root: catalog, proxy scripts
 bunfig.toml              linker = "hoisted", minimumReleaseAge = 259200 (3 days, in-repo so WSL/EAS/Drydock all get it)
 tsconfig.base.json       shared strict compiler options
 tsconfig.json            root typecheck: scripts/**, recipes/*.ts, recipes/*/recipe.ts (recipe files/ are checked by applying them)
-gate.json                the contract with `gate` (destedtui): mode report, setup, the database, types/rules/api/flows, probe
+gate.json                the contract with `gate` (testing-standard/gate): mode report, setup, the database, types/rules/api/flows, probe
 drydock.yaml             deploy seed (merge=ours with project.json, see .gitattributes)
 .easignore               EAS upload filter (replaces every .gitignore on EAS; keeps ios/, android/, plans out)
 scripts/

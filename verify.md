@@ -4,7 +4,7 @@
 
 ## Every change `[cheap]`
 
-The four checks, on a copy of the working tree with its own databases. `gate` is the testing standard's runner (destedtui, `gate.json` here); without it, run the four scripts (they need the root `.env` `DATABASE_URL` only for its Postgres server).
+The four checks, on a copy of the working tree with its own databases. `gate` is the testing standard's runner (`W:\code\testing-standard\gate`, https://github.com/dested/testing-standard/tree/main/gate; install: clone testing-standard, then `bun install && bun link` in `gate/`; `gate.json` here); without it, run the four scripts (they need the root `.env` `DATABASE_URL` only for its Postgres server).
 
 ```bash
 gate --dirty                # every change: types, rules, api, flows on a copy of HEAD + your edits

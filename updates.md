@@ -2,6 +2,10 @@
 
 > Terse, newest-first log: what was asked → what was done. One entry per finished task.
 
+## 2026-11-24 — gate points at the testing-standard repo
+
+Asked (the testing-standard lead): `gate` moved from destedtui to `W:\code\testing-standard\gate`. Done: the pointer in `CLAUDE.md` (Testing, gate.json), `verify.md` (with the install line), `cliffnotes.md` (gate.json row), the `scripts/gate.ts` header comment; one decisions.md line. Docs and comments only; plans/ and older history left as written.
+
 ## 2026-11-24 — sideload update prompt for APKs from appstore.dested.com
 
 Asked (the appstore lead, for Sal's App Store): a self-contained Android-only local module every APK-shipping fork copies. Done: `apps/mobile/modules/sideload-update/` (Kotlin `installerPackageName()`, `manifest.ts` zod copy of appstore's `AndroidManifest` schema 1, pure `updateState` + rule test seen red, `useSideloadUpdatePrompt()` hook, README); called once in `apps/mobile/src/app/_layout.tsx`. Production + sideloaded + Android only; 12 h throttle in SecureStore except while required; 5 s timeout; Update opens `installPageUrl`. Verified: typecheck, `bun run test`, `expo-modules-autolinking verify` + resolve (module found for Android), `expo export --platform android` (strings in the bundle). Not run: a Gradle/device build, so the Kotlin is unbuilt. `expo-doctor` fails only its version check (22 packages out of date, not from this change).

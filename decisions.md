@@ -2,6 +2,11 @@
 
 > Append-only log of choices with rejected alternatives. Never reverse one silently — add a superseding entry.
 
+## 2026-11-24 — `gate` lives in the testing-standard repo
+
+**Why:** Sal, 2026-11-24: "i need everything testing related to be here." `gate` moved out of destedtui to `W:\code\testing-standard\gate` (https://github.com/dested/testing-standard/tree/main/gate; install: clone testing-standard, `bun install && bun link` in `gate/`). Same command, flags and `gate.json`, so nothing here changed but the pointers; older entries that say destedtui mean this.
+**Rejected:** none; Sal's move.
+
 ## 2026-11-24 — Sideloaded APKs learn about a new native build from appstore.dested.com
 
 **Why:** Sal's App Store (https://appstore.dested.com) hosts his Android apps as APKs outside Google Play, and a sideloaded install has no store to tell it a new native build is out. JS-only fixes still arrive through EAS Update (same runtimeVersion); a new versionCode (a native change, rule 20) can't. `apps/mobile/modules/sideload-update` asks the store's manifest (`GET /api/android/<applicationId>.json`, the appstore repo's `AndroidManifest`, `schema: 1`) and, when the installed versionCode is behind, shows a native alert whose Update button opens the store's install page in the browser, which installs the APK. Below `minSupportedVersionCode` the alert has no Later and returns on every foreground. It runs only on a production Android install whose installer isn't Google Play (a Kotlin `installerPackageName()`; null counts as sideloaded), at most every 12 hours, with a 5 s timeout, silent on any failure. It is one self-contained folder (deps: expo-application, expo-secure-store, zod) because every fork that ships an APK copies it, so it reads the production variant from the application id itself (the same `.dev` / `.preview` rule as `src/lib/app-config.ts`) rather than importing the app's file. It's native code, so it changes the Android fingerprint once; iOS is untouched (`platforms: ["android"]`, `requireOptionalNativeModule` is null there).
